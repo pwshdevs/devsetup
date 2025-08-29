@@ -69,7 +69,7 @@ Function Export-DevSetupEnv {
         Write-Host "EnvName sanitized from '$Name' to '$sanitizedEnvName' (removed non-alphanumeric characters)" -ForegroundColor Yellow
     }
     $Name = $sanitizedEnvName
-    $OutFile = Join-Path -Path (Get-DevSetupEnvPath) -ChildPath "$Name.yaml"
+    $OutFile = Join-Path -Path (Get-DevSetupLocalEnvPath) -ChildPath "$Name.devsetup"
     $config = Write-NewConfig -OutFile $OutFile
     if (-not $config) {
         Write-Error "Failed to create configuration file"

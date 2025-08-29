@@ -13,7 +13,7 @@ BeforeAll {
 Describe "Install-PowershellModules" {
 
     Context "When YAML configuration is missing PowerShell modules" {
-        It "Should return false and warn" {
+        It "Should return false" {
             $yamlData = @{ devsetup = @{ dependencies = @{ powershell = @{ } } } }
             $result = Install-PowershellModules -YamlData $yamlData
             $result | Should -Be $false
@@ -21,7 +21,7 @@ Describe "Install-PowershellModules" {
     }
 
     Context "When YAML configuration is missing dependencies" {
-        It "Should return false and warn" {
+        It "Should return false" {
             $yamlData = @{ devsetup = @{ } }
             $result = Install-PowershellModules -YamlData $yamlData
             $result | Should -Be $false

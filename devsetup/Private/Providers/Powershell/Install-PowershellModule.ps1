@@ -68,9 +68,6 @@
     - Uses parameter splatting for reliable `Install-Module` execution.
 
 .LINK
-    Test-PowershellModuleInstalled
-    Uninstall-PowershellModule
-    Install-Module
 
 .COMPONENT
     DevSetup.Providers.PowerShell

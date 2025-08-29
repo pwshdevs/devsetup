@@ -8,8 +8,8 @@ Function Optimize-DevSetupEnvs {
         }
         
         # Get all YAML files in the environments path
-        $yamlFiles = Get-ChildItem -Path $envPath -Filter "*.yaml" -File
-        if (-not $yamlFiles) {
+        $devsetupEnvFiles = Get-ChildItem -Path $envPath -Filter "*.devsetup" -File -Recurse
+        if (-not $devsetupEnvFiles) {
             #Write-Host "No YAML environment files found in: $envPath" -ForegroundColor Yellow
             Write-StatusMessage "- Indexing 0 environment files" -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline | Out-Null
             Write-StatusMessage "[OK]" -ForegroundColor Green | Out-Null
@@ -17,19 +17,19 @@ Function Optimize-DevSetupEnvs {
         }
         
         #Write-Host "Found $($yamlFiles.Count) environment file(s) to process..." -ForegroundColor Cyan
-        Write-StatusMessage "- Indexing $($yamlFiles.Count) environment files" -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline | Out-Null
+        Write-StatusMessage "- Indexing $($devsetupEnvFiles.Count) environment files" -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline | Out-Null
 
         $environments = @()
         
-        foreach ($yamlFile in $yamlFiles) {
+        foreach ($devsetupEnvFile in $devsetupEnvFiles) {
             try {
-                Write-Debug "Processing: $($yamlFile.Name)"
+                Write-Debug "Processing: $($devsetupEnvFile.Name)"
                 
                 # Read the YAML configuration
-                $config = Read-ConfigurationFile -Config $yamlFile.FullName
+                $config = Read-ConfigurationFile -Config $devsetupEnvFile.FullName
                 
                 # Extract environment name (filename without extension)
-                $envName = [System.IO.Path]::GetFileNameWithoutExtension($yamlFile.Name)
+                $envName = [System.IO.Path]::GetFileNameWithoutExtension($devsetupEnvFile.Name)
                 
                 # Extract platform information
                 $platform = $null
@@ -42,13 +42,20 @@ Function Optimize-DevSetupEnvs {
                 if ($config -and $config.devsetup -and $config.devsetup.configuration -and $config.devsetup.configuration -and $config.devsetup.configuration.version) {
                     $version = $config.devsetup.configuration.version
                 }
+
+                $provider = ($devsetupEnvFile.FullName.Split([System.IO.Path]::DirectorySeparatorChar))[-2]
+
+                if($provider -ne 'local') {
+                    $envName = $provider + ":" + $envName
+                }
                 
                 # Create environment entry
                 $envEntry = @{
                     name = $envName
                     platform = $platform
                     version = $version
-                    file = $yamlFile.Name
+                    file = $devsetupEnvFile.Name
+                    provider = $provider
                 }
                 
                 $environments += $envEntry
@@ -56,7 +63,7 @@ Function Optimize-DevSetupEnvs {
                 Write-Debug "  - Name: $envName, Version: $version, Platform: $platformDisplay"
             }
             catch {
-                Write-Warning "Failed to process $($yamlFile.Name): $_"
+                Write-Warning "Failed to process $($devsetupEnvFile.Name): $_"
                 continue
             }
         }

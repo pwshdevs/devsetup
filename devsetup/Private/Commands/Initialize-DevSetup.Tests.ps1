@@ -7,10 +7,13 @@ BeforeAll {
     Mock Write-Error { }
     Mock Write-Verbose { }
     Mock Install-CoreDependencies { $true }
-    Mock Get-DevSetupPath { "C:\Users\Test\.devsetup" }
+    Mock Get-DevSetupPath { "TestDrive:\Users\Test\devsetup" }
+    Mock Get-DevSetupEnvPath { "TestDrive:\Users\Test\devsetup\envs" }
+    Mock Get-DevSetupLocalEnvPath { "TestDrive:\Users\Test\devsetup\envs\local" }
+    Mock Get-DevSetupCommunityEnvPath { "TestDrive:\Users\Test\devsetup\envs\community" }
     Mock Test-Path { $false }
     Mock New-Item { }
-    Mock Initialize-DevSetupEnvs { "C:\Users\Test\.devsetup\envs" }
+    Mock Initialize-DevSetupEnvs { "TestDrive:\Users\Test\devsetup\envs" }
 }
 
 Describe "Initialize-DevSetup" {

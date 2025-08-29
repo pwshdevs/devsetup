@@ -2,7 +2,8 @@ BeforeAll {
     . $PSScriptRoot\Export-DevSetupEnv.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Write-NewConfig.ps1
-    Mock Get-DevSetupEnvPath { "C:\DevSetupEnvs" }
+    Mock Get-DevSetupEnvPath { "TestDrive:\DevSetupEnvs" }
+    Mock Get-DevSetupLocalEnvPath { "TestDrive:\DevSetupEnvs\local"}
     Mock Write-NewConfig { param($OutFile) $OutFile }
     Mock Write-Host { }
     Mock Write-Error { }
@@ -13,8 +14,8 @@ Describe "Export-DevSetupEnv" {
     Context "When called with a valid name" {
         It "Should create the config file and return its path" {
             $result = Export-DevSetupEnv -Name "MyEnv"
-            $result | Should -Be "C:\DevSetupEnvs\MyEnv.yaml"
-            Assert-MockCalled Write-NewConfig -Exactly 1 -Scope It -ParameterFilter { $OutFile -eq "C:\DevSetupEnvs\MyEnv.yaml" }
+            $result | Should -Be "TestDrive:\DevSetupEnvs\local\MyEnv.devsetup"
+            Assert-MockCalled Write-NewConfig -Exactly 1 -Scope It -ParameterFilter { $OutFile -eq "TestDrive:\DevSetupEnvs\local\MyEnv.devsetup" }
             Assert-MockCalled Write-Host -Scope It -ParameterFilter { $Object -match "exported to" -and $ForegroundColor -eq "Green" }
         }
     }
@@ -22,7 +23,7 @@ Describe "Export-DevSetupEnv" {
     Context "When called with a name that needs sanitization" {
         It "Should sanitize the name and warn" {
             $result = Export-DevSetupEnv -Name "Data Science Environment!"
-            $result | Should -Be "C:\DevSetupEnvs\DataScienceEnvironment.yaml"
+            $result | Should -Be "TestDrive:\DevSetupEnvs\local\DataScienceEnvironment.devsetup"
             Assert-MockCalled Write-Host -Scope It -ParameterFilter { $Object -match "sanitized" -and $ForegroundColor -eq "Yellow" }
         }
     }

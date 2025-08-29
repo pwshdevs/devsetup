@@ -9,6 +9,6 @@ Describe "Get-DevSetupPath" {
     }
     It "should return the correct devsetup for the current user" {
         $envPath = Get-DevSetupPath
-        $envPath | Should -Be "TestDrive:\Users\Test User\.devsetup"
+        $envPath | Should -Be "TestDrive:\Users\Test User\devsetup"
     }
 }

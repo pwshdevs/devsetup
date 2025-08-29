@@ -57,17 +57,64 @@
 Function Install-DevSetupEnv {
     [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$true, Position=0)]
-        [string]$Name
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName = "Install")]
+        [string]$Name,
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName = "InstallPath")]
+        [string]$Path,
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName = "InstallUrl")]
+        [string]$Url
     )
 
-    $YamlFile = Join-Path -Path (Get-DevSetupEnvPath) -ChildPath "$Name.yaml"
+    $YamlFile = $null
+
+    if($PSBoundParameters.ContainsKey('Name')) {
+        $Provider = "local"
+
+        if($Name -like "*:*") {
+            $parts = $Name.Split(":")
+            $Name = $parts[1];
+            $Provider = $parts[0]
+        }
+
+        $YamlFile = Join-Path -Path (Join-Path -Path (Get-DevSetupEnvPath) -ChildPath $Provider) -ChildPath "$Name.devsetup"
+    } elseif($PSBoundParameters.ContainsKey('Path')) {
+        if(-not (Test-Path -Path $Path)) {
+            Write-Error "Invalid Path provided"
+            return
+        }
+        $YamlFile = $Path
+    } elseif($PSBoundParameters.ContainsKey('Url')) {
+        $FileName = Split-Path $Url -Leaf
+        Write-Host "Downloading DevSetup environment from:" -ForegroundColor Cyan
+        Write-Host "- $Url" -ForegroundColor Gray
+        $YamlFile = Join-Path -Path (Get-DevSetupLocalEnvPath) -ChildPath $FileName
+        Write-Host "Saving Devsetup environment file to:" -ForegroundColor Cyan
+        Write-Host "- $YamlFile" -ForegroundColor Gray
+        if((Test-Path -Path $YamlFile)) {
+            Write-Warning "File $YamlFile already exists"
+            do { 
+                if(($sAnswer = Read-Host "Overwrite existing file and continue? [Y/N]") -eq '') { $sAnswer = 'N' }
+            } until ($sAnswer.ToUpper()[0] -match '[yYnN]')
+            if(-not ($sAnswer.ToUpper()[0] -match '[Y]')) {
+                return
+            }
+        }
+        try {
+            Invoke-WebRequest -Uri $Url -OutFile $YamlFile | Out-Null
+        } catch {
+            Write-Error "Failed to download devsetup env file"
+            return
+        }
+    }
+
     if (-not (Test-Path $YamlFile)) {
         Write-Error "Environment file not found: $YamlFile"
         return
     }
 
-    Write-Host "Installing DevSetup environment from: $YamlFile" -ForegroundColor Cyan
+    Write-Host "Installing DevSetup environment from:" -ForegroundColor Cyan
+    Write-Host "- $YamlFile" -ForegroundColor Gray
+    Write-Host ""
 
     # Read the configuration from the YAML file
     $YamlData = Read-ConfigurationFile -Config $YamlFile

@@ -2,6 +2,8 @@ Function Initialize-DevSetupEnvs {
     try {
         # Define environments repository path
         $environmentsPath = Get-DevSetupEnvPath
+        $localEnvironmentsPath = Get-DevSetupLocalEnvPath
+        $communityEnvironmentsPath = Get-DevSetupCommunityEnvPath
         
         # Get the environments repository URL from the manifest
         $manifest = Get-DevSetupManifest
@@ -51,23 +53,35 @@ Function Initialize-DevSetupEnvs {
             $repositoryUrl = $environmentsProjectUri
         }
 
+        if(-not (Test-Path $environmentsPath)) {
+            New-Item -Path $environmentsPath -Type Directory | Out-Null
+        }
+
+        if(-not (Test-Path $localEnvironmentsPath)) {
+            New-Item -Path $localEnvironmentsPath -Type Directory | Out-Null
+        }
+
+
         # Clone the environments repository if it doesn't exist
-        if (-not (Test-Path -Path $environmentsPath)) {
+        if (-not (Test-Path -Path $communityEnvironmentsPath)) {
             Write-StatusMessage "- Cloning $repositoryUrl" -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline
-            Install-GitRepository -RepositoryUrl $repositoryUrl -DestinationPath $environmentsPath -UpdateExisting:$true *>$null
+            Install-GitRepository -RepositoryUrl $repositoryUrl -DestinationPath $communityEnvironmentsPath -UpdateExisting:$true *>$null
             if($LASTEXITCODE -ne 0) {
                 Write-StatusMessage "[Failed]" -ForegroundColor Red
             } else {
                 Write-StatusMessage "[OK]" -ForegroundColor Green
             }
         } else {
-            Write-Verbose "Environments repository already exists at: $environmentsPath"
+            Write-Verbose "Environments repository already exists at: $communityEnvironmentsPath"
         }
         
         Optimize-DevSetupEnvs | Out-Null
 
         # Return the path for use by other functions
-        return $environmentsPath
+        return @{
+            Local = $localEnvironmentsPath
+            Community = $communityEnvironmentsPath
+        }
     }
     catch {
         Write-Error "Failed to initialize DevSetup environment: $_"

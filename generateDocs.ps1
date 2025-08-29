@@ -30,11 +30,10 @@ try {
         -PowerShellVersion $manifest.PowerShellVersion `
         -FunctionsToExport $functionNames `
         -CmdletsToExport $manifest.CmdletsToExport `
-        -VariablesToExport $manifest.VariablesToExport `
-        -AliasesToExport $manifest.AliasesToExport
+        -VariablesToExport $manifest.VariablesToExport
 
-    $markdownPath = '.\docs'
-    $mamlPath = '.\en-US'
+    $markdownPath = '.\DevSetup\docs'
+    $mamlPath = '.\DevSetup\en-US'
 
     # Import module by manifest path instead of name
     $importedModule = Import-Module -Name $manifestPath -Force -PassThru

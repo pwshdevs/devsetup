@@ -127,9 +127,9 @@ Function Install-ScoopComponents {
         }
 
         $bucketCount = 0
+        Write-StatusMessage "- Installing Scoop buckets from configuration:" -ForegroundColor Cyan
         # Handle buckets first if they exist in configuration
         if ($YamlData.devsetup.dependencies.scoop.buckets) {
-            Write-StatusMessage "- Installing Scoop buckets from configuration:" -ForegroundColor Cyan
             foreach ($bucket in $YamlData.devsetup.dependencies.scoop.buckets) {
                 if (-not $bucket) { continue }
                 
@@ -147,9 +147,9 @@ Function Install-ScoopComponents {
 
                 # Use Install-ScoopBucket function to handle bucket installation
                 if ($bucketName -and $bucketSource) {
-                    Write-StatusMessage "- Adding Scoop bucket: $bucketName (source: $bucketSource)" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewLine
+                    Write-StatusMessage "- Adding Scoop bucket: $bucketName (source: $bucketSource)" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewLine
                 } else {
-                    Write-StatusMessage "- Adding Scoop bucket: $bucketName" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewLine
+                    Write-StatusMessage "- Adding Scoop bucket: $bucketName" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewLine
                 }
                 
                 $installationStatus = Install-ScoopBucket @installParams
@@ -193,7 +193,7 @@ Function Install-ScoopComponents {
             
             # Validate package name
             if ([string]::IsNullOrEmpty($packageObj.name)) {
-                Write-StatusMessage "- Skipping package entry, No name specified" -Verbosity "Warning" -Indent 2 -Width 100
+                Write-StatusMessage "- Skipping package entry, No name specified" -Verbosity "Warning" -Indent 2 -Width 112
                 continue
             }
             
@@ -228,9 +228,9 @@ Function Install-ScoopComponents {
                     $parts = @($versionDisplay, $bucketDisplay, $globalDisplay) | Where-Object { $_ }
                     $displayName += " (" + ($parts -join ", ") + ")"
                 }
-                Write-StatusMessage "- Installing Scoop package: $displayName" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewLine
+                Write-StatusMessage "- Installing Scoop package: $displayName" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewLine
 
-                $result = Install-ScoopPackage @installParams
+                ($result = Install-ScoopPackage @installParams) | Out-Null
                 
                 if (-not $result) {
                     Write-StatusMessage "[FAILED]" -ForegroundColor Red

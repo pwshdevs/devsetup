@@ -33,7 +33,7 @@ Function Use-DevSetup {
     .PARAMETER Url
     The URL of a remote configuration file to install. Used with the Install action for remote installations.
 
-    .PARAMETER FilePath
+    .PARAMETER Path
     The local file path to a configuration file to install. Used with the Install action for local file installations.
 
     .PARAMETER Platform
@@ -69,19 +69,19 @@ Function Use-DevSetup {
     Installs the development environment using the "WebDev" configuration from local configurations.
 
     .EXAMPLE
-    Use-DevSetup -Install -Url "https://raw.githubusercontent.com/user/configs/main/webdev.yaml"
+    Use-DevSetup -Install -Url "https://raw.githubusercontent.com/user/configs/main/webdev.devsetup"
     
     Installs a development environment from a remote configuration file URL.
 
     .EXAMPLE
-    Use-DevSetup -Install -FilePath "C:\Configs\MySetup.yaml"
+    Use-DevSetup -Install -Path "C:\Configs\MySetup.devsetup"
     
     Installs a development environment from a local configuration file path.
 
     .EXAMPLE
-    Use-DevSetup -Update -Name "WebDev"
+    Use-DevSetup -Update
     
-    Updates the existing "WebDev" development environment with any new packages or changes.
+    Updates the devsetup system with any new environments or changes.
 
     .EXAMPLE
     Use-DevSetup -Export -Name "MyCurrentSetup"
@@ -99,7 +99,7 @@ Function Use-DevSetup {
     - Supports three installation methods:
       * By Name: Uses local configuration files from the DevSetup directory
       * By URL: Downloads and installs from a remote configuration file
-      * By FilePath: Installs from a local file path outside the DevSetup directory
+      * By Path: Installs from a local file path outside the DevSetup directory
     - The function validates input and provides appropriate error messages for invalid combinations
     - Displays formatted progress headers with color-coded output for better user experience
     - Includes comprehensive try-catch error handling with descriptive error messages
@@ -117,7 +117,7 @@ Function Use-DevSetup {
     Param(
         [Parameter(Mandatory = $true, ParameterSetName = "Install")]
         [Parameter(Mandatory = $true, ParameterSetName = "InstallUrl")]
-        [Parameter(Mandatory = $true, ParameterSetName = "InstallFilePath")]
+        [Parameter(Mandatory = $true, ParameterSetName = "InstallPath")]
         [switch]$Install,
         
         [Parameter(Mandatory = $true, ParameterSetName = "Update")]
@@ -136,7 +136,6 @@ Function Use-DevSetup {
         [switch]$Uninstall,
         
         [Parameter(Mandatory = $true, ParameterSetName = "Install")]
-        [Parameter(Mandatory = $true, ParameterSetName = "Update")]
         [Parameter(Mandatory = $true, ParameterSetName = "Export")]
         [Parameter(Mandatory = $true, ParameterSetName = "Uninstall")]
         [string]$Name,
@@ -144,8 +143,8 @@ Function Use-DevSetup {
         [Parameter(Mandatory = $true, ParameterSetName = "InstallUrl")]
         [string]$Url,
         
-        [Parameter(Mandatory = $true, ParameterSetName = "InstallFilePath")]
-        [string]$FilePath,
+        [Parameter(Mandatory = $true, ParameterSetName = "InstallPath")]
+        [string]$Path,
         
         [Parameter(Mandatory = $false, ParameterSetName = "List")]
         [string]$Platform = "current"
@@ -318,12 +317,14 @@ Function Use-DevSetup {
 
         
         $actionDisplay = switch ($selectedAction) {
-            'install'   { ">> INSTALLING Development Environment" }
-            'update'    { ">> UPDATING Development Environment" }
-            'init'      { ">> INITIALIZING DevSetup System" }
-            'export'    { ">> EXPORTING Current Configuration" }
-            'list'      { ">> LISTING Available Environments" }
-            'uninstall' { ">> UNINSTALLING Development Environment" }
+            'install'       { ">> INSTALLING Development Environment" }
+            'installpath'   { ">> INSTALLING Development Environment From Path" }
+            'installurl'    { ">> INSTALLING Development Environment From Url" }
+            'update'        { ">> UPDATING DevSetup System" }
+            'init'          { ">> INITIALIZING DevSetup System" }
+            'export'        { ">> EXPORTING Current Configuration" }
+            'list'          { ">> LISTING Available Environments" }
+            'uninstall'     { ">> UNINSTALLING Development Environment" }
         }
 
         $paddedAction = $actionDisplay.PadLeft(($actionDisplay.Length + 118) / 2).PadRight(118)
@@ -334,16 +335,18 @@ Function Use-DevSetup {
         Write-Host ""
         
         switch ($selectedAction) {
-            'install' {
+            {$_ -eq 'install' -or $_ -eq 'installpath' -or $_ -eq 'installurl'} {
                 Write-Host "Installing development environment..." -ForegroundColor Yellow
-                Install-DevSetupEnv -Name $Name
+                $ParameterCopy = [hashtable]$PSBoundParameters
+                $ParameterCopy.Remove('Install')
+                Install-DevSetupEnv @ParameterCopy
             }
             'update' {
-                Write-Host "Updating development environment..." -ForegroundColor Yellow
-                # TODO: Implement update logic
+                Write-Host "Updating devsetup system..." -ForegroundColor Yellow
+                Update-DevSetup | Out-Null
             }
             'init' {
-                Write-Host "Initializing DevSetup environment..." -ForegroundColor Yellow
+                Write-Host "Initializing DevSetup system..." -ForegroundColor Yellow
                 Initialize-DevSetup | Out-Null
             }
             'export' {
