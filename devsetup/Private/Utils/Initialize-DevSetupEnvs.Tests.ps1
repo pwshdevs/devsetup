@@ -24,6 +24,8 @@ BeforeAll {
     Mock Optimize-DevSetupEnvs { }
     Mock Write-Error { }
     Mock Write-Verbose { }
+    Mock Get-DevSetupLocalEnvPath { "TestDrive:\DevSetupEnvs\environments\local" }
+    Mock Get-DevSetupCommunityEnvPath { "TestDrive:\DevSetupEnvs\environments\community" }
 }
 
 Describe "Initialize-DevSetupEnvs" {
@@ -76,11 +78,13 @@ Describe "Initialize-DevSetupEnvs" {
                 }
             }
             $result = Initialize-DevSetupEnvs
-            $result | Should -Be "TestDrive:\DevSetupEnvs"
-            Assert-MockCalled Test-Path -Scope It -Exactly 1
+            $result | Should -BeOfType [hashtable]
+            $result.local | Should -Be "TestDrive:\DevSetupEnvs\environments\local"
+            $result.community | Should -Be "TestDrive:\DevSetupEnvs\environments\community"
+            Assert-MockCalled Test-Path -Scope It -Exactly 3
             Assert-MockCalled Get-GithubRepository -Scope It -Exactly 0
             Assert-MockCalled Write-Verbose -Scope It -Exactly 0 -ParameterFilter { $Message -match "Environments repository already exists*" }
-            #Assert-MockCalled Write-StatusMessage -Scope It -Exactly 1
+            Assert-MockCalled Write-StatusMessage -Scope It -Exactly 2
             #Assert-MockCalled Install-GitRepository -Scope It -ParameterFilter { $RepositoryUrl -eq "https://github.com/example/envrepo.git" }
         }
     }
@@ -89,7 +93,9 @@ Describe "Initialize-DevSetupEnvs" {
         It "Should not clone and should write verbose" {
             Mock Test-Path { $true }
             $result = Initialize-DevSetupEnvs
-            $result | Should -Be "TestDrive:\DevSetupEnvs"
+            $result | Should -BeOfType [hashtable]
+            $result.local | Should -Be "TestDrive:\DevSetupEnvs\environments\local"
+            $result.community | Should -Be "TestDrive:\DevSetupEnvs\environments\community"
             Assert-MockCalled Install-GitRepository -Times 0 -Scope It
             Assert-MockCalled Write-Verbose -Scope It -ParameterFilter { $Message -match "already exists" }
         }

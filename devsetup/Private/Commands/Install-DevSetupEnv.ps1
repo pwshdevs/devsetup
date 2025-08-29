@@ -57,11 +57,36 @@
 Function Install-DevSetupEnv {
     [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$true, Position=0)]
-        [string]$Name
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName = "Install")]
+        [string]$Name,
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName = "InstallPath")]
+        [string]$Path,
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName = "InstallUrl")]
+        [string]$Url
     )
 
-    $YamlFile = Join-Path -Path (Get-DevSetupEnvPath) -ChildPath "$Name.yaml"
+    $YamlFile = $null
+
+    if($PSBoundParameters.ContainsKey('Name')) {
+        $Provider = "local"
+
+        if($Name -like "*:*") {
+            $parts = $Name.Split(":")
+            $Name = $parts[1];
+            $Provider = $parts[0]
+        }
+
+        $YamlFile = Join-Path -Path (Join-Path -Path (Get-DevSetupEnvPath) -ChildPath $Provider) -ChildPath "$Name.devsetup"
+    } elseif($PSBoundParameters.ContainsKey('Path')) {
+        if(-not (Test-Path -Path $Path)) {
+            Write-Error "Invalid Path provided"
+            return
+        }
+        $YamlFile = $Path
+    } elseif($PSBoundParameters.ContainsKey('Url')) {
+        
+    }
+
     if (-not (Test-Path $YamlFile)) {
         Write-Error "Environment file not found: $YamlFile"
         return

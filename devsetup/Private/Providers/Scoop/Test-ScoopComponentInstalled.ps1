@@ -64,9 +64,6 @@
     - Returns `[InstalledState]::NotInstalled` for missing components.
 
 .LINK
-    Read-ScoopCache
-    Find-Scoop
-    Test-ScoopInstalled
 
 .COMPONENT
     DevSetup.Providers.Scoop

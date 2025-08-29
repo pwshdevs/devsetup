@@ -98,10 +98,10 @@ Function Initialize-DevSetup {
         Write-Host "Path Information: " -ForegroundColor Yellow
         Write-Host "- DevSetup:" -ForegroundColor Cyan
         Write-Host "  - $devSetupPath" -ForegroundColor Gray
-        Write-Host "- Community Environments: " -ForegroundColor Cyan
-        Write-Host "  - $envSetupPath" -ForegroundColor Gray
         Write-Host "- Local Environments: " -ForegroundColor Cyan
-        Write-Host "  - $envSetupPath" -ForegroundColor Gray
+        Write-Host "  - $($envSetupPath.Local)" -ForegroundColor Gray
+        Write-Host "- Community Environments: " -ForegroundColor Cyan
+        Write-Host "  - $($envSetupPath.Community)" -ForegroundColor Gray        
         Write-Host ""
 
         # Return the path for use by other functions

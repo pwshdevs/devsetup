@@ -19,24 +19,10 @@
     Installs Scoop package manager on the current system.
 
 .EXAMPLE
-    ```poweshell
-    $result = Install-Scoop
-    if ($result) {
-        Write-Host "Scoop installation completed successfully"
-    } else {
-        Write-Host "Scoop installation verification failed"
-    }
-    ```
-    
-    Demonstrates checking the return value after installation.
-
-.EXAMPLE
-    ```powershell
     if (-not (Test-ScoopInstalled)) {
         Install-Scoop
         Write-Host "Scoop is now available for package management"
     }
-    ```
     
     Shows conditional installation only when Scoop is not already present.
 
