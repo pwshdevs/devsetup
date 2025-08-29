@@ -336,7 +336,9 @@ Function Use-DevSetup {
         switch ($selectedAction) {
             'install' {
                 Write-Host "Installing development environment..." -ForegroundColor Yellow
-                Install-DevSetupEnv @PSBoundParameters
+                $ParameterCopy = [hashtable]$PSBoundParameters
+                $ParameterCopy.Remove('Install')
+                Install-DevSetupEnv @ParameterCopy
             }
             'update' {
                 Write-Host "Updating development environment..." -ForegroundColor Yellow
