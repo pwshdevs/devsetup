@@ -64,7 +64,16 @@ Function Uninstall-DevSetupEnv {
     )
 
     try {
-        $YamlFile = Join-Path -Path (Get-DevSetupEnvPath) -ChildPath "$Name.yaml"
+        $Provider = "local"
+
+        if($Name -like "*:*") {
+            $parts = $Name.Split(":")
+            $Name = $parts[1];
+            $Provider = $parts[0]
+        }
+
+        $YamlFile = Join-Path -Path (Join-Path -Path (Get-DevSetupEnvPath) -ChildPath $Provider) -ChildPath "$Name.devsetup"        
+        #$YamlFile = Join-Path -Path (Get-DevSetupEnvPath) -ChildPath "$Name.yaml"
         if (-not (Test-Path $YamlFile)) {
             Write-Error "Environment file not found: $YamlFile"
             return
