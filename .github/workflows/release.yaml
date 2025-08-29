@@ -1,0 +1,39 @@
+name: Publish release
+
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to the main branch
+
+jobs:
+  publish_release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create Version
+        uses: dexwritescode/release-on-merge-action@v1 # Or another suitable action
+        id: version_tracker
+        with:
+          version-increment-strategy: patch
+          dry-run: true
+          initial-version: '1.0.0'
+
+      - name: Modify the file
+        run: |
+          perl -pi -e 's/0\.0\.0/${{ steps.version_tracker.outputs.version }}' DevSetup.psd1
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Automated Release Tagging for ${{ steps.version_tracker.outputs.version }} in DevSetup.psd1"
+          branch: main
+
+      - name: Create Tagged Release
+        uses: dexwritescode/release-on-merge-action@v1 # Or another suitable action
+        with:
+          version-increment-strategy: patch                  
