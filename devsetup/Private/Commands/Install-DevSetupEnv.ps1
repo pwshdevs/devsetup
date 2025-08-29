@@ -84,7 +84,27 @@ Function Install-DevSetupEnv {
         }
         $YamlFile = $Path
     } elseif($PSBoundParameters.ContainsKey('Url')) {
-        
+        $FileName = Split-Path $Url -Leaf
+        Write-Host "Downloading DevSetup environment from:" -ForegroundColor Cyan
+        Write-Host "- $Url" -ForegroundColor Gray
+        $YamlFile = Join-Path -Path (Get-DevSetupLocalEnvPath) -ChildPath $FileName
+        Write-Host "Saving Devsetup environment file to:" -ForegroundColor Cyan
+        Write-Host "- $YamlFile" -ForegroundColor Gray
+        if((Test-Path -Path $YamlFile)) {
+            Write-Warning "File $YamlFile already exists"
+            do { 
+                if(($sAnswer = Read-Host "Overwrite existing file and continue? [Y/N]") -eq '') { $sAnswer = 'N' }
+            } until ($sAnswer.ToUpper()[0] -match '[yYnN]')
+            if(-not ($sAnswer.ToUpper()[0] -match '[Y]')) {
+                return
+            }
+        }
+        try {
+            Invoke-WebRequest -Uri $Url -OutFile $YamlFile | Out-Null
+        } catch {
+            Write-Error "Failed to download devsetup env file"
+            return
+        }
     }
 
     if (-not (Test-Path $YamlFile)) {
@@ -92,7 +112,9 @@ Function Install-DevSetupEnv {
         return
     }
 
-    Write-Host "Installing DevSetup environment from: $YamlFile" -ForegroundColor Cyan
+    Write-Host "Installing DevSetup environment from:" -ForegroundColor Cyan
+    Write-Host "- $YamlFile" -ForegroundColor Gray
+    Write-Host ""
 
     # Read the configuration from the YAML file
     $YamlData = Read-ConfigurationFile -Config $YamlFile

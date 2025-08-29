@@ -79,9 +79,9 @@ Function Use-DevSetup {
     Installs a development environment from a local configuration file path.
 
     .EXAMPLE
-    Use-DevSetup -Update -Name "WebDev"
+    Use-DevSetup -Update
     
-    Updates the existing "WebDev" development environment with any new packages or changes.
+    Updates the devsetup system with any new environments or changes.
 
     .EXAMPLE
     Use-DevSetup -Export -Name "MyCurrentSetup"
@@ -136,7 +136,6 @@ Function Use-DevSetup {
         [switch]$Uninstall,
         
         [Parameter(Mandatory = $true, ParameterSetName = "Install")]
-        [Parameter(Mandatory = $true, ParameterSetName = "Update")]
         [Parameter(Mandatory = $true, ParameterSetName = "Export")]
         [Parameter(Mandatory = $true, ParameterSetName = "Uninstall")]
         [string]$Name,
@@ -318,12 +317,14 @@ Function Use-DevSetup {
 
         
         $actionDisplay = switch ($selectedAction) {
-            'install'   { ">> INSTALLING Development Environment" }
-            'update'    { ">> UPDATING Development Environment" }
-            'init'      { ">> INITIALIZING DevSetup System" }
-            'export'    { ">> EXPORTING Current Configuration" }
-            'list'      { ">> LISTING Available Environments" }
-            'uninstall' { ">> UNINSTALLING Development Environment" }
+            'install'       { ">> INSTALLING Development Environment" }
+            'installpath'   { ">> INSTALLING Development Environment From Path" }
+            'installurl'    { ">> INSTALLING Development Environment From Url" }
+            'update'        { ">> UPDATING DevSetup System" }
+            'init'          { ">> INITIALIZING DevSetup System" }
+            'export'        { ">> EXPORTING Current Configuration" }
+            'list'          { ">> LISTING Available Environments" }
+            'uninstall'     { ">> UNINSTALLING Development Environment" }
         }
 
         $paddedAction = $actionDisplay.PadLeft(($actionDisplay.Length + 118) / 2).PadRight(118)
@@ -334,18 +335,18 @@ Function Use-DevSetup {
         Write-Host ""
         
         switch ($selectedAction) {
-            'install' {
+            {$_ -eq 'install' -or $_ -eq 'installpath' -or $_ -eq 'installurl'} {
                 Write-Host "Installing development environment..." -ForegroundColor Yellow
                 $ParameterCopy = [hashtable]$PSBoundParameters
                 $ParameterCopy.Remove('Install')
                 Install-DevSetupEnv @ParameterCopy
             }
             'update' {
-                Write-Host "Updating development environment..." -ForegroundColor Yellow
-                # TODO: Implement update logic
+                Write-Host "Updating devsetup system..." -ForegroundColor Yellow
+                Update-DevSetup | Out-Null
             }
             'init' {
-                Write-Host "Initializing DevSetup environment..." -ForegroundColor Yellow
+                Write-Host "Initializing DevSetup system..." -ForegroundColor Yellow
                 Initialize-DevSetup | Out-Null
             }
             'export' {

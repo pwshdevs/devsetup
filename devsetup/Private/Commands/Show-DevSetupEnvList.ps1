@@ -72,8 +72,9 @@ Function Show-DevSetupEnvList {
         [string]$Platform = "current"  # Default to current platform
     )
 
+
     Write-Host "Listing available development environments..." -ForegroundColor Yellow
-    
+
     # Determine the platform filter
     $platformFilter = $Platform.ToLower()
     if ($platformFilter -eq "current") {
@@ -93,7 +94,7 @@ Function Show-DevSetupEnvList {
     } else {
         Write-Host "Filtering for platform: $platformFilter" -ForegroundColor Gray
     }
-    
+
     # Get the environments.json file path
     $devSetupPath = Get-DevSetupPath
     $environmentsJsonPath = Join-Path -Path $devSetupPath -ChildPath "environments.json"
@@ -146,7 +147,7 @@ Function Show-DevSetupEnvList {
             Version = $versionDisplay
             Platform = $platformDisplay
             File = $env.file
-            Provider = "Local"
+            Provider = $env.provider
             Color = "DarkGray"
         }
     }

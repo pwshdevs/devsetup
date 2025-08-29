@@ -84,9 +84,12 @@ Function Install-PowershellModules {
     )
     
     try {
+        Write-StatusMessage "- Installing PowerShell modules from configuration:" -ForegroundColor Cyan
         # Check if PowerShell modules dependencies exist
         if (-not $YamlData -or -not $YamlData.devsetup -or -not $YamlData.devsetup.dependencies -or -not $YamlData.devsetup.dependencies.powershell -or -not $YamlData.devsetup.dependencies.powershell.modules) {
-            Write-Warning "PowerShell modules not found in YAML configuration. Skipping installation."
+            Write-Debug "PowerShell modules not found in YAML configuration. Skipping installation."
+            Write-StatusMessage "- PowerShell modules installation completed! Processed 0 modules." -ForegroundColor Green
+            Write-Host ""
             return $false
         }
         
@@ -103,7 +106,6 @@ Function Install-PowershellModules {
             throw "PowerShell module installation to AllUsers scope requires administrator privileges. Please run as administrator or set powershellModuleScope to CurrentUser."
         }
         
-        Write-StatusMessage "- Installing PowerShell modules from configuration:" -ForegroundColor Cyan
 
         $moduleCount = 0
         
@@ -138,9 +140,9 @@ Function Install-PowershellModules {
             
             if ($moduleObj.minimumVersion) {
                 $installParams.Version = $moduleObj.minimumVersion
-                Write-StatusMessage "- Installing PowerShell module: $($moduleObj.name) (version: $($moduleObj.minimumVersion), scope: $moduleScope)" -ForegroundColor Gray -Width 100 -NoNewLine -Indent 2
+                Write-StatusMessage "- Installing PowerShell module: $($moduleObj.name) (version: $($moduleObj.minimumVersion), scope: $moduleScope)" -ForegroundColor Gray -Width 112 -NoNewLine -Indent 2
             } else {
-                Write-StatusMessage "- Installing PowerShell module: $($moduleObj.name) (latest version) to $moduleScope scope" -ForegroundColor Gray -Width 100 -NoNewLine -Indent 2
+                Write-StatusMessage "- Installing PowerShell module: $($moduleObj.name) (latest version) to $moduleScope scope" -ForegroundColor Gray -Width 112 -NoNewLine -Indent 2
             }
             
             if ((Install-PowerShellModule @installParams)) {

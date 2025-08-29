@@ -133,9 +133,9 @@ Function Install-ChocolateyPackages {
             }
             if ($packageObj.version) {
                 $installParams.Version = $packageObj.version
-                Write-StatusMessage "- Installing Chocolatey package: $($packageObj.name) (version: $($packageObj.version))" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewline
+                Write-StatusMessage "- Installing Chocolatey package: $($packageObj.name) (version: $($packageObj.version))" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewline
             } else {
-                Write-StatusMessage "- Installing Chocolatey package: $($packageObj.name) (version: latest)" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewline
+                Write-StatusMessage "- Installing Chocolatey package: $($packageObj.name) (version: latest)" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewline
             }
 
             if($packageObj.params) {
