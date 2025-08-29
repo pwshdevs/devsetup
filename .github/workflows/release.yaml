@@ -38,4 +38,5 @@ jobs:
       - name: Create Tagged Release
         uses: dexwritescode/release-on-merge-action@v1 # Or another suitable action
         with:
-          version-increment-strategy: patch                  
+          version-increment-strategy: patch 
+          initial-version: '1.0.0'                           
