@@ -337,7 +337,7 @@ try {
     
     # Import the module to test it
     try {
-        Import-Module -Name "DevSetup" -Force -ErrorAction SilentlyContinue | Out-Null
+        Import-Module -Name "DevSetup" -Force -ErrorAction SilentlyContinue *>$null
         Write-Debug "DevSetup module imported successfully!"
         
         # Test a basic function
@@ -367,7 +367,7 @@ try {
     if ($ModuleFound) {
         # Force import in current session
         try {
-            Import-Module DevSetup -Force -Global -ErrorAction SilentlyContinue | Out-Null
+            Import-Module DevSetup -Force -Global -ErrorAction SilentlyContinue *> $null
             Write-Debug "DevSetup module loaded in current session."
         } catch {
             # Keep moving on
