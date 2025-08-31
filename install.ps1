@@ -95,6 +95,9 @@ function Right-Text($text, $width) {
 
 $successCheck = [char]0x2713
 
+Write-Host "DevSetup Module Installer" -ForegroundColor Cyan
+Write-Host "=========================" -ForegroundColor Cyan
+
 $Url = $null
 $VersionToInstall = $null
 if($PSBoundParameters.ContainsKey('Main')) {
@@ -128,29 +131,25 @@ $Archive = $null
 $ExtractedFolder = $null
 
 if($null -ne $Url) {
-    Write-StatusMessage "Validating Installation Type..." -Width 60 -ForegroundColor Gray -NoNewLine
+    Write-StatusMessage "- Validating Installation Type..." -Width 60 -ForegroundColor Gray -NoNewLine
     Write-StatusMessage (Right-Text "[$VersionToInstall]" 20) -ForegroundColor Green
 
     $Archive = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "devsetup.zip"
     $ExtractedFolder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "devsetup"
-    Write-StatusMessage "Downloading zipfile..." -Width 60 -ForegroundColor Gray -NoNewLine
+    Write-StatusMessage "- Downloading zipfile..." -Width 60 -ForegroundColor Gray -NoNewLine
     Invoke-WebRequest $url -OutFile $Archive
     Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
 
-    Write-StatusMessage "Extracting zipfile..." -Width 60 -ForegroundColor Gray -NoNewLine
+    Write-StatusMessage "- Extracting zipfile..." -Width 60 -ForegroundColor Gray -NoNewLine
     Expand-Archive -Path $Archive -DestinationPath $ExtractedFolder -Force
     Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
 
     $InstallerPath = (Get-ChildItem -Path $ExtractedFolder | Select-Object -First 1).FullName
     $DevSetupModulePath = Join-Path -Path $InstallerPath -ChildPath "DevSetup"
-    Write-Host ""
 } else {
     $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
     $DevSetupModulePath = Join-Path -Path $ScriptDirectory -ChildPath "DevSetup"
 }
-
-Write-Host "DevSetup Module Installer" -ForegroundColor Cyan
-Write-Host "=========================" -ForegroundColor Cyan
 
 try {
     $ProgressPreference = 'SilentlyContinue'
@@ -206,7 +205,8 @@ try {
         $ModuleVersion = "1.0.0"
     }
     
-    Write-Host "Installing DevSetup Module version: $ModuleVersion..." -ForegroundColor Yellow
+    Write-StatusMessage "- Installing DevSetup Version..." -Width 60 -NoNewLine -ForegroundColor Gray
+    Write-StatusMessage (Right-Text "[$($ModuleVersion)]" 20) -ForegroundColor Green
 
     Write-StatusMessage "- Checking PowerShell Version..." -Width 60 -NoNewLine -ForegroundColor Gray
     Write-StatusMessage (Right-Text "[$($PSVersionTable.PSVersion)]" 20) -ForegroundColor Green
@@ -337,7 +337,7 @@ try {
     }
     
     if($Url) {
-        Write-StatusMessage "Cleaning up temporary files..." -Width 60 -ForegroundColor Gray -NoNewLine
+        Write-StatusMessage "- Cleaning up temporary files..." -Width 60 -ForegroundColor Gray -NoNewLine
         Remove-Item -Path $Archive -Force
         Remove-Item -Path $ExtractedFolder -Recurse -Force
         Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green    
