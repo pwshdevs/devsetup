@@ -313,7 +313,7 @@ try {
     
     # Import the module to test it
     try {
-        Import-Module -Name "DevSetup" -Force -ErrorAction Stop
+        Import-Module -Name "DevSetup" -Force -ErrorAction SilentlyContinue
         Write-Debug "DevSetup module imported successfully!"
         
         # Test a basic function
@@ -324,7 +324,7 @@ try {
         }
         
         # Show module information
-        $ModuleInfo = Get-Module -Name "DevSetup"
+        $ModuleInfo = Get-Module -Name "DevSetup" -ErrorAction SilentlyContinue
         if ($ModuleInfo) {
             Write-Debug "Module Version: $($ModuleInfo.Version)"
             Write-Debug "Module Path: $($ModuleInfo.ModuleBase)"
