@@ -34,9 +34,10 @@ jobs:
         with:
           commit_message: "Automated Release Tagging for ${{ steps.version_tracker.outputs.version }} in DevSetup.psd1"
           branch: main
+          tagging_message: 'v${{ steps.version_tracker.outputs.version }}'
 
-      - name: Create Tagged Release
-        uses: dexwritescode/release-on-merge-action@v1 # Or another suitable action
-        with:
-          version-increment-strategy: patch 
-          initial-version: '1.0.0'                           
+      #- name: Create Tagged Release
+      #  uses: dexwritescode/release-on-merge-action@v1 # Or another suitable action
+      #  with:
+      #    version-increment-strategy: patch 
+      #    initial-version: '1.0.0'                           
