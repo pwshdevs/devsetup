@@ -1,4 +1,4 @@
-Add-Type -Language CSharp -TypeDefinition @"
+Add-Type -ErrorAction SilentlyContinue -IgnoreWarnings -Language CSharp -TypeDefinition @"
   [System.FlagsAttribute]
   public enum TaskState {
       Unknown         = 0,       

@@ -274,7 +274,6 @@ try {
     
     # Remove existing installation if it exists
     if (Test-Path $TargetModuleBasePath) {
-        Remove-Module -Name DevSetup
         Write-StatusMessage "- Removing existing DevSetup module versions..." -Width 60 -NoNewLine -ForegroundColor Gray
         Remove-Item -Path $TargetModuleBasePath -Recurse -Force | Out-Null
         Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
