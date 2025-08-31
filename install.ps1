@@ -1,7 +1,16 @@
 #Requires -Version 5.1
 
-[CmdletBinding()]
-param()
+[CmdletBinding(DefaultParameterSetName="ReleaseInstall")]
+param(
+    [Parameter(Mandatory=$true, ParameterSetName="SelfInstall")]
+    [switch]$Self,
+    [Parameter(Mandatory=$true, ParameterSetName="MainWebInstall")]
+    [switch]$Main,
+    [Parameter(Mandatory=$true, ParameterSetName="DevelopWebInstall")]
+    [switch]$Develop,
+    [Parameter(Mandatory=$false, ParameterSetName="ReleaseInstall")]
+    [string]$Version = "latest"
+)
 
 Function Write-StatusMessage {
     [CmdletBinding()]
@@ -85,6 +94,60 @@ function Right-Text($text, $width) {
 }
 
 $successCheck = [char]0x2713
+
+$Url = $null
+$VersionToInstall = $null
+if($PSBoundParameters.ContainsKey('Main')) {
+    # Install the main branch
+    $Url = "https://github.com/pwshdevs/devsetup/archive/main.zip"
+    $VersionToInstall = "main"
+} elseif($PSBoundParameters.ContainsKey('Develop')) {
+    # Install the develop branch
+    $Url = "https://github.com/pwshdevs/devsetup/archive/develop.zip"
+    $VersionToInstall = "develop"
+} elseif($PSBoundParameters.ContainsKey('Self')) {
+    # Install from the directory we are in
+    $Url = $null
+} else {
+    # Download the the most current release and install that
+    if($Version -eq "latest") {
+        $Url = ((Invoke-WebRequest https://api.github.com/repos/pwshdevs/devsetup/releases/latest -usebasicparsing).Content | convertfrom-json).zipball_url
+        $VersionToInstall = "latest"
+    } else {
+        $Url = ((Invoke-WebRequest https://api.github.com/repos/pwshdevs/devsetup/releases -usebasicparsing) | convertfrom-json) | foreach-object { if($_.tag_name -eq "v$Version") { $_.zipball_url }}
+        if([string]::IsNullOrEmpty($Url)) {
+            Write-Error "Invalid version provided"
+            return
+        }
+        $VersionToInstall = $Version
+    }
+}
+
+if($null -ne $Url) {
+    Write-StatusMessage "Validating Installation Type..." -Width 60 -ForegroundColor Gray -NoNewLine
+    Write-StatusMessage (Right-Text "[$VersionToInstall]" 20) -ForegroundColor Green
+
+    $Archive = New-TemporaryFile
+    $ExtractedFolder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "devsetup"
+    Write-StatusMessage "Downloading zipfile..." -Width 60 -ForegroundColor Gray -NoNewLine
+    Invoke-WebRequest $url -OutFile $Archive
+    Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
+
+    Write-StatusMessage "Extracting zipfile..." -Width 60 -ForegroundColor Gray -NoNewLine
+    Expand-Archive -Path $Archive -DestinationPath $ExtractedFolder -Force
+    Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
+
+    $InstallerPath = (Get-ChildItem -Path $ExtractedFolder | Select-Object -First 1)
+    $Installer = Join-Path -Path $InstallerPath -ChildPath "install.ps1"
+
+    & $Installer -Self
+
+    Write-StatusMessage "Cleaning up temporary files..." -Width 60 -ForegroundColor Gray -NoNewLine
+    Remove-Item -Path $Archive -Force
+    Remove-Item -Path $ExtractedFolder -Recurse -Force
+    Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
+    return
+}
 
 Write-Host "DevSetup Module Installer" -ForegroundColor Cyan
 Write-Host "=========================" -ForegroundColor Cyan
