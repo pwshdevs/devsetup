@@ -18,7 +18,7 @@ Function Export-VsCodeConfig {
         # Get list of installed extensions
         try {
             $command = {
-                & code --list-extensions 2>$null
+                & code --list-extensions --show-versions 2>$null
             }
             $extensionsOutput = Invoke-Command -ScriptBlock $command
             if ($LASTEXITCODE -ne 0) {
