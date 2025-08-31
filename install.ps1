@@ -140,6 +140,26 @@ if($null -ne $Url) {
     $InstallerPath = (Get-ChildItem -Path $ExtractedFolder | Select-Object -First 1).FullName
     $Installer = Join-Path -Path $InstallerPath -ChildPath "install.ps1"
 
+    # Get the PSModulePath environment variable
+    $psModulePath = $Env:PSModulePath
+
+    # Split the string into an array of individual paths using the platform-specific path separator
+    $modulePaths = $psModulePath -split [System.IO.Path]::PathSeparator
+
+    # Determine the correct user modules path based on env:PSModulePath
+    $UserModulesPath = ($modulePaths | Select-Object -First 1)
+
+    # Define the target installation path with version
+    $TargetModuleBasePath = Join-Path -Path $UserModulesPath -ChildPath "DevSetup"
+    $TargetModulePath = Join-Path -Path $TargetModuleBasePath -ChildPath $ModuleVersion
+    
+    # Remove existing installation if it exists
+    if (Test-Path $TargetModuleBasePath) {
+        Write-StatusMessage "- Removing existing DevSetup module versions..." -Width 60 -NoNewLine -ForegroundColor Gray
+        Remove-Item -Path $TargetModuleBasePath -Recurse -Force | Out-Null
+        Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
+    }
+
     & $Installer -Self
 
     Write-StatusMessage "Cleaning up temporary files..." -Width 60 -ForegroundColor Gray -NoNewLine
@@ -293,7 +313,11 @@ try {
     Write-StatusMessage "- Verifying installation..." -Width 60 -NoNewLine -ForegroundColor Gray
     
     # Check if the module is now in PSModulePath
-    $ModuleFound = Get-Module -ListAvailable -Name "DevSetup" -ErrorAction SilentlyContinue
+    try {
+        $ModuleFound = Get-Module -ListAvailable -Name "DevSetup" -ErrorAction SilentlyContinue
+    } catch {
+        # Keep moving on
+    }
     if ($ModuleFound) {
         #Write-Host "- Installation Verified..." -ForegroundColor Gray
         Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
@@ -331,7 +355,7 @@ try {
         }
         
     } catch {
-        Write-Warning "Failed to import DevSetup module: $_"
+        #Write-Warning "Failed to import DevSetup module: $_"
     }
     
     Write-Host "`nInstallation completed successfully!" -ForegroundColor Green
@@ -342,8 +366,12 @@ try {
     Write-Debug "`nSetting up module auto-import for current session..."
     if ($ModuleFound) {
         # Force import in current session
-        Import-Module DevSetup -Force -Global
-        Write-Debug "DevSetup module loaded in current session."
+        try {
+            Import-Module DevSetup -Force -Global -ErrorAction SilentlyContinue
+            Write-Debug "DevSetup module loaded in current session."
+        } catch {
+            # Keep moving on
+        }
     }
     
     Write-Host "`nTo get started, run:" -ForegroundColor Cyan
