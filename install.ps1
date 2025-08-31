@@ -160,7 +160,7 @@ if($null -ne $Url) {
         Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
     }
 
-    & $Installer -Self
+    & $Installer -Self -ErrorAction SilentlyContinue
 
     Write-StatusMessage "Cleaning up temporary files..." -Width 60 -ForegroundColor Gray -NoNewLine
     Remove-Item -Path $Archive -Force
@@ -337,7 +337,7 @@ try {
     
     # Import the module to test it
     try {
-        Import-Module -Name "DevSetup" -Force -ErrorAction SilentlyContinue
+        Import-Module -Name "DevSetup" -Force -ErrorAction SilentlyContinue | Out-Null
         Write-Debug "DevSetup module imported successfully!"
         
         # Test a basic function
@@ -367,7 +367,7 @@ try {
     if ($ModuleFound) {
         # Force import in current session
         try {
-            Import-Module DevSetup -Force -Global -ErrorAction SilentlyContinue
+            Import-Module DevSetup -Force -Global -ErrorAction SilentlyContinue | Out-Null
             Write-Debug "DevSetup module loaded in current session."
         } catch {
             # Keep moving on
