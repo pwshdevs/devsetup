@@ -123,6 +123,10 @@ if($PSBoundParameters.ContainsKey('Main')) {
     }
 }
 
+$DevSetupModulePath = $null
+$Archive = $null
+$ExtractedFolder = $null
+
 if($null -ne $Url) {
     Write-StatusMessage "Validating Installation Type..." -Width 60 -ForegroundColor Gray -NoNewLine
     Write-StatusMessage (Right-Text "[$VersionToInstall]" 20) -ForegroundColor Green
@@ -138,35 +142,11 @@ if($null -ne $Url) {
     Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
 
     $InstallerPath = (Get-ChildItem -Path $ExtractedFolder | Select-Object -First 1).FullName
-    $Installer = Join-Path -Path $InstallerPath -ChildPath "install.ps1"
-
-    # Get the PSModulePath environment variable
-    $psModulePath = $Env:PSModulePath
-
-    # Split the string into an array of individual paths using the platform-specific path separator
-    $modulePaths = $psModulePath -split [System.IO.Path]::PathSeparator
-
-    # Determine the correct user modules path based on env:PSModulePath
-    $UserModulesPath = ($modulePaths | Select-Object -First 1)
-
-    # Define the target installation path with version
-    $TargetModuleBasePath = Join-Path -Path $UserModulesPath -ChildPath "DevSetup"
-    $TargetModulePath = Join-Path -Path $TargetModuleBasePath -ChildPath $ModuleVersion
-    
-    # Remove existing installation if it exists
-    if (Test-Path $TargetModuleBasePath) {
-        Write-StatusMessage "- Removing existing DevSetup module versions..." -Width 60 -NoNewLine -ForegroundColor Gray
-        Remove-Item -Path $TargetModuleBasePath -Recurse -Force | Out-Null
-        Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
-    }
-
-    & $Installer -Self -ErrorAction SilentlyContinue
-
-    Write-StatusMessage "Cleaning up temporary files..." -Width 60 -ForegroundColor Gray -NoNewLine
-    Remove-Item -Path $Archive -Force
-    Remove-Item -Path $ExtractedFolder -Recurse -Force
-    Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
-    return
+    $DevSetupModulePath = Join-Path -Path $InstallerPath -ChildPath "DevSetup"
+    Write-Host ""
+} else {
+    $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $DevSetupModulePath = Join-Path -Path $ScriptDirectory -ChildPath "DevSetup"
 }
 
 Write-Host "DevSetup Module Installer" -ForegroundColor Cyan
@@ -175,8 +155,6 @@ Write-Host "=========================" -ForegroundColor Cyan
 try {
     $ProgressPreference = 'SilentlyContinue'
     # Get the script directory (where the DevSetup module should be)
-    $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $DevSetupModulePath = Join-Path -Path $ScriptDirectory -ChildPath "DevSetup"
 
     Write-Debug "Script directory: $ScriptDirectory"
     Write-Debug "DevSetup module path: $DevSetupModulePath"
@@ -337,7 +315,7 @@ try {
     
     # Import the module to test it
     try {
-        Import-Module -Name "DevSetup" -Force -ErrorAction SilentlyContinue *>$null
+        Import-Module -Name "DevSetup" -Force -ErrorAction SilentlyContinue
         Write-Debug "DevSetup module imported successfully!"
         
         # Test a basic function
@@ -358,6 +336,13 @@ try {
         #Write-Warning "Failed to import DevSetup module: $_"
     }
     
+    if($Url) {
+        Write-StatusMessage "Cleaning up temporary files..." -Width 60 -ForegroundColor Gray -NoNewLine
+        Remove-Item -Path $Archive -Force
+        Remove-Item -Path $ExtractedFolder -Recurse -Force
+        Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green    
+    }    
+
     Write-Host "`nInstallation completed successfully!" -ForegroundColor Green
     #Write-Host "Install Path:`n- $TargetModulePath`n" -ForegroundColor Gray
     Write-Host "You can now use DevSetup commands in any PowerShell session." -ForegroundColor White
@@ -367,7 +352,7 @@ try {
     if ($ModuleFound) {
         # Force import in current session
         try {
-            Import-Module DevSetup -Force -Global -ErrorAction SilentlyContinue *> $null
+            Import-Module DevSetup -Force -Global -ErrorAction SilentlyContinue
             Write-Debug "DevSetup module loaded in current session."
         } catch {
             # Keep moving on
