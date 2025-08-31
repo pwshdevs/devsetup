@@ -152,7 +152,7 @@ try {
     Write-StatusMessage "- Checking PowerShell Edition..." -Width 60 -NoNewLine -ForegroundColor Gray 
     Write-StatusMessage (Right-Text "[$($PSVersionTable.PSEdition)]" 20) -ForegroundColor Green
 
-    $nugetProvider = Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue
+    $nugetProvider = Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue -Force -ForceBootstrap
     
     Write-StatusMessage "- Installing NuGet Package Provider..." -Width 60 -NoNewLine -ForegroundColor Gray
     if ($nugetProvider) {
