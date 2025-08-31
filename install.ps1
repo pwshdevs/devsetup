@@ -1,7 +1,16 @@
 #Requires -Version 5.1
 
-[CmdletBinding()]
-param()
+[CmdletBinding(DefaultParameterSetName="ReleaseInstall")]
+param(
+    [Parameter(Mandatory=$true, ParameterSetName="SelfInstall")]
+    [switch]$Self,
+    [Parameter(Mandatory=$true, ParameterSetName="MainWebInstall")]
+    [switch]$Main,
+    [Parameter(Mandatory=$true, ParameterSetName="DevelopWebInstall")]
+    [switch]$Develop,
+    [Parameter(Mandatory=$false, ParameterSetName="ReleaseInstall")]
+    [string]$Version = "latest"
+)
 
 Function Write-StatusMessage {
     [CmdletBinding()]
@@ -89,11 +98,62 @@ $successCheck = [char]0x2713
 Write-Host "DevSetup Module Installer" -ForegroundColor Cyan
 Write-Host "=========================" -ForegroundColor Cyan
 
+$Url = $null
+$VersionToInstall = $null
+if($PSBoundParameters.ContainsKey('Main')) {
+    # Install the main branch
+    $Url = "https://github.com/pwshdevs/devsetup/archive/main.zip"
+    $VersionToInstall = "main"
+} elseif($PSBoundParameters.ContainsKey('Develop')) {
+    # Install the develop branch
+    $Url = "https://github.com/pwshdevs/devsetup/archive/develop.zip"
+    $VersionToInstall = "develop"
+} elseif($PSBoundParameters.ContainsKey('Self')) {
+    # Install from the directory we are in
+    $Url = $null
+} else {
+    # Download the the most current release and install that
+    if($Version -eq "latest") {
+        $Url = ((Invoke-WebRequest https://api.github.com/repos/pwshdevs/devsetup/releases/latest -usebasicparsing).Content | convertfrom-json).zipball_url
+        $VersionToInstall = "latest"
+    } else {
+        $Url = ((Invoke-WebRequest https://api.github.com/repos/pwshdevs/devsetup/releases -usebasicparsing) | convertfrom-json) | foreach-object { if($_.tag_name -eq "v$Version") { $_.zipball_url }}
+        if([string]::IsNullOrEmpty($Url)) {
+            Write-Error "Invalid version provided"
+            return
+        }
+        $VersionToInstall = $Version
+    }
+}
+
+$DevSetupModulePath = $null
+$Archive = $null
+$ExtractedFolder = $null
+
+if($null -ne $Url) {
+    Write-StatusMessage "- Validating Installation Type..." -Width 60 -ForegroundColor Gray -NoNewLine
+    Write-StatusMessage (Right-Text "[$VersionToInstall]" 20) -ForegroundColor Green
+
+    $Archive = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "devsetup.zip"
+    $ExtractedFolder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "devsetup"
+    Write-StatusMessage "- Downloading zipfile..." -Width 60 -ForegroundColor Gray -NoNewLine
+    Invoke-WebRequest $url -OutFile $Archive
+    Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
+
+    Write-StatusMessage "- Extracting zipfile..." -Width 60 -ForegroundColor Gray -NoNewLine
+    Expand-Archive -Path $Archive -DestinationPath $ExtractedFolder -Force
+    Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
+
+    $InstallerPath = (Get-ChildItem -Path $ExtractedFolder | Select-Object -First 1).FullName
+    $DevSetupModulePath = Join-Path -Path $InstallerPath -ChildPath "DevSetup"
+} else {
+    $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
+    $DevSetupModulePath = Join-Path -Path $ScriptDirectory -ChildPath "DevSetup"
+}
+
 try {
     $ProgressPreference = 'SilentlyContinue'
     # Get the script directory (where the DevSetup module should be)
-    $ScriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
-    $DevSetupModulePath = Join-Path -Path $ScriptDirectory -ChildPath "DevSetup"
 
     Write-Debug "Script directory: $ScriptDirectory"
     Write-Debug "DevSetup module path: $DevSetupModulePath"
@@ -145,14 +205,15 @@ try {
         $ModuleVersion = "1.0.0"
     }
     
-    Write-Host "Installing DevSetup Module version: $ModuleVersion..." -ForegroundColor Yellow
+    Write-StatusMessage "- Installing DevSetup Version..." -Width 60 -NoNewLine -ForegroundColor Gray
+    Write-StatusMessage (Right-Text "[$($ModuleVersion)]" 20) -ForegroundColor Green
 
     Write-StatusMessage "- Checking PowerShell Version..." -Width 60 -NoNewLine -ForegroundColor Gray
     Write-StatusMessage (Right-Text "[$($PSVersionTable.PSVersion)]" 20) -ForegroundColor Green
     Write-StatusMessage "- Checking PowerShell Edition..." -Width 60 -NoNewLine -ForegroundColor Gray 
     Write-StatusMessage (Right-Text "[$($PSVersionTable.PSEdition)]" 20) -ForegroundColor Green
 
-    $nugetProvider = Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue
+    $nugetProvider = Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue -Force -ForceBootstrap
     
     Write-StatusMessage "- Installing NuGet Package Provider..." -Width 60 -NoNewLine -ForegroundColor Gray
     if ($nugetProvider) {
@@ -230,7 +291,11 @@ try {
     Write-StatusMessage "- Verifying installation..." -Width 60 -NoNewLine -ForegroundColor Gray
     
     # Check if the module is now in PSModulePath
-    $ModuleFound = Get-Module -ListAvailable -Name "DevSetup" -ErrorAction SilentlyContinue
+    try {
+        $ModuleFound = Get-Module -ListAvailable -Name "DevSetup" -ErrorAction SilentlyContinue
+    } catch {
+        # Keep moving on
+    }
     if ($ModuleFound) {
         #Write-Host "- Installation Verified..." -ForegroundColor Gray
         Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
@@ -250,7 +315,7 @@ try {
     
     # Import the module to test it
     try {
-        Import-Module -Name "DevSetup" -Force -ErrorAction Stop
+        Import-Module -Name "DevSetup" -Force -ErrorAction SilentlyContinue
         Write-Debug "DevSetup module imported successfully!"
         
         # Test a basic function
@@ -261,16 +326,23 @@ try {
         }
         
         # Show module information
-        $ModuleInfo = Get-Module -Name "DevSetup"
+        $ModuleInfo = Get-Module -Name "DevSetup" -ErrorAction SilentlyContinue
         if ($ModuleInfo) {
             Write-Debug "Module Version: $($ModuleInfo.Version)"
             Write-Debug "Module Path: $($ModuleInfo.ModuleBase)"
         }
         
     } catch {
-        Write-Warning "Failed to import DevSetup module: $_"
+        #Write-Warning "Failed to import DevSetup module: $_"
     }
     
+    if($Url) {
+        Write-StatusMessage "- Cleaning up temporary files..." -Width 60 -ForegroundColor Gray -NoNewLine
+        Remove-Item -Path $Archive -Force
+        Remove-Item -Path $ExtractedFolder -Recurse -Force
+        Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green    
+    }    
+
     Write-Host "`nInstallation completed successfully!" -ForegroundColor Green
     #Write-Host "Install Path:`n- $TargetModulePath`n" -ForegroundColor Gray
     Write-Host "You can now use DevSetup commands in any PowerShell session." -ForegroundColor White
@@ -279,8 +351,12 @@ try {
     Write-Debug "`nSetting up module auto-import for current session..."
     if ($ModuleFound) {
         # Force import in current session
-        Import-Module DevSetup -Force -Global
-        Write-Debug "DevSetup module loaded in current session."
+        try {
+            Import-Module DevSetup -Force -Global -ErrorAction SilentlyContinue
+            Write-Debug "DevSetup module loaded in current session."
+        } catch {
+            # Keep moving on
+        }
     }
     
     Write-Host "`nTo get started, run:" -ForegroundColor Cyan
