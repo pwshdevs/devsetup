@@ -127,7 +127,7 @@ if($null -ne $Url) {
     Write-StatusMessage "Validating Installation Type..." -Width 60 -ForegroundColor Gray -NoNewLine
     Write-StatusMessage (Right-Text "[$VersionToInstall]" 20) -ForegroundColor Green
 
-    $Archive = New-TemporaryFile
+    $Archive = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "devsetup.zip"
     $ExtractedFolder = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath "devsetup"
     Write-StatusMessage "Downloading zipfile..." -Width 60 -ForegroundColor Gray -NoNewLine
     Invoke-WebRequest $url -OutFile $Archive
@@ -137,7 +137,7 @@ if($null -ne $Url) {
     Expand-Archive -Path $Archive -DestinationPath $ExtractedFolder -Force
     Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
 
-    $InstallerPath = (Get-ChildItem -Path $ExtractedFolder | Select-Object -First 1)
+    $InstallerPath = (Get-ChildItem -Path $ExtractedFolder | Select-Object -First 1).FullName
     $Installer = Join-Path -Path $InstallerPath -ChildPath "install.ps1"
 
     & $Installer -Self
@@ -274,6 +274,7 @@ try {
     
     # Remove existing installation if it exists
     if (Test-Path $TargetModuleBasePath) {
+        Remove-Module -Name DevSetup
         Write-StatusMessage "- Removing existing DevSetup module versions..." -Width 60 -NoNewLine -ForegroundColor Gray
         Remove-Item -Path $TargetModuleBasePath -Recurse -Force | Out-Null
         Write-StatusMessage (Right-Text "[$successCheck]" 20) -ForegroundColor Green
