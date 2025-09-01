@@ -230,7 +230,7 @@ Function Install-ScoopComponents {
                 }
                 Write-StatusMessage "- Installing Scoop package: $displayName" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewLine
 
-                ($result = Install-ScoopPackage @installParams) | Out-Null
+                $result = Install-ScoopPackage @installParams 2>$null 3>$null 4>$null 5>$null 6>$null
                 
                 if (-not $result) {
                     Write-StatusMessage "[FAILED]" -ForegroundColor Red
