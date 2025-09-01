@@ -1,0 +1,20 @@
+name: Create Tagged Release
+
+on:
+  push:
+    branches:
+      - main # Trigger on pushes to the main branch
+
+jobs:
+  create_tagged_release:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write    
+    steps:
+      - name: Create Tagged Release
+        uses: dexwritescode/release-on-merge-action@v1 # Or another suitable action
+        with:
+          version-increment-strategy: patch 
+          initial-version: '1.0.0'  
