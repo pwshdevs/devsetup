@@ -60,16 +60,56 @@
 #>
 
 Function Export-DevSetupEnv {
+    [CmdletBinding()]
     Param(
-        [string]$Name
+        [Parameter(Mandatory=$true, ParameterSetName="Export")]
+        [string]$Name,
+        [Parameter(Mandatory=$true, ParameterSetName="ExportPath")]
+        [string]$Path
     )
-    # Sanitize EnvName to only contain alphanumeric characters, hyphens, and periods
-    $sanitizedEnvName = $Name -replace '[^a-zA-Z0-9\-\.]', ''
-    if ($sanitizedEnvName -ne $Name) {
-        Write-Host "EnvName sanitized from '$Name' to '$sanitizedEnvName' (removed non-alphanumeric characters)" -ForegroundColor Yellow
+    $OutFile = $null
+    if($PSBoundParameters.ContainsKey('Name')) {
+        $Provider = "local"
+
+        if($Name -like "*:*") {
+            $Parts = $Name.Split(":")
+            $Name = $Parts[1];
+            $Provider = $Parts[0]
+        }
+        $SanitizedEnvName = $Name -replace '[^a-zA-Z0-9\-\.]', ''
+        if ($SanitizedEnvName -ne $Name) {
+            Write-Host "EnvName sanitized from '$Name' to '$SanitizedEnvName' (removed non-alphanumeric characters)" -ForegroundColor Yellow
+        }
+
+        $BasePath = Join-Path -Path (Get-DevSetupEnvPath) -ChildPath $Provider
+        if(-not (Test-Path -Path $BasePath)) {
+            New-Item -Path $BasePath -ItemType Directory -Force | Out-Null
+        }
+
+        $OutFile = Join-Path -Path $BasePath -ChildPath "$SanitizedEnvName.devsetup"
+    } elseif($PSBoundParameters.ContainsKey('Path')) {
+        $BasePath = Split-Path -Path $Path -Parent
+        if(-not (Test-Path -Path $BasePath)) {
+            New-Item -Path $BasePath -ItemType Directory -Force | Out-Null
+        }
+        $Name = Split-Path -Path $Path -Leaf
+        if($Name -notlike "*.devsetup") {
+            $Name = "$Name.devsetup"
+        }
+        
+        $SanitizedEnvName = $Name -replace '[^a-zA-Z0-9\-\.]', ''
+
+        if ($SanitizedEnvName -ne $Name) {
+            Write-Host "EnvName sanitized from '$Name' to '$SanitizedEnvName' (removed non-alphanumeric characters)" -ForegroundColor Yellow
+        }
+        $OutFile = Join-Path -Path $BasePath -ChildPath $SanitizedEnvName
     }
-    $Name = $sanitizedEnvName
-    $OutFile = Join-Path -Path (Get-DevSetupLocalEnvPath) -ChildPath "$Name.devsetup"
+
+    if(-not $OutFile) {
+        Write-Error "Failed to determine output file path"
+        return $null
+    }
+
     $config = Write-NewConfig -OutFile $OutFile
     if (-not $config) {
         Write-Error "Failed to create configuration file"

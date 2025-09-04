@@ -6,6 +6,7 @@ BeforeAll {
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Providers\Chocolatey\Install-Chocolatey.ps1
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Providers\Chocolatey\Install-ChocolateyPackage.ps1
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Providers\Scoop\Install-Scoop.ps1
+    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Providers\Homebrew\Install-Homebrew.ps1
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
@@ -14,6 +15,7 @@ BeforeAll {
     Mock Write-Warning { }
     Mock Write-Error { }
     Mock Test-RunningAsAdmin { return $true }
+    Mock Install-Homebrew { return $true }
 }
 
 Describe "Install-CoreDependencies" {

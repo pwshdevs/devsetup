@@ -59,20 +59,33 @@
 Function Uninstall-DevSetupEnv {
     [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$true, Position=0)]
-        [string]$Name
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName = "Uninstall")]
+        [string]$Name,
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName = "UninstallPath")]
+        [string]$Path                
     )
 
     try {
-        $Provider = "local"
+        $YamlFile = $null
+        
+        if($PSBoundParameters.ContainsKey('Name')) {
+            $Provider = "local"
 
-        if($Name -like "*:*") {
-            $parts = $Name.Split(":")
-            $Name = $parts[1];
-            $Provider = $parts[0]
+            if($Name -like "*:*") {
+                $parts = $Name.Split(":")
+                $Name = $parts[1];
+                $Provider = $parts[0]
+            }
+
+            $YamlFile = Join-Path -Path (Join-Path -Path (Get-DevSetupEnvPath) -ChildPath $Provider) -ChildPath "$Name.devsetup"
+        } elseif($PSBoundParameters.ContainsKey('Path')) {
+            if(-not (Test-Path -Path $Path)) {
+                Write-Error "Invalid Path provided"
+                return
+            }
+            $YamlFile = $Path  
         }
 
-        $YamlFile = Join-Path -Path (Join-Path -Path (Get-DevSetupEnvPath) -ChildPath $Provider) -ChildPath "$Name.devsetup"        
         #$YamlFile = Join-Path -Path (Get-DevSetupEnvPath) -ChildPath "$Name.yaml"
         if (-not (Test-Path $YamlFile)) {
             Write-Error "Environment file not found: $YamlFile"
@@ -93,11 +106,13 @@ Function Uninstall-DevSetupEnv {
         # Install PowerShell module dependencies
         $status = Uninstall-PowershellModules -YamlData $YamlData
 
-        # Install Chocolatey package dependencies
-        $status = Uninstall-ChocolateyPackages -YamlData $YamlData
+        if ((Test-OperatingSystem -Windows)) {
+            # Install Chocolatey package dependencies
+            $status = Uninstall-ChocolateyPackages -YamlData $YamlData
 
-        # Install Scoop package dependencies
-        $status = Uninstall-ScoopComponents -YamlData $YamlData 
+            # Install Scoop package dependencies
+            $status = Uninstall-ScoopComponents -YamlData $YamlData 
+        }
     } catch {
         Write-Error "An error occurred during uninstallation: $_"
         return

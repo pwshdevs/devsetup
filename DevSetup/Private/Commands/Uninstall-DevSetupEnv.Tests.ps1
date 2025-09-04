@@ -2,6 +2,7 @@ BeforeAll {
     . $PSScriptRoot\Uninstall-DevSetupEnv.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Read-ConfigurationFile.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1
+    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Providers\Scoop\Uninstall-ScoopComponents.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Providers\Chocolatey\Uninstall-ChocolateyPackages.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Providers\PowerShell\Uninstall-PowershellModules.ps1
@@ -11,6 +12,7 @@ BeforeAll {
     Mock Uninstall-PowershellModules { $true }
     Mock Uninstall-ChocolateyPackages { $true }
     Mock Uninstall-ScoopComponents { $true }
+    Mock Test-OperatingSystem { $true }
     Mock Write-Host { }
     Mock Write-Error { }
 }

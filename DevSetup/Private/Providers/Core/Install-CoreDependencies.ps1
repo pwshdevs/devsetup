@@ -72,9 +72,11 @@ Function Install-CoreDependencies {
     Param()
 
     # Install NuGet PackageProvider
-    if (-not (Install-NuGet)) {
-        Write-Error "Failed to install NuGet PackageProvider"
-        return $false
+    if ((Test-OperatingSystem -Windows)) {
+        if (-not (Install-NuGet)) {
+            Write-Error "Failed to install NuGet PackageProvider"
+            return $false
+        }
     }
 
     # Get required modules from DevSetup manifest
@@ -125,7 +127,10 @@ Function Install-CoreDependencies {
             return $false
         } 
     } else {
-        Write-Warning "Skipping Windows-only installations on non-Windows platform"
+        if (-not (Install-Homebrew)) {
+            Write-Error "Failed to install Homebrew"
+            return $false
+        }
     }
 
     return $true
