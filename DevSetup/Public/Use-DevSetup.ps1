@@ -121,16 +121,36 @@ Function Use-DevSetup {
         [switch]$Install,
         
         [Parameter(Mandatory = $true, ParameterSetName = "Update")]
+        [Parameter(Mandatory = $true, ParameterSetName = "UpdateMain")]
+        [Parameter(Mandatory = $true, ParameterSetName = "UpdateDevelop")]
+        [Parameter(Mandatory = $true, ParameterSetName = "UpdateVersion")]
         [switch]$Update,
+        [Parameter(Mandatory = $true, ParameterSetName = "UpdateMain")]
+        [switch]$Main,
+        [Parameter(Mandatory = $true, ParameterSetName = "UpdateDevelop")]
+        [switch]$Develop,
+        [Parameter(Mandatory = $true, ParameterSetName = "UpdateVersion")]
+        [string]$Version,
         
         [Parameter(Mandatory = $true, ParameterSetName = "Init")]
         [switch]$Init,
         
         [Parameter(Mandatory = $true, ParameterSetName = "Export")]
+        [Parameter(Mandatory = $true, ParameterSetName = "ExportPath")]
         [switch]$Export,
         
         [Parameter(Mandatory = $true, ParameterSetName = "List")]
+        [Parameter(Mandatory = $true, ParameterSetName = "ListPlatform")]
+        [Parameter(Mandatory = $true, ParameterSetName = "ListProvider")]
+        [Parameter(Mandatory = $true, ParameterSetName = "ListProviderPlatform")]
         [switch]$List,
+        [Parameter(Mandatory = $true, ParameterSetName = "ListPlatform")]
+        [Parameter(Mandatory = $true, ParameterSetName = "ListProviderPlatform")]
+        [ValidateSet("current", "all", "Windows", "Linux", "macOS")]
+        [string]$Platform,
+        [Parameter(Mandatory = $true, ParameterSetName = "ListProvider")]
+        [Parameter(Mandatory = $true, ParameterSetName = "ListProviderPlatform")]
+        [string]$Provider,
         
         [Parameter(Mandatory = $true, ParameterSetName = "Uninstall")]
         [switch]$Uninstall,
@@ -144,10 +164,8 @@ Function Use-DevSetup {
         [string]$Url,
         
         [Parameter(Mandatory = $true, ParameterSetName = "InstallPath")]
-        [string]$Path,
-        
-        [Parameter(Mandatory = $false, ParameterSetName = "List")]
-        [string]$Platform = "current"
+        [Parameter(Mandatory = $true, ParameterSetName = "ExportPath")]
+        [string]$Path
     )
 
     try {
@@ -158,16 +176,7 @@ Function Use-DevSetup {
         function Repeat-Char($char, $count) { -join (1..$count | ForEach-Object { $char }) }
 
         # Display fancy action header
-        #Write-Host ""
-        #Write-Host "+===============================================================================+" -ForegroundColor Cyan
-        #Write-Host "|" -ForegroundColor Cyan -NoNewline
-        #Write-Host "                                   DEVSETUP                                    " -ForegroundColor Yellow -NoNewline
-        #Write-Host "|" -ForegroundColor Cyan
-        #Write-Host "|" -ForegroundColor Cyan -NoNewline
-        #Write-Host "                        Development Environment Manager                        " -ForegroundColor White -NoNewline
-        #Write-Host "|" -ForegroundColor Cyan
-        #Write-Host "+===============================================================================+" -ForegroundColor Cyan
-# Define box drawing characters using [char] codes
+        # Define box drawing characters using [char] codes
         $b = [char]0x2588  # █ (full block)
         $tl = [char]0x2554 # ╔ (top-left)
         $tr = [char]0x2557 # ╗ (top-right)
@@ -208,7 +217,6 @@ Function Use-DevSetup {
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine 
         Write-Host "$tr" (Repeat-Char " " 24) "$v" -ForegroundColor Cyan
 
-        #Write-Host "$v     $b$b$tl$h$h$b$b$tr$b$b$tl$h$h$h$h$br$b$b$v   $b$b$v$b$b$tl$h$h$h$h$br$b$b$tl$h$h$h$h$br$bl$h$h$b$b$tl$h$h$br$b$b$v   $b$b$v$b$b$tl$h$h$b$b$tr       $v" -ForegroundColor Cyan
         Write-Host "$v" (Repeat-Char " " 25) -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$tl$h$h" -ForegroundColor Cyan -NoNewLine
@@ -235,7 +243,6 @@ Function Use-DevSetup {
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$tr" (Repeat-Char " " 23) "$v" -ForegroundColor Cyan
 
-        #Write-Host "$v     $b$b$v  $b$b$v$b$b$b$b$b$tr  $b$b$v   $b$b$v$b$b$b$b$b$b$b$tr$b$b$b$b$b$tr     $b$b$v   $b$b$v   $b$b$v$b$b$b$b$b$b$tl$br       $v" -ForegroundColor Cyan
         Write-Host "$v" (Repeat-Char " " 25) -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$v  " -ForegroundColor Cyan -NoNewLine
@@ -260,7 +267,6 @@ Function Use-DevSetup {
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$tl$br" (Repeat-Char " " 23) "$v" -ForegroundColor Cyan
 
-        #Write-Host "$v     $b$b$v  $b$b$v$b$b$tl$h$h$br  $bl$b$b$tr $b$b$tl$br$bl$h$h$h$h$b$b$v$b$b$tl$h$h$br     $b$b$v   $b$b$v   $b$b$v$b$b$tl$h$h$h$br        $v" -ForegroundColor Cyan
         Write-Host "$v" (Repeat-Char " " 25) -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$v  " -ForegroundColor Cyan -NoNewLine
@@ -285,7 +291,6 @@ Function Use-DevSetup {
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$tl$h$h$h$br" (Repeat-Char " " 24) "$v" -ForegroundColor Cyan
 
-        #Write-Host "$v     $b$b$b$b$b$b$tl$br$b$b$b$b$b$b$b$tr $bl$b$b$b$b$tl$br $b$b$b$b$b$b$b$v$b$b$b$b$b$b$b$tr   $b$b$v   $bl$b$b$b$b$b$b$tl$br$b$b$v            $v" -ForegroundColor Cyan
         Write-Host "$v" (Repeat-Char " " 25) -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$tl$br" -ForegroundColor Cyan -NoNewLine
@@ -317,14 +322,21 @@ Function Use-DevSetup {
 
         
         $actionDisplay = switch ($selectedAction) {
-            'install'       { ">> INSTALLING Development Environment" }
-            'installpath'   { ">> INSTALLING Development Environment From Path" }
-            'installurl'    { ">> INSTALLING Development Environment From Url" }
-            'update'        { ">> UPDATING DevSetup System" }
-            'init'          { ">> INITIALIZING DevSetup System" }
-            'export'        { ">> EXPORTING Current Configuration" }
-            'list'          { ">> LISTING Available Environments" }
-            'uninstall'     { ">> UNINSTALLING Development Environment" }
+            'install'               { ">> INSTALLING Development Environment" }
+            'installpath'           { ">> INSTALLING Development Environment From Path" }
+            'installurl'            { ">> INSTALLING Development Environment From Url" }
+            'update'                { ">> UPDATING DevSetup System" }
+            'updatemain'            { ">> UPDATING DevSetup System to main" }
+            'updatedevelop'         { ">> UPDATING DevSetup System to develop" }
+            'updateversion'         { ">> UPDATING DevSetup System to version $Version" }
+            'init'                  { ">> INITIALIZING DevSetup System" }
+            'export'                { ">> EXPORTING Current Configuration" }
+            'exportpath'            { ">> EXPORTING Current Configuration" }
+            'list'                  { ">> LISTING Available Environments" }
+            'listprovider'          { ">> LISTING Available Environments From Provider" }
+            'listplatform'          { ">> LISTING Available Environments From Platform" }
+            'listproviderplatform'  { ">> LISTING Available Environments From Provider and Platform" }
+            'uninstall'             { ">> UNINSTALLING Development Environment" }
         }
 
         $paddedAction = $actionDisplay.PadLeft(($actionDisplay.Length + 118) / 2).PadRight(118)
@@ -341,24 +353,35 @@ Function Use-DevSetup {
                 $ParameterCopy.Remove('Install')
                 Install-DevSetupEnv @ParameterCopy
             }
-            'update' {
+            {$_ -eq 'update' -or $_ -eq 'updatemain' -or $_ -eq 'updatedevelop' -or $_ -eq 'updateversion'} {
                 Write-Host "Updating devsetup system..." -ForegroundColor Yellow
-                Update-DevSetup | Out-Null
+                $ParameterCopy = [hashtable]$PSBoundParameters
+                $ParameterCopy.Remove('Update')    
+                if($_ -eq 'update') {
+                    $ParameterCopy['Latest'] = $true
+                }            
+                Update-DevSetup @ParameterCopy | Out-Null
             }
             'init' {
                 Write-Host "Initializing DevSetup system..." -ForegroundColor Yellow
                 Initialize-DevSetup | Out-Null
             }
-            'export' {
+            { $_ -eq 'export' -or $_ -eq 'exportpath' } {
                 Write-Host "Exporting current development environment..." -ForegroundColor Yellow
-                Export-DevSetupEnv -Name $Name
+                $ParameterCopy = [hashtable]$PSBoundParameters
+                $ParameterCopy.Remove('Export')                
+                Export-DevSetupEnv @ParameterCopy
             }
-            'list' {
-                Show-DevSetupEnvList -Platform $Platform
+            { $_ -eq 'list' -or $_ -eq 'listplatform' -or $_ -eq 'listprovider' -or $_ -eq 'listproviderplatform' } {
+                $ParameterCopy = [hashtable]$PSBoundParameters
+                $ParameterCopy.Remove('List')                
+                Show-DevSetupEnvList @ParameterCopy
             }
             'uninstall' {
                 Write-Host "Uninstalling development environment..." -ForegroundColor Yellow
-                Uninstall-DevSetupEnv -Name $Name
+                $ParameterCopy = [hashtable]$PSBoundParameters
+                $ParameterCopy.Remove('Uninstall')                
+                Uninstall-DevSetupEnv @ParameterCopy
             }
         }
 

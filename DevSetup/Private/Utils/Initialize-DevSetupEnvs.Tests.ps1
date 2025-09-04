@@ -6,6 +6,8 @@ BeforeAll {
     . $PSScriptRoot\Write-StatusMessage.ps1
     . $PSScriptRoot\Optimize-DevSetupEnvs.ps1
     . $PSScriptRoot\Get-DevSetupEnvPath.ps1
+    . $PSScriptRoot\Get-DevSetupLocalEnvPath.ps1
+    . $PSScriptRoot\Get-DevSetupCommunityEnvPath.ps1
     . $PSScriptRoot\Get-DevSetupManifest.ps1
     Mock Get-DevSetupEnvPath { "TestDrive:\DevSetupEnvs" }
     Mock Get-DevSetupManifest { 

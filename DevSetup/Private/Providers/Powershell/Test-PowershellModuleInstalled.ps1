@@ -91,30 +91,25 @@ Function Test-PowershellModuleInstalled {
     )
 
     # CurrentUser ps5.1
-    # $HOME\Documents\WindowsPowerShell\Modules
+    # $env:USERPROFILE\Documents\WindowsPowerShell\Modules
     # CurrentUser ps7
-    # $HOME\Documents\PowerShell\Modules
+    # $env:USERPROFILE\Documents\PowerShell\Modules
+    # CurrentUser ps7 (linux/macos)
+    # $env:HOME/.local/share/powershell/Modules
 
     # AllUsers ps5.1
-    # $Env:ProgramFiles\WindowsPowerShell\Modules
+    # $env:ProgramFiles\WindowsPowerShell\Modules
     # AllUsers ps7
-    # $Env:ProgramFiles\PowerShell\Modules
+    # $env:ProgramFiles\PowerShell\Modules
+    # AllUsers ps7 (linux/macos)
+    # $env:HOME/.local/share/powershell/Modules
     $InstallPaths = @(
-        @{
-            Path = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules";
-            Scope = "CurrentUser"
-        }, 
-        @{
-            Path = "$env:USERPROFILE\Documents\PowerShell\Modules";
-            Scope = "CurrentUser"
-        }
-        @{
-            Path = "$env:ProgramFiles\PowerShell\Modules";
-            Scope = "AllUsers"
-        },
-        @{
-            Path = "$env:ProgramFiles\WindowsPowerShell\Modules";
-            Scope = "AllUsers"
+        $env:PSModulePath -split ([System.IO.Path]::PathSeparator) | ForEach-Object { 
+            if($_ -match [regex]::Escape("$HOME")) { 
+                @{ Path = $_; Scope = "CurrentUser" } 
+            } else {
+                @{ Path = $_; Scope = "AllUsers" }
+            } 
         }
     )
 
@@ -130,7 +125,7 @@ Function Test-PowershellModuleInstalled {
 
             if($PSBoundParameters.ContainsKey('Scope')) {
                 $InstallPaths | ForEach-Object {
-                    if ($module.Path -like "$($_.Path)\*") {
+                    if ($module.Path -like "$($_.Path)*") {
                         if ($_.Scope -eq $Scope) {
                             $installedState += [InstalledState]::GlobalVersionMet
                         }

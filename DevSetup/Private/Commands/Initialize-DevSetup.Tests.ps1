@@ -1,6 +1,9 @@
 BeforeAll {
     . $PSScriptRoot\Initialize-DevSetup.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupPath.ps1
+    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1
+    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupLocalEnvPath.ps1
+    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupCommunityEnvPath.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Providers\Core\Install-CoreDependencies.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Initialize-DevSetupEnvs.ps1
     Mock Write-Host { }
