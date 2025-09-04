@@ -92,7 +92,7 @@ Function Get-DevSetupVersion {
             }
             
             # Remove 'v' prefix if present in tag name
-            Write-Host $release.tag_name
+            #Write-Host $release.tag_name
             $versionString = $release.tag_name -replace '^v', ''
             $versionObject = [Version]::new($versionString)
             return $versionObject
