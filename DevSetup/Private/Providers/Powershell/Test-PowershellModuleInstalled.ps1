@@ -130,7 +130,7 @@ Function Test-PowershellModuleInstalled {
 
             if($PSBoundParameters.ContainsKey('Scope')) {
                 $InstallPaths | ForEach-Object {
-                    if ($module.Path -like "$($_.Path)*") {
+                    if ($module.Path -like "$($_.Path)$([System.IO.Path]::DirectorySeparatorChar)*") {
                         if ($_.Scope -eq $Scope) {
                             $installedState += [InstalledState]::GlobalVersionMet
                         }
