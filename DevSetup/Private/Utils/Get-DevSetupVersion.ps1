@@ -85,13 +85,14 @@ Function Get-DevSetupVersion {
                 return $null
             }
             
-            $release = Get-GitHubRelease -Uri $projectUri
+            $release = (Get-GitHubRelease -Uri $projectUri | Select-Object -First 1)
             if (-not $release -or -not $release.tag_name) {
                 Write-Error "Failed to retrieve latest release information from GitHub."
                 return $null
             }
             
             # Remove 'v' prefix if present in tag name
+            #Write-Host $release.tag_name
             $versionString = $release.tag_name -replace '^v', ''
             $versionObject = [Version]::new($versionString)
             return $versionObject

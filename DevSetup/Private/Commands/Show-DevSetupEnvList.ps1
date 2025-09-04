@@ -69,7 +69,11 @@ Function Show-DevSetupEnvList {
     Param (
         [Parameter(Mandatory=$false, Position=0)]
         [ValidateSet("current", "all", "windows", "linux", "macos")]
-        [string]$Platform = "current"  # Default to current platform
+        [string]$Platform = "current",  # Default to current platform
+        [Parameter(Mandatory=$false)]
+        [string]$Provider,
+        [Parameter(Mandatory=$false)]
+        [switch]$Installed
     )
 
 
@@ -88,12 +92,17 @@ Function Show-DevSetupEnvList {
         } else {
             $platformFilter = "windows"
         }
-        Write-Host "Filtering for current platform: $platformFilter" -ForegroundColor Gray
-    } elseif ($platformFilter -eq "all") {
-        Write-Host "Showing all environments regardless of platform" -ForegroundColor Gray
-    } else {
-        Write-Host "Filtering for platform: $platformFilter" -ForegroundColor Gray
     }
+    Write-StatusMessage "Filtering for platform: $platformFilter" -ForegroundColor Gray -NoNewLine
+
+    if($Provider) {
+        Write-StatusMessage ", provider: $Provider" -ForegroundColor Gray -NoNewLine
+    }
+
+    if($Installed) {
+        Write-StatusMessage ", installed only" -ForegroundColor Gray -NoNewLine
+    }
+    Write-Host ""
 
     # Get the environments.json file path
     $devSetupPath = Get-DevSetupPath
@@ -114,17 +123,16 @@ Function Show-DevSetupEnvList {
         }
     }
     
+    if ($Provider) {
+        $environments = $environments | Where-Object { $_.provider -and ($_.provider.ToLower() -eq $Provider.ToLower()) }
+    }
+    #if ($Installed) {
+    #    $environments = $environments | Where-Object { Test-DevSetupEnvInstalled -Name $_.name -Provider $_.provider }
+    #}
+
     # Filter environments by platform
     if ($platformFilter -ne "all") {
-        $filteredEnvironments = @()
-        foreach ($env in $environments) {
-            $envPlatform = if ($env.platform) { $env.platform.ToLower() } else { "" }
-            # Match exact platform or cross-platform environments
-            if ($envPlatform -eq $platformFilter) {
-                $filteredEnvironments += $env
-            }
-        }
-        $environments = $filteredEnvironments
+        $environments = $environments | Where-Object { ($_.platform -and ($_.platform.ToLower() -eq $platformFilter)) }
     }
     
     if ($environments.Count -eq 0) {

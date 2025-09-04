@@ -1,6 +1,8 @@
 BeforeAll {
     . $PSScriptRoot\Test-PowershellModuleInstalled.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Enums\InstalledState.ps1     
+    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Enums\InstalledState.ps1    
+    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1 
+    Mock Test-OperatingSystem { $true }
 }
 
 Describe "Test-PowershellModuleInstalled" {

@@ -1,6 +1,8 @@
 BeforeAll {
     . $PSScriptRoot\Get-DevSetupPath.ps1
     . $PSScriptRoot\Get-EnvironmentVariable.ps1
+    . $PSScriptRoot\Test-OperatingSystem.ps1
+    Mock Test-OperatingSystem { $true }
 }
 
 Describe "Get-DevSetupPath" {

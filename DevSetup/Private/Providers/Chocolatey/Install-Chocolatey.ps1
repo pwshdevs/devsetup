@@ -81,7 +81,7 @@ Function Install-Chocolatey {
         $chocoInstalled = Get-Command choco -ErrorAction SilentlyContinue
         
         if ($chocoInstalled) {
-            $chocoVersion = Invoke-Expression "& choco --version" 2>$null
+            Invoke-Expression "& choco --version" *>$null
             #Write-Host "Chocolatey is already installed (version: $chocoVersion)" -ForegroundColor Green
             Write-StatusMessage "[OK]" -ForegroundColor Green
         } else {
@@ -97,7 +97,7 @@ Function Install-Chocolatey {
             # Verify installation
             $chocoInstalled = Get-Command choco -ErrorAction SilentlyContinue
             if ($chocoInstalled) {
-                $chocoVersion = Invoke-Expression "& choco --version" 2>$null 3>$null 4>$null 5>$null 6>$null
+                Invoke-Expression "& choco --version" *>$null
                 #Write-Host "Chocolatey successfully installed (version: $chocoVersion)!" -ForegroundColor Green
                 Write-StatusMessage "[OK]" -ForegroundColor Green
             } else {
