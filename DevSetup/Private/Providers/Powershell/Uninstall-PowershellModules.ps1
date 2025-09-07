@@ -76,7 +76,7 @@
     Package Management, Batch Uninstallation, Configuration Processing, Module Management
 #>
 
-Function Uninstall-PowershellModule {
+Function Uninstall-PowershellModules {
     Param(
         [Parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]

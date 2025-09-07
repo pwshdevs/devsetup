@@ -64,7 +64,7 @@
     Configuration Export, Package Discovery, YAML Generation
 #>
 
-Function Export-InstalledChocolateyPackage {
+Function Export-InstalledChocolateyPackages {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory = $true)]

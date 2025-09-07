@@ -102,7 +102,7 @@
 .FUNCTIONALITY
     Bulk Installation, Configuration Processing, Package Management
 #>
-Function Install-ScoopComponent {
+Function Install-ScoopComponents {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]

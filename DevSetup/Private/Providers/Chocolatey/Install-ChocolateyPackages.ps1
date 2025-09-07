@@ -79,7 +79,7 @@
     Bulk Installation, Configuration Processing, Package Management
 #>
 
-Function Install-ChocolateyPackage {
+Function Install-ChocolateyPackages {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]

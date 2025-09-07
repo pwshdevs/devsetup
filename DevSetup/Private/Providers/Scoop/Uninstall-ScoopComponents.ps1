@@ -79,7 +79,7 @@
     Package Management, Batch Uninstallation, Configuration Processing, Component Management
 #>
 
-Function Uninstall-ScoopComponent {
+Function Uninstall-ScoopComponents {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]

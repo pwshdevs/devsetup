@@ -65,7 +65,7 @@
     Configuration Export, Module Discovery, YAML Generation
 #>
 
-Function Export-InstalledPowershellModule {
+Function Export-InstalledPowershellModules {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory = $true)]

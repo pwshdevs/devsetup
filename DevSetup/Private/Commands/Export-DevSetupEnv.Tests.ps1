@@ -1,10 +1,10 @@
 BeforeAll {
-    . $PSScriptRoot\Export-DevSetupEnv.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupLocalEnvPath.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupCommunityEnvPath.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Write-NewConfig.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
+    . (Join-Path $PSScriptRoot "Export-DevSetupEnv.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Get-DevSetupLocalEnvPath.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Get-DevSetupCommunityEnvPath.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Write-NewConfig.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
     if ($PSVersionTable.PSVersion.Major -eq 5) {
         Mock Get-DevSetupEnvPath { "$TestDrive\DevSetup\DevSetupEnvs" }
         Mock Get-DevSetupLocalEnvPath { "$TestDrive\DevSetup\DevSetupEnvs\local" }

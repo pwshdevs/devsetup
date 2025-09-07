@@ -1,12 +1,12 @@
 BeforeAll {
-    . $PSScriptRoot\Install-DevSetupEnv.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Providers\PowerShell\Install-PowershellModules.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Providers\Chocolatey\Install-ChocolateyPackages.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Providers\Scoop\Install-ScoopComponents.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Read-ConfigurationFile.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1
+    . (Join-Path $PSScriptRoot "Install-DevSetupEnv.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\PowerShell\Install-PowershellModules.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Chocolatey\Install-ChocolateyPackages.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Scoop\Install-ScoopComponents.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Read-ConfigurationFile.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1")
     if ($PSVersionTable.PSVersion.Major -eq 5) {
         Mock Get-DevSetupEnvPath { "C:\DevSetup" }
     } elseif ($PSVersionTable.PSVersion.Major -ge 6) {

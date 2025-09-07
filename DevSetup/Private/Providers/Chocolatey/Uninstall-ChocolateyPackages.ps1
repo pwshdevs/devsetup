@@ -74,7 +74,7 @@
     Package Management, Batch Uninstallation, Configuration Processing, System Cleanup
 #>
 
-Function Uninstall-ChocolateyPackage {
+Function Uninstall-ChocolateyPackages {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]

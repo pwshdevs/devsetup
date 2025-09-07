@@ -66,7 +66,7 @@
     Configuration Export, Package Discovery, YAML Generation
 #>
 
-Function Export-InstalledScoopPackage {
+Function Export-InstalledScoopPackages {
     Param(
         [Parameter(Mandatory = $true)]
         [string]$Config,

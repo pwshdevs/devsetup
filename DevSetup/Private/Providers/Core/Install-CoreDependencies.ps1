@@ -67,7 +67,7 @@
     System Setup, Dependency Management, Package Manager Installation
 #>
 
-Function Install-CoreDependency {
+Function Install-CoreDependencies {
     [CmdletBinding()]
     Param()
 

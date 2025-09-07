@@ -76,7 +76,7 @@
     Bulk Installation, Configuration Processing, Module Management
 #>
 
-Function Install-PowershellModule {
+Function Install-PowershellModules {
     Param(
         [Parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]
