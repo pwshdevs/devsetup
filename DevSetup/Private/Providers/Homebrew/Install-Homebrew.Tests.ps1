@@ -46,7 +46,13 @@ Describe "Install-Homebrew" {
             }
             Mock Invoke-ExternalCommand { $true }
             Mock Write-StatusMessage { }
-            Mock Get-EnvironmentVariable { "/bin/bash" }
+            Mock Get-EnvironmentVariable { 
+                Param($Name)
+                switch($Name) {
+                    "SHELL" { return "/bin/bash" }
+                    "HOME" { return "/Users/TestUser" }
+                }
+            }
             Mock Add-Content { }
 
             $result = Install-Homebrew
@@ -69,7 +75,13 @@ Describe "Install-Homebrew" {
             }
             Mock Invoke-ExternalCommand { "Installation successful" }
             Mock Write-StatusMessage { }
-            Mock Get-EnvironmentVariable { "/bin/zsh" }
+            Mock Get-EnvironmentVariable { 
+                Param($Name)
+                switch($Name) {
+                    "SHELL" { return "/bin/zsh" }
+                    "HOME" { return "/home/testuser" }
+                }
+            }
             Mock Add-Content { }
 
             $result = Install-Homebrew
@@ -92,7 +104,13 @@ Describe "Install-Homebrew" {
             }
             Mock Invoke-ExternalCommand { "Installation successful" }
             Mock Write-StatusMessage { }
-            Mock Get-EnvironmentVariable { "/bin/fish" }
+            Mock Get-EnvironmentVariable { 
+                Param($Name)
+                switch($Name) {
+                    "SHELL" { return "/bin/fish" }
+                    "HOME" { return "/home/testuser" }
+                }
+            }
             Mock Add-Content { }
 
             $result = Install-Homebrew
@@ -145,7 +163,13 @@ Describe "Install-Homebrew" {
             }
             Mock Invoke-ExternalCommand { $true }
             Mock Write-StatusMessage { }
-            Mock Get-EnvironmentVariable { "/bin/bash" }
+            Mock Get-EnvironmentVariable {
+                Param($Name)
+                switch($Name) {
+                    "SHELL" { return "/bin/bash" }
+                    "HOME" { return "/home/testuser" }
+                }
+            }
             Mock Add-Content { }
 
             $result = Install-Homebrew
@@ -162,7 +186,13 @@ Describe "Install-Homebrew" {
             }
             Mock Invoke-ExternalCommand { $true }
             Mock Write-StatusMessage { }
-            Mock Get-EnvironmentVariable { "/bin/zsh" }
+            Mock Get-EnvironmentVariable {
+                Param($Name)
+                switch($Name) {
+                    "SHELL" { return "/bin/zsh" }
+                    "HOME" { return "/Users/TestUser" }
+                }
+            }
             Mock Add-Content { }
 
             $result = Install-Homebrew

@@ -33,14 +33,14 @@ Function Install-Homebrew {
                 switch ((Get-EnvironmentVariable SHELL)) {
                     { $_ -like "*zsh*" } {
                         Write-StatusMessage "- Adding Homebrew path to $HOME/.zshrc" -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline
-                        Add-Content -Path "$HOME/.zshrc" -Value ""
-                        Add-Content -Path "$HOME/.zshrc" -Value ([string]::Format('eval "$({0} shellenv)"', $HomebrewPath))
+                        Add-Content -Path ([string]::format("{0}/.zshrc", (Get-EnvironmentVariable HOME))) -Value ""
+                        Add-Content -Path ([string]::format("{0}/.zshrc", (Get-EnvironmentVariable HOME))) -Value ([string]::Format('eval "$({0} shellenv)"', $HomebrewPath))
                         Write-StatusMessage "[OK]" -ForegroundColor Green
                     }
                     { $_ -like "*bash*" } {
                         Write-StatusMessage "- Adding Homebrew path to $HOME/.bashrc" -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline
-                        Add-Content -Path "$HOME/.bashrc" -Value ""
-                        Add-Content -Path "$HOME/.bashrc" -Value ([string]::Format('eval "$({0} shellenv)"', $HomebrewPath))
+                        Add-Content -Path ([string]::format("{0}/.bashrc", (Get-EnvironmentVariable HOME))) -Value ""
+                        Add-Content -Path ([string]::format("{0}/.bashrc", (Get-EnvironmentVariable HOME))) -Value ([string]::Format('eval "$({0} shellenv)"', $HomebrewPath))
                         Write-StatusMessage "[OK]" -ForegroundColor Green
                     }
                     default {
