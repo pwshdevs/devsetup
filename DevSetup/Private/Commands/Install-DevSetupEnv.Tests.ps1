@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot "Install-DevSetupEnv.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\PowerShell\Install-PowershellModules.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Powershell\Install-PowershellModules.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Chocolatey\Install-ChocolateyPackages.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Scoop\Install-ScoopComponents.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Read-ConfigurationFile.ps1")

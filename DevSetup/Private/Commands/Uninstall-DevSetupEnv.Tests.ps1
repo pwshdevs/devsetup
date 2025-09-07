@@ -7,7 +7,7 @@ BeforeAll {
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Scoop\Uninstall-ScoopComponents.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Chocolatey\Uninstall-ChocolateyPackages.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\PowerShell\Uninstall-PowershellModules.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Powershell\Uninstall-PowershellModules.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Homebrew\Invoke-HomebrewComponentsUninstall.ps1")
     Mock Get-DevSetupEnvPath { "$TestDrive\DevSetup\DevSetupEnvs" }
     Mock Test-Path { $true }

@@ -1,15 +1,15 @@
 BeforeAll {
-    . $PSScriptRoot\Install-CoreDependencies.ps1
-    . $PSScriptRoot\Install-Nuget.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Get-DevSetupManifest.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Providers\Powershell\Install-PowerShellModule.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Providers\Chocolatey\Install-Chocolatey.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Providers\Chocolatey\Install-ChocolateyPackage.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Providers\Scoop\Install-Scoop.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Providers\Homebrew\Install-Homebrew.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
+    . (Join-Path $PSScriptRoot "Install-CoreDependencies.ps1")
+    . (Join-Path $PSScriptRoot "Install-Nuget.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Get-DevSetupManifest.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Providers\Powershell\Install-PowershellModule.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Providers\Chocolatey\Install-Chocolatey.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Providers\Chocolatey\Install-ChocolateyPackage.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Providers\Scoop\Install-Scoop.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Providers\Homebrew\Install-Homebrew.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
     Mock Write-StatusMessage { }
     Mock Write-Host { }
     Mock Write-Warning { }
@@ -49,7 +49,7 @@ Describe "Install-CoreDependencies" {
             Mock Get-DevSetupManifest { return @{ RequiredModules = @("posh-git", "PSReadLine") } }
             Mock Test-OperatingSystem { param($os) return $false }
             $script:callCount = 0
-            Mock Install-PowerShellModule -MockWith {
+            Mock Install-PowershellModule -MockWith {
                 param($ModuleName, $Force, $AllowClobber, $Scope)
                 $script:callCount++
                 if ($script:callCount -eq 1) { return $true }
@@ -64,7 +64,7 @@ Describe "Install-CoreDependencies" {
         It "Should skip empty module names and return true" {
             Mock Install-NuGet { return $true }
             Mock Get-DevSetupManifest { return @{ RequiredModules = @("posh-git", $null, "PSReadLine") } }
-            Mock Install-PowerShellModule { return $true }
+            Mock Install-PowershellModule { return $true }
             Mock Test-OperatingSystem { param($os) return $false }
             $result = Install-CoreDependencies
             $result | Should -Be $true
@@ -75,7 +75,7 @@ Describe "Install-CoreDependencies" {
         It "Should install everything and return true" {
             Mock Install-NuGet { return $true }
             Mock Get-DevSetupManifest { return @{ RequiredModules = @("posh-git", "PSReadLine") } }
-            Mock Install-PowerShellModule { return $true }
+            Mock Install-PowershellModule { return $true }
             Mock Install-Chocolatey { return $true }
             Mock Install-ChocolateyPackage { return $true }
             Mock Install-Scoop { return $true }
@@ -89,7 +89,7 @@ Describe "Install-CoreDependencies" {
         It "Should return false and write error" {
             Mock Install-NuGet { return $true }
             Mock Get-DevSetupManifest { return @{ RequiredModules = @("posh-git") } }
-            Mock Install-PowerShellModule { return $true }
+            Mock Install-PowershellModule { return $true }
             Mock Install-Chocolatey { return $false }
             Mock Test-OperatingSystem { param($Windows) if ($Windows) { return $true } else { return $false } }
             $result = Install-CoreDependencies
@@ -101,7 +101,7 @@ Describe "Install-CoreDependencies" {
         It "Should return false and write error" {
             Mock Install-NuGet { return $true }
             Mock Get-DevSetupManifest { return @{ RequiredModules = @("posh-git") } }
-            Mock Install-PowerShellModule { return $true }
+            Mock Install-PowershellModule { return $true }
             Mock Install-Chocolatey { return $true }
             Mock Install-ChocolateyPackage { return $false }
             Mock Test-OperatingSystem { param($Windows) if ($Windows) { return $true } else { return $false } }
@@ -114,7 +114,7 @@ Describe "Install-CoreDependencies" {
         It "Should return false and write error" {
             Mock Install-NuGet { return $true }
             Mock Get-DevSetupManifest { return @{ RequiredModules = @("posh-git") } }
-            Mock Install-PowerShellModule { return $true }
+            Mock Install-PowershellModule { return $true }
             Mock Install-Chocolatey { return $true }
             Mock Install-ChocolateyPackage { return $true }
             Mock Install-Scoop { return $false }
@@ -128,7 +128,7 @@ Describe "Install-CoreDependencies" {
         It "Should skip Windows-only installs and return true" {
             Mock Install-NuGet { return $true }
             Mock Get-DevSetupManifest { return @{ RequiredModules = @("posh-git") } }
-            Mock Install-PowerShellModule { return $true }
+            Mock Install-PowershellModule { return $true }
             Mock Test-OperatingSystem { param($os) return $false }
             $result = Install-CoreDependencies
             $result | Should -Be $true
