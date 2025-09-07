@@ -16,6 +16,11 @@ Function Write-StatusMessage {
         [switch]$NoNewLine
     )
 
+    if([string]::IsNullOrWhiteSpace($Message)) {
+        #Write-StatusMessage "Message cannot be empty or whitespace." -Verbosity Error
+        return
+    }
+
     if ($Indent -gt 0) {
         $Message = "$(' ' * $Indent)$Message"
     }
@@ -41,18 +46,23 @@ Function Write-StatusMessage {
 
     switch($Verbosity) {
         "Verbose" {
+            Write-EZLog -Category INF -Message $Message
             Write-Verbose @messageParams
         }
         "Debug" {
+            Write-EZLog -Category INF -Message $Message
             Write-Debug @messageParams
         }
         "Warning" {
+            Write-EZLog -Category WAR -Message $Message
             Write-Warning @messageParams
         }
         "Error" {
+            Write-EZLog -Category ERR -Message $Message
             Write-Error @messageParams
         }
         "Default" {
+            #Write-EZLog -Category INF -Message $Message
             Write-Host @messageParams
         }
     }

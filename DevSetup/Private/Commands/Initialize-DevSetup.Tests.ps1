@@ -6,6 +6,9 @@ BeforeAll {
     . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupCommunityEnvPath.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Providers\Core\Install-CoreDependencies.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Initialize-DevSetupEnvs.ps1
+    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
+    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupCachePath.ps1
+    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupLogPath.ps1
     Mock Write-Host { }
     Mock Write-Error { }
     Mock Write-Verbose { }
@@ -17,6 +20,9 @@ BeforeAll {
     Mock Test-Path { $false }
     Mock New-Item { }
     Mock Initialize-DevSetupEnvs { "TestDrive:\Users\Test\devsetup\envs" }
+    Mock Write-StatusMessage { }
+    Mock Get-DevSetupCachePath { "TestDrive:\Users\Test\devsetup\cache" }
+    Mock Get-DevSetupLogPath { "TestDrive:\Users\Test\devsetup\logs" }
 }
 
 Describe "Initialize-DevSetup" {
@@ -37,7 +43,7 @@ Describe "Initialize-DevSetup" {
             Mock Install-CoreDependencies { $false }
             $result = Initialize-DevSetup
             $result | Should -Be $null
-            Assert-MockCalled Write-Error -Scope It -ParameterFilter { $Message -match "Failed to install core dependencies" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Failed to install core dependencies" -and $Verbosity -eq "Error" }
         }
     }
 
@@ -47,7 +53,7 @@ Describe "Initialize-DevSetup" {
             $result = Initialize-DevSetup
             $result | Should -Be $true
             Assert-MockCalled New-Item -Exactly 0 -Scope It
-            Assert-MockCalled Write-Verbose -Scope It -ParameterFilter { $Message -match "already exists" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "already exists" -and $Verbosity -eq "Verbose" }
         }
     }
 
@@ -56,7 +62,7 @@ Describe "Initialize-DevSetup" {
             Mock Initialize-DevSetupEnvs { $null }
             $result = Initialize-DevSetup
             $result | Should -Be $false
-            Assert-MockCalled Write-Error -Scope It -ParameterFilter { $Message -match "Failed to initialize DevSetup environment path" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Failed to initialize DevSetup environment path" -and $Verbosity -eq "Error" }
         }
     }
 
@@ -65,7 +71,7 @@ Describe "Initialize-DevSetup" {
             Mock Install-CoreDependencies { throw "Unexpected error" }
             $result = Initialize-DevSetup
             $result | Should -Be $false
-            Assert-MockCalled Write-Error -Scope It -ParameterFilter { $Message -match "Failed to initialize DevSetup environment" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Failed to initialize DevSetup environment" -and $Verbosity -eq "Error" }
         }
     }
 }

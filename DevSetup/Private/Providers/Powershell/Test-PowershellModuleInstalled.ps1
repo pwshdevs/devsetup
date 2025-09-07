@@ -104,12 +104,13 @@ Function Test-PowershellModuleInstalled {
     # AllUsers ps7 (linux/macos)
     # $env:HOME/.local/share/powershell/Modules
     if((Test-OperatingSystem -Windows)) {
-        $SearchPath = $env:USERPROFILE
+        $SearchPath = (Get-EnvironmentVariable USERPROFILE)
     } else {
-        $SearchPath = $env:HOME
+        $SearchPath = (Get-EnvironmentVariable HOME)
     }
+
     $InstallPaths = @(
-        $env:PSModulePath -split ([System.IO.Path]::PathSeparator) | ForEach-Object { 
+        (Get-EnvironmentVariable PSModulePath) -split ([System.IO.Path]::PathSeparator) | ForEach-Object { 
             if($_ -match [regex]::Escape("$SearchPath")) { 
                 @{ Path = $_; Scope = "CurrentUser" } 
             } else {

@@ -74,7 +74,7 @@ Function Install-CoreDependencies {
     # Install NuGet PackageProvider
     if ((Test-OperatingSystem -Windows)) {
         if (-not (Install-NuGet)) {
-            Write-Error "Failed to install NuGet PackageProvider"
+            Write-StatusMessage "Failed to install NuGet PackageProvider" -Verbosity Error
             return $false
         }
     }
@@ -82,21 +82,21 @@ Function Install-CoreDependencies {
     # Get required modules from DevSetup manifest
     $manifest = Get-DevSetupManifest
     if (-not $manifest -or -not $manifest.RequiredModules) {
-        Write-Warning "No required modules found in DevSetup manifest"
+        Write-StatusMessage "No required modules found in DevSetup manifest" -Verbosity Warning
         return $true
     }
     
     # Install each required PowerShell module
     foreach ($moduleName in $manifest.RequiredModules) {
         if (-not $moduleName -or [string]::IsNullOrEmpty($moduleName)) {
-            Write-Warning "Skipping empty module name"
+            Write-StatusMessage "Skipping empty module name" -Verbosity Warning
             continue
         }
         
         Write-StatusMessage "- Installing powershell module: $moduleName" -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline
         if (-not (Install-PowerShellModule -ModuleName $moduleName -Force -AllowClobber -Scope 'CurrentUser')) {
             Write-StatusMessage "[FAILED]" -ForegroundColor Red
-            Write-Error "Failed to install required PowerShell module: $moduleName"
+            Write-StatusMessage "Failed to install required PowerShell module: $moduleName" -Verbosity Error
             return $false
         }
         Write-StatusMessage "[OK]" -ForegroundColor Green
@@ -105,7 +105,7 @@ Function Install-CoreDependencies {
     if ((Test-OperatingSystem -Windows)) {
         # Install Chocolatey first
         if (-not (Install-Chocolatey)) {
-            Write-Error "Cannot proceed without Chocolatey"
+            Write-StatusMessage "Cannot proceed without Chocolatey" -Verbosity Error
             return $false
         }   
 
@@ -113,7 +113,7 @@ Function Install-CoreDependencies {
         Write-StatusMessage "- Installing Git package via Chocolatey" -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline
         if (-not (Install-ChocolateyPackage -PackageName "git" -Version 2.50.1)) {
             Write-StatusMessage "[FAILED]" -ForegroundColor Red
-            Write-Error "Failed to install Git package"
+            Write-StatusMessage "Failed to install Git package" -Verbosity Error
             return $false
         } else {
             Write-StatusMessage "[OK]" -ForegroundColor Green
@@ -123,12 +123,12 @@ Function Install-CoreDependencies {
 
         # Install Scoop PackageProvider
         if (-not (Install-Scoop)) {
-            Write-Error "Failed to install Scoop PackageProvider"
+            Write-StatusMessage "Failed to install Scoop PackageProvider" -Verbosity Error
             return $false
         } 
     } else {
         if (-not (Install-Homebrew)) {
-            Write-Error "Failed to install Homebrew"
+            Write-StatusMessage "Failed to install Homebrew" -Verbosity Error
             return $false
         }
     }

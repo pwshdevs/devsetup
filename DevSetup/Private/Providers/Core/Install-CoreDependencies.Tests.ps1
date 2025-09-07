@@ -23,7 +23,7 @@ Describe "Install-CoreDependencies" {
     Context "When NuGet installation fails" {
         It "Should return false and write error" {
             Mock Install-NuGet { return $false }
-            Mock Test-OperatingSystem { param($os) return $false }
+            Mock Test-OperatingSystem { param($os) return $true }
             $result = Install-CoreDependencies
             $result | Should -Be $false
         }
@@ -33,7 +33,7 @@ Describe "Install-CoreDependencies" {
         It "Should return true and write warning" {
             Mock Install-NuGet { return $true }
             Mock Get-DevSetupManifest { return $null }
-            Mock Test-OperatingSystem { param($os) return $false }
+            Mock Test-OperatingSystem { param($os) return $true }
             $result = Install-CoreDependencies
             $result | Should -Be $true
 

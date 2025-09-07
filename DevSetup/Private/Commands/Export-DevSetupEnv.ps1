@@ -65,7 +65,9 @@ Function Export-DevSetupEnv {
         [Parameter(Mandatory=$true, ParameterSetName="Export")]
         [string]$Name,
         [Parameter(Mandatory=$true, ParameterSetName="ExportPath")]
-        [string]$Path
+        [string]$Path,
+        [Parameter(Mandatory=$false)]
+        [switch]$DryRun
     )
     $OutFile = $null
     if($PSBoundParameters.ContainsKey('Name')) {
@@ -110,11 +112,11 @@ Function Export-DevSetupEnv {
         return $null
     }
 
-    $config = Write-NewConfig -OutFile $OutFile
+    $config = Write-NewConfig -OutFile $OutFile -DryRun:$DryRun
     if (-not $config) {
         Write-Error "Failed to create configuration file"
         return $null
-    } 
+    }
     Write-Host "Configuration file exported to: $OutFile" -ForegroundColor Green
     return $OutFile   
 }

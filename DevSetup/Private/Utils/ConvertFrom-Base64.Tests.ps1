@@ -25,7 +25,7 @@ Describe "ConvertFrom-Base64" {
         It "Should decode and write to file, returning true" {
             $plainText = "Test file output"
             $base64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($plainText))
-            $testFile = "$PSScriptRoot\test_output.txt"
+            $testFile = New-TemporaryFile
             if (Test-Path $testFile) { Remove-Item $testFile }
             $result = ConvertFrom-Base64 -EncodedString $base64 -OutputFile $testFile
             $result | Should -Be $true

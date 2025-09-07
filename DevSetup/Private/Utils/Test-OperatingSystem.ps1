@@ -1,5 +1,6 @@
 Function Test-OperatingSystem {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param(
         [Parameter(Mandatory=$false)]
         [switch]$Windows,
@@ -12,19 +13,19 @@ Function Test-OperatingSystem {
     )
 
     if((Get-PwshVersion).Major -lt 6) {
-        $IsWindows = $true
-        $IsLinux = $false
-        $IsMacOS = $false
+        $IsPS5Windows = $true
+        $IsPS5Linux = $false
+        $IsPS5MacOS = $false
     }
 
     if($Windows) {
-        return $IsWindows
+        return ($IsPS5Windows -or $IsWindows)
     }
     if($Linux) {
-        return $IsLinux
+        return ($IsPS5Linux -or $IsLinux)
     }
     if($MacOS) {
-        return $IsMacOS
+        return ($IsPS5MacOS -or $IsMacOS)
     }
-    return $null
+    return $false
 }

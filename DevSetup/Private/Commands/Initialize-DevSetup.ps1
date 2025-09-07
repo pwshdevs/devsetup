@@ -64,12 +64,12 @@
 Function Initialize-DevSetup {
     try {  
         # Install core dependencies first
-        Write-Host "- Installing core dependencies..." -ForegroundColor Cyan
+        Write-StatusMessage "- Installing core dependencies..." -ForegroundColor Cyan
         if (-not (Install-CoreDependencies)) {
-            Write-Error "Failed to install core dependencies"
+            Write-StatusMessage "Failed to install core dependencies" -Verbosity Error
             return
         }
-        Write-Host "- Core dependencies installed successfully" -ForegroundColor Green        
+        Write-StatusMessage "- Core dependencies installed successfully" -ForegroundColor Green        
         
         # Define .devsetup folder path
         $devSetupPath = Get-DevSetupPath
@@ -80,35 +80,40 @@ Function Initialize-DevSetup {
             New-Item -Path $devSetupPath -ItemType Directory -Force | Out-Null
             #Write-Host ".devsetup directory created successfully" -ForegroundColor Green
         } else {
-            Write-Verbose ".devsetup directory already exists at: $devSetupPath"
+            Write-StatusMessage ".devsetup directory already exists at: $devSetupPath" -Verbosity Verbose
         }
 
         Write-Host ""
-        Write-Host "- Installing community environments..." -ForegroundColor Cyan
+        Write-StatusMessage "- Installing community environments..." -ForegroundColor Cyan
         # Initialize DevSetup environments path
         $envSetupPath = Initialize-DevSetupEnvs
         if (-not $envSetupPath) {
-            Write-Error "Failed to initialize DevSetup environment path"
+            Write-StatusMessage "Failed to initialize DevSetup environment path" -Verbosity Error
             return $false
         } else {
-            Write-Host "- Community environments installed successfully" -ForegroundColor Green
+            Write-StatusMessage "- Community environments installed successfully" -ForegroundColor Green
         }
 
         Write-Host ""
-        Write-Host "Path Information: " -ForegroundColor Yellow
-        Write-Host "- DevSetup:" -ForegroundColor Cyan
-        Write-Host "  - $devSetupPath" -ForegroundColor Gray
-        Write-Host "- Local Environments: " -ForegroundColor Cyan
-        Write-Host "  - $($envSetupPath.Local)" -ForegroundColor Gray
-        Write-Host "- Community Environments: " -ForegroundColor Cyan
-        Write-Host "  - $($envSetupPath.Community)" -ForegroundColor Gray        
+        Write-StatusMessage "Path Information: " -ForegroundColor Yellow
+        Write-StatusMessage "- DevSetup:" -ForegroundColor Cyan
+        Write-StatusMessage "  - $devSetupPath" -ForegroundColor Gray
+        Write-StatusMessage "- Local Environments: " -ForegroundColor Cyan
+        Write-StatusMessage "  - $($envSetupPath.Local)" -ForegroundColor Gray
+        Write-StatusMessage "- Community Environments: " -ForegroundColor Cyan
+        Write-StatusMessage "  - $($envSetupPath.Community)" -ForegroundColor Gray
+        Write-StatusMessage "- Logs:" -ForegroundColor Cyan
+        Write-StatusMessage "  - $(Get-DevSetupLogPath)" -ForegroundColor Gray
+        Write-StatusMessage "- Cache:" -ForegroundColor Cyan
+        Write-StatusMessage "  - $(Get-DevSetupCachePath)" -ForegroundColor Gray
         Write-Host ""
 
         # Return the path for use by other functions
         return $true
     }
     catch {
-        Write-Error "Failed to initialize DevSetup environment: $_"
+        Write-StatusMessage "Failed to initialize DevSetup environment: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 }
