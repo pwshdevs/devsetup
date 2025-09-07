@@ -1,5 +1,8 @@
 #-IncludeRule @("PSAvoidUsingInvokeExpression", "PSAvoidUsingConvertToSecureStringWithPlainText") `
-import-module ConvertToSarif
+Set-PSRepository PSGallery -InstallationPolicy Trusted
+Install-Module PSScriptAnalyzer -ErrorAction Stop
+Install-Module ConvertToSARIF -ErrorAction Stop
+Import-Module ConvertToSarif
 Invoke-ScriptAnalyzer `
     -Path . `
     -ExcludeRule @("PSAvoidLongLines", "PSAlignAssignmentStatement") `
