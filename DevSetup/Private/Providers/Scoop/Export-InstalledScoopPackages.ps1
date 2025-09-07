@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Exports installed Scoop packages and buckets to a YAML configuration file.
 
@@ -66,7 +66,7 @@
     Configuration Export, Package Discovery, YAML Generation
 #>
 
-Function Export-InstalledScoopPackages {
+Function Export-InstalledScoopPackage {
     Param(
         [Parameter(Mandatory = $true)]
         [string]$Config,

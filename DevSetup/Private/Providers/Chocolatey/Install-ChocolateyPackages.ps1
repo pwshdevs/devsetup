@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Installs Chocolatey packages from YAML configuration data.
 
@@ -79,7 +79,7 @@
     Bulk Installation, Configuration Processing, Package Management
 #>
 
-Function Install-ChocolateyPackages {
+Function Install-ChocolateyPackage {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]

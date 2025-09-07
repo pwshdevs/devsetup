@@ -21,7 +21,7 @@
 
 .EXAMPLE
     Export-DevSetupEnv -Name "MyCurrentSetup"
-    
+
     Exports the current system state to a configuration file named "MyCurrentSetup.yaml".
 
 .EXAMPLE
@@ -31,12 +31,12 @@
     } else {
         Write-Host "Export failed"
     }
-    
+
     Demonstrates capturing the return value to verify export success.
 
 .EXAMPLE
     Export-DevSetupEnv -Name "Data Science Environment!"
-    
+
     The exclamation mark will be removed, resulting in "DataScienceEnvironment.yaml".
     A warning message will indicate the sanitization that occurred.
 
@@ -80,7 +80,7 @@ Function Export-DevSetupEnv {
         }
         $SanitizedEnvName = $Name -replace '[^a-zA-Z0-9\-\.]', ''
         if ($SanitizedEnvName -ne $Name) {
-            Write-Host "EnvName sanitized from '$Name' to '$SanitizedEnvName' (removed non-alphanumeric characters)" -ForegroundColor Yellow
+            Write-StatusMessage "EnvName sanitized from '$Name' to '$SanitizedEnvName' (removed non-alphanumeric characters)" -ForegroundColor Yellow
         }
 
         $BasePath = Join-Path -Path (Get-DevSetupEnvPath) -ChildPath $Provider
@@ -98,25 +98,25 @@ Function Export-DevSetupEnv {
         if($Name -notlike "*.devsetup") {
             $Name = "$Name.devsetup"
         }
-        
+
         $SanitizedEnvName = $Name -replace '[^a-zA-Z0-9\-\.]', ''
 
         if ($SanitizedEnvName -ne $Name) {
-            Write-Host "EnvName sanitized from '$Name' to '$SanitizedEnvName' (removed non-alphanumeric characters)" -ForegroundColor Yellow
+            Write-StatusMessage "EnvName sanitized from '$Name' to '$SanitizedEnvName' (removed non-alphanumeric characters)" -ForegroundColor Yellow
         }
         $OutFile = Join-Path -Path $BasePath -ChildPath $SanitizedEnvName
     }
 
     if(-not $OutFile) {
-        Write-Error "Failed to determine output file path"
+        Write-StatusMessage "Failed to determine output file path" -Verbosity Error
         return $null
     }
 
     $config = Write-NewConfig -OutFile $OutFile -DryRun:$DryRun
     if (-not $config) {
-        Write-Error "Failed to create configuration file"
+        Write-StatusMessage "Failed to create configuration file" -Verbosity Error
         return $null
     }
-    Write-Host "Configuration file exported to: $OutFile" -ForegroundColor Green
-    return $OutFile   
+    Write-StatusMessage "Configuration file exported to: $OutFile" -ForegroundColor Green
+    return $OutFile
 }

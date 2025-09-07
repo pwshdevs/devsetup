@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Lists available development environment configurations with platform filtering.
 
@@ -21,22 +21,22 @@
 
 .EXAMPLE
     Show-DevSetupEnvList
-    
+
     Lists development environments compatible with the current platform.
 
 .EXAMPLE
     Show-DevSetupEnvList -Platform "all"
-    
+
     Displays all available development environments regardless of platform.
 
 .EXAMPLE
     Show-DevSetupEnvList -Platform "linux"
-    
+
     Shows only environments specifically designed for Linux systems.
 
 .EXAMPLE
     Show-DevSetupEnvList -Platform "windows"
-    
+
     Lists environments compatible with Windows systems.
 
 .NOTES
@@ -107,7 +107,7 @@ Function Show-DevSetupEnvList {
     # Get the environments.json file path
     $devSetupPath = Get-DevSetupPath
     $environmentsJsonPath = Join-Path -Path $devSetupPath -ChildPath "environments.json"
-    
+
     if (-not (Test-Path $environmentsJsonPath)) {
         Write-Host "No environments index found. Running optimization to create it..." -ForegroundColor Cyan
         Optimize-DevSetupEnvs | Out-Null
@@ -122,7 +122,7 @@ Function Show-DevSetupEnvList {
             Optimize-DevSetupEnvs | Out-Null
         }
     }
-    
+
     if ($Provider) {
         $environments = $environments | Where-Object { $_.provider -and ($_.provider.ToLower() -eq $Provider.ToLower()) }
     }
@@ -134,7 +134,7 @@ Function Show-DevSetupEnvList {
     if ($platformFilter -ne "all") {
         $environments = $environments | Where-Object { ($_.platform -and ($_.platform.ToLower() -eq $platformFilter)) }
     }
-    
+
     if ($environments.Count -eq 0) {
         if ($platformFilter -eq "all") {
             Write-Host "No development environments found." -ForegroundColor Yellow
@@ -144,7 +144,7 @@ Function Show-DevSetupEnvList {
         }
         return $true
     }
-    
+
     # Create a formatted table
     $tableData = @()
     foreach ($env in $environments) {
@@ -159,7 +159,7 @@ Function Show-DevSetupEnvList {
             Color = "DarkGray"
         }
     }
-    
+
     $columnDefinitions = [ordered]@{
         Name     = @{ Name = "Name"; Width = 32; Alignment = "Left"; Color = "White"; Key = "Name" }
         Version  = @{ Name = "Version"; Width = 10; Alignment = "Center"; Color = "White"; Key = "Version" }

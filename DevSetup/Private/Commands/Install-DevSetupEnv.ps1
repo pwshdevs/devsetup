@@ -18,17 +18,17 @@
 
 .EXAMPLE
     Install-DevSetupEnv -Name "development"
-    
+
     Installs the development environment from the "development.yaml" configuration file.
 
 .EXAMPLE
     Install-DevSetupEnv "web-dev"
-    
+
     Installs the web development environment using positional parameter syntax.
 
 .EXAMPLE
     Install-DevSetupEnv -Name "my-environment"
-    
+
     Demonstrates the PSCustomObject structure that would be parsed from the YAML file.
 
 .NOTES
@@ -94,7 +94,7 @@ Function Install-DevSetupEnv {
         Write-StatusMessage "- $YamlFile" -Indent 2 -ForegroundColor Gray
         if((Test-Path -Path $YamlFile)) {
             Write-Warning "File $YamlFile already exists"
-            do { 
+            do {
                 if(($sAnswer = Read-Host "Overwrite existing file and continue? [Y/N]") -eq '') { $sAnswer = 'N' }
             } until ($sAnswer.ToUpper()[0] -match '[yYnN]')
             if(-not ($sAnswer.ToUpper()[0] -match '[Y]')) {
@@ -119,13 +119,13 @@ Function Install-DevSetupEnv {
 
     # Read the configuration from the YAML file
     $YamlData = Read-ConfigurationFile -Config $YamlFile
-    
+
     # Check if YAML data was successfully parsed
     if ($null -eq $YamlData) {
         Write-StatusMessage "Failed to parse YAML configuration from: $YamlFile" -Verbosity Error
         return
     }
-    
+
     # Install PowerShell module dependencies
     Install-PowershellModules -YamlData $YamlData | Out-Null
 
@@ -142,7 +142,7 @@ Function Install-DevSetupEnv {
     # Execute any commands defined in the configuration
     if ($YamlData.devsetup.commands -and $YamlData.devsetup.commands.Count -gt 0) {
         Write-StatusMessage "Executing configuration commands..." -ForegroundColor Cyan
-        
+
         foreach ($commandEntry in $YamlData.devsetup.commands) {
             if ($commandEntry.command) {
                 Write-StatusMessage "- Executing command for: $($commandEntry.packageName)" -Indent 2 -ForegroundColor Gray

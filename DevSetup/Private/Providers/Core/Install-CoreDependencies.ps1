@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Installs core dependencies required for the DevSetup module to function properly.
 
@@ -67,7 +67,7 @@
     System Setup, Dependency Management, Package Manager Installation
 #>
 
-Function Install-CoreDependencies {
+Function Install-CoreDependency {
     [CmdletBinding()]
     Param()
 

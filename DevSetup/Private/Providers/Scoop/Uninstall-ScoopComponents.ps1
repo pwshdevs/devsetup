@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Uninstalls multiple Scoop components (buckets and packages) from the system based on YAML configuration.
 
@@ -79,7 +79,7 @@
     Package Management, Batch Uninstallation, Configuration Processing, Component Management
 #>
 
-Function Uninstall-ScoopComponents {
+Function Uninstall-ScoopComponent {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]

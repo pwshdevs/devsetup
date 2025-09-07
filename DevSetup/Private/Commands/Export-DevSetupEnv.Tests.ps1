@@ -4,6 +4,7 @@ BeforeAll {
     . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupLocalEnvPath.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupCommunityEnvPath.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Write-NewConfig.ps1
+    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
     if ($PSVersionTable.PSVersion.Major -eq 5) {
         Mock Get-DevSetupEnvPath { "$TestDrive\DevSetup\DevSetupEnvs" }
         Mock Get-DevSetupLocalEnvPath { "$TestDrive\DevSetup\DevSetupEnvs\local" }
@@ -28,6 +29,7 @@ BeforeAll {
     Mock Write-NewConfig { param($OutFile) $OutFile }
     Mock Write-Host { }
     Mock Write-Error { }
+    Mock Write-StatusMessage { }
 }
 
 Describe "Export-DevSetupEnv" {
@@ -44,7 +46,7 @@ Describe "Export-DevSetupEnv" {
             }
             $result | Should -Be $expectedPath
             Assert-MockCalled Write-NewConfig -Exactly 1 -Scope It -ParameterFilter { $OutFile -eq $expectedPath }
-            Assert-MockCalled Write-Host -Scope It -ParameterFilter { $Object -match "exported to" -and $ForegroundColor -eq "Green" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "exported to" -and $ForegroundColor -eq "Green" }
         }
     }
 
@@ -62,7 +64,7 @@ Describe "Export-DevSetupEnv" {
             }
             $result | Should -Be $expectedPath
             Assert-MockCalled Write-NewConfig -Exactly 1 -Scope It -ParameterFilter { $OutFile -eq $expectedPath }
-            Assert-MockCalled Write-Host -Scope It -ParameterFilter { $Object -match "exported to" -and $ForegroundColor -eq "Green" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "exported to" -and $ForegroundColor -eq "Green" }
         }
     }    
 
@@ -77,7 +79,7 @@ Describe "Export-DevSetupEnv" {
                 $expectedPath = "$TestDrive/Users/TestUser/DevSetup/DevSetupEnvs/local/DataScienceEnvironment.devsetup"
             }
             $result | Should -Be $expectedPath
-            Assert-MockCalled Write-Host -Scope It -ParameterFilter { $Object -match "sanitized" -and $ForegroundColor -eq "Yellow" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "sanitized" -and $ForegroundColor -eq "Yellow" }
         }
     }
 
@@ -94,7 +96,7 @@ Describe "Export-DevSetupEnv" {
                 $expectedPath = "$TestDrive/MyCustomPath/MyEnv.devsetup"
             }
             $result | Should -Be $expectedPath
-            Assert-MockCalled Write-Host -Scope It -ParameterFilter { $Object -match "sanitized" -and $ForegroundColor -eq "Yellow" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "sanitized" -and $ForegroundColor -eq "Yellow" }
         }
     }    
 
@@ -103,7 +105,7 @@ Describe "Export-DevSetupEnv" {
             Mock Write-NewConfig { param($OutFile) $null }
             $result = Export-DevSetupEnv -Name "FailEnv"
             $result | Should -Be $null
-            Assert-MockCalled Write-Error -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to create configuration file" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to create configuration file" -and $Verbosity -eq "Error" }
         }
     }
 }

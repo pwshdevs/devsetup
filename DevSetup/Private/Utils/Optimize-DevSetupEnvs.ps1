@@ -1,4 +1,4 @@
-Function Optimize-DevSetupEnvs {
+﻿Function Optimize-DevSetupEnv {
     [CmdletBinding()]
     [OutputType([bool])]
     Param()

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Installs Scoop buckets and packages from YAML configuration data.
 
@@ -102,7 +102,7 @@
 .FUNCTIONALITY
     Bulk Installation, Configuration Processing, Package Management
 #>
-Function Install-ScoopComponents {
+Function Install-ScoopComponent {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]

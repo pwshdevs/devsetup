@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Uninstalls multiple PowerShell modules from the system based on YAML configuration.
 
@@ -76,7 +76,7 @@
     Package Management, Batch Uninstallation, Configuration Processing, Module Management
 #>
 
-Function Uninstall-PowershellModules {
+Function Uninstall-PowershellModule {
     Param(
         [Parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]

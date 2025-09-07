@@ -1,4 +1,4 @@
-Function Initialize-DevSetupEnvs {
+﻿Function Initialize-DevSetupEnv {
     try {
         # Define environments repository path
         $environmentsPath = Get-DevSetupEnvPath

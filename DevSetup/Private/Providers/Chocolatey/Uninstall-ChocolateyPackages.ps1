@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Uninstalls multiple Chocolatey packages from the system based on YAML configuration.
 
@@ -74,7 +74,7 @@
     Package Management, Batch Uninstallation, Configuration Processing, System Cleanup
 #>
 
-Function Uninstall-ChocolateyPackages {
+Function Uninstall-ChocolateyPackage {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]

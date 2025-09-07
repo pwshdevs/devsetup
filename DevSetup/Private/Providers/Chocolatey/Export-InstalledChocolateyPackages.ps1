@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Exports installed Chocolatey packages to a YAML configuration file.
 
@@ -64,7 +64,7 @@
     Configuration Export, Package Discovery, YAML Generation
 #>
 
-Function Export-InstalledChocolateyPackages {
+Function Export-InstalledChocolateyPackage {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory = $true)]

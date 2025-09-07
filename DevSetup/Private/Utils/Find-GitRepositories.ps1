@@ -1,4 +1,4 @@
-Function Find-GitRepositories {
+﻿Function Find-GitRepository {
     [CmdletBinding()]
     Param(
         [Parameter(
@@ -25,7 +25,7 @@ Function Find-GitRepositories {
     Write-Verbose "[PROCESS] Excluding system folders: $($ExcludeFolders -join ', ')"
 
     # Use a more efficient search strategy
-    function Search-GitRepos {
+    function Search-GitRepo {
         param([string]$SearchPath, [string[]]$ExcludeFolders)
         
         try {

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Installs PowerShell modules from YAML configuration data.
 
@@ -76,7 +76,7 @@
     Bulk Installation, Configuration Processing, Module Management
 #>
 
-Function Install-PowershellModules {
+Function Install-PowershellModule {
     Param(
         [Parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]

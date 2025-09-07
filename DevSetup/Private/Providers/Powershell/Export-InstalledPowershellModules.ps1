@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Exports installed PowerShell modules to a YAML configuration file.
 
@@ -65,7 +65,7 @@
     Configuration Export, Module Discovery, YAML Generation
 #>
 
-Function Export-InstalledPowershellModules {
+Function Export-InstalledPowershellModule {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory = $true)]

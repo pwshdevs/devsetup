@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Retrieves all package dependencies from installed Chocolatey packages.
 
@@ -54,7 +54,7 @@
     Dependency Analysis, Package Management, Metadata Extraction
 #>
 
-Function Get-ChocolateyPackageDependencies {
+Function Get-ChocolateyPackageDependency {
     [CmdletBinding()]
     [OutputType([array])]
     Param()
