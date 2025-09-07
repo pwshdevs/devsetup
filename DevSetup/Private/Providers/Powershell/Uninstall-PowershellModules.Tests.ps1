@@ -1,8 +1,8 @@
 BeforeAll {
-    . $PSScriptRoot\Uninstall-PowershellModules.ps1
-    . $PSScriptRoot\Uninstall-PowerShellModule.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
+    . (Join-Path $PSScriptRoot "Uninstall-PowershellModules.ps1")
+    . (Join-Path $PSScriptRoot "Uninstall-PowerShellModule.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
     Mock Write-StatusMessage { }
     Mock Write-Warning { }
     Mock Write-Error { }

@@ -1,8 +1,8 @@
 BeforeAll {
-    . $PSScriptRoot\Install-PowershellModules.ps1
-    . $PSScriptRoot\Install-PowerShellModule.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1
+    . (Join-Path $PSScriptRoot "Install-PowershellModules.ps1")
+    . (Join-Path $PSScriptRoot "Install-PowerShellModule.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1")
     Mock Write-StatusMessage { }
     Mock Test-RunningAsAdmin { return $true }
     Mock Write-Error {}
