@@ -3,6 +3,8 @@ on:
     pull_request:
         branches:
             - develop
+            - main
+    workflow_dispatch:
 
 jobs:
   pester-test-linux:
