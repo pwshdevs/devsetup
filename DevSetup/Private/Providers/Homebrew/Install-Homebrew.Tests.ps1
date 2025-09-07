@@ -50,7 +50,7 @@ Describe "Install-Homebrew" {
                 Param($Name)
                 switch($Name) {
                     "SHELL" { return "/bin/bash" }
-                    "HOME" { return "/Users/TestUser" }
+                    "HOME" { return "/home/testuser" }
                 }
             }
             Mock Add-Content { }

@@ -29,8 +29,15 @@ jobs:
         run: |
           perl -pi -e 's/[0-9]\.[0-9]\.[0-9]/${{ steps.version_tracker.outputs.version }}/' DevSetup/DevSetup.psd1
 
-      - name: Commit and push changes
-        uses: stefanzweifel/git-auto-commit-action@v5
+#      - name: Commit and push changes
+#        uses: stefanzweifel/git-auto-commit-action@v5
+#        with:
+#          commit_message: "Automated Release Tagging for ${{ steps.version_tracker.outputs.version }} in DevSetup.psd1"
+#          branch:                   
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
         with:
-          commit_message: "Automated Release Tagging for ${{ steps.version_tracker.outputs.version }} in DevSetup.psd1"
-          branch: develop                   
+          commit-message: Automated Release Tagging for ${{ steps.version_tracker.outputs.version }} in DevSetup.psd1
+          title: Automated Release Tagging for ${{ steps.version_tracker.outputs.version }} in DevSetup.psd1
+          body: Changing version to ${{ steps.version_tracker.outputs.version }}
+          branch: update-release-version-to-${{ steps.version_tracker.outputs.version }}
