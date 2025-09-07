@@ -1,5 +1,6 @@
 Function Write-HomebrewCache {
     [CmdletBinding()]
+    [OutputType([void])]
     Param()
 
     $cacheFile = Get-HomebrewCacheFile
@@ -20,9 +21,8 @@ Function Write-HomebrewCache {
                     $cacheData[$packageName] = $packageVersion
                 }
             } | Out-Null
+            $cacheData | ConvertTo-Json | Set-Content -Path $cacheFile
         }
-
-        $cacheData | ConvertTo-Json | Set-Content -Path $cacheFile
     } catch {
         Write-StatusMessage "Failed to write Homebrew cache: $_" -Verbosity Error
         Write-StatusMessage $_.ScriptStackTrace -Verbosity Error

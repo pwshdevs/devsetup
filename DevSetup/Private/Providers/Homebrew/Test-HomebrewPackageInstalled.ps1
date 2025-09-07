@@ -8,7 +8,7 @@ Function Test-HomebrewPackageInstalled {
         [Version]$MinimumVersion
     )
 
-    $PackageStatus = [InstalledState]::NotInstalled
+    [InstalledState]$PackageStatus = [InstalledState]::NotInstalled
 
     if(-not (Test-HomebrewInstalled)) {
         Write-StatusMessage "Homebrew is not installed" -Verbosity Verbose
@@ -25,13 +25,14 @@ Function Test-HomebrewPackageInstalled {
             $InstalledVersion = [Version]::Parse($InstalledPackages[$PackageName])
             if ($InstalledVersion -ge $MinimumVersion) {
                 $PackageStatus += [InstalledState]::MinimumVersionMet
+                $PackageStatus += [InstalledState]::RequiredVersionMet
+                $PackageStatus += [InstalledState]::GlobalVersionMet
             }
         } else {
             $PackageStatus += [InstalledState]::MinimumVersionMet
+            $PackageStatus += [InstalledState]::RequiredVersionMet
+            $PackageStatus += [InstalledState]::GlobalVersionMet
         }
-
-        $PackageStatus += [InstalledState]::RequiredVersionMet
-        $PackageStatus += [InstalledState]::GlobalVersionMet
     }
 
     return $PackageStatus

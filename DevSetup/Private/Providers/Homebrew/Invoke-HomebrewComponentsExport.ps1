@@ -1,13 +1,11 @@
-Function Invoke-HomebrewComponentExport {
-    [CmdletBinding()]
+Function Invoke-HomebrewComponentsExport {
+    [CmdletBinding(SupportsShouldProcess = $true)]
     [OutputType([bool])]
     Param(
         [Parameter(Mandatory = $true)]
         [string]$Config,
         [Parameter(Mandatory = $false)]
-        [string]$OutFile,
-        [Parameter(Mandatory = $false)]
-        [switch]$DryRun
+        [string]$OutFile
     )
 
     $YamlData = Read-ConfigurationFile -Config $Config
@@ -66,7 +64,9 @@ Function Invoke-HomebrewComponentExport {
 
     try {
         Write-StatusMessage "Saving configuration to: $outputFile" -Verbosity Verbose
-        $yamlOutput | Out-File -FilePath $outputFile
+        if ($PSCmdlet.ShouldProcess($outputFile, "Out-File")) {
+            $yamlOutput | Out-File -FilePath $outputFile
+        }
         Write-StatusMessage "Configuration saved successfully!" -Verbosity Verbose
     }
     catch {

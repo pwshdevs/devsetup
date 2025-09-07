@@ -3,7 +3,10 @@ Function Install-HomebrewPackage {
     [OutputType([bool])]
     Param(
         [Parameter(Mandatory=$true, Position=0, ParameterSetName="Install")]
-        [string]$PackageName
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName="InstallMinimumVersion")]
+        [string]$PackageName,
+        [Parameter(Mandatory=$true, Position=1, ParameterSetName="InstallMinimumVersion")]
+        [string]$MinimumVersion
     )
 
     if ($PSCmdlet.ShouldProcess($PackageName, "brew install")) {
