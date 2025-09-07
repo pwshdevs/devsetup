@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Exports installed Scoop packages and buckets to a YAML configuration file.
 

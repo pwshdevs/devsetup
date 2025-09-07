@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Exports installed PowerShell modules to a YAML configuration file.
 

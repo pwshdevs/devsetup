@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Uninstalls multiple Chocolatey packages from the system based on YAML configuration.
 

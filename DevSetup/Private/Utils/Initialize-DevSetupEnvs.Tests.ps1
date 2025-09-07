@@ -1,14 +1,16 @@
 BeforeAll {
     Function Get-GitHubRepository { }
     Function Install-GitRepository { }
-    
-    . $PSScriptRoot\Initialize-DevSetupEnvs.ps1
-    . $PSScriptRoot\Write-StatusMessage.ps1
-    . $PSScriptRoot\Optimize-DevSetupEnvs.ps1
-    . $PSScriptRoot\Get-DevSetupEnvPath.ps1
-    . $PSScriptRoot\Get-DevSetupLocalEnvPath.ps1
-    . $PSScriptRoot\Get-DevSetupCommunityEnvPath.ps1
-    . $PSScriptRoot\Get-DevSetupManifest.ps1
+
+    Function Set-GitHubConfiguration { }
+
+    . (Join-Path $PSScriptRoot "Initialize-DevSetupEnvs.ps1")
+    . (Join-Path $PSScriptRoot "Write-StatusMessage.ps1")
+    . (Join-Path $PSScriptRoot "Optimize-DevSetupEnvs.ps1")
+    . (Join-Path $PSScriptRoot "Get-DevSetupEnvPath.ps1")
+    . (Join-Path $PSScriptRoot "Get-DevSetupLocalEnvPath.ps1")
+    . (Join-Path $PSScriptRoot "Get-DevSetupCommunityEnvPath.ps1")
+    . (Join-Path $PSScriptRoot "Get-DevSetupManifest.ps1")
     Mock Get-DevSetupEnvPath { "TestDrive:\DevSetupEnvs" }
     Mock Get-DevSetupManifest { 
         @{
@@ -20,6 +22,7 @@ BeforeAll {
         }
     }
     Mock Get-GitHubRepository { @{ clone_url = "https://github.com/example/envrepo.git" } }
+    Mock Set-GitHubConfiguration { $true }
     Mock Test-Path { $false }
     Mock Install-GitRepository { $true }
     Mock Write-StatusMessage { }
@@ -52,7 +55,7 @@ Describe "Initialize-DevSetupEnvs" {
 
     Context "When EnvironmentsProjectUri is not a .git URL and GitHub API fails" {
         It "Should write error and return null" {
-            Mock Get-GitHubRepository { $null }
+            Mock Get-GitHubRepository { return $null }
             $result = Initialize-DevSetupEnvs
             $result | Should -Be $null
             Assert-MockCalled Write-Error -Scope It -ParameterFilter { $Message -match "Failed to retrieve repository information or clone_url" }
@@ -108,7 +111,7 @@ Describe "Initialize-DevSetupEnvs" {
             Mock Test-Path { $false }
             Mock Install-GitRepository { $null }
             $global:LASTEXITCODE = 1
-            $result = Initialize-DevSetupEnvs
+            Initialize-DevSetupEnvs
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -eq "[Failed]" }
         }
     }
@@ -118,14 +121,14 @@ Describe "Initialize-DevSetupEnvs" {
             Mock Test-Path { $false }
             Mock Install-GitRepository { $null }
             $global:LASTEXITCODE = 0
-            $result = Initialize-DevSetupEnvs
+            Initialize-DevSetupEnvs
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -eq "[OK]" }
         }
     }
 
     Context "When Optimize-DevSetupEnvs is called" {
         It "Should call Optimize-DevSetupEnvs after cloning" {
-            $result = Initialize-DevSetupEnvs
+            Initialize-DevSetupEnvs
             Assert-MockCalled Optimize-DevSetupEnvs -Scope It
         }
     }

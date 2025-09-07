@@ -1,4 +1,5 @@
 BeforeAll {
+    Function Write-EZLog { }
     Function ConvertFrom-Yaml { }
     . $PSScriptRoot\Optimize-DevSetupEnvs.ps1
     . $PSScriptRoot\Get-DevSetupEnvPath.ps1
@@ -8,7 +9,7 @@ BeforeAll {
     Mock Get-DevSetupEnvPath { "$TestDrive\DevSetupEnvs" }
     Mock Get-DevSetupPath { "$TestDrive\DevSetup" }
     Mock Join-Path { Param($Path, $ChildPath) "$Path\$ChildPath" }
-    Mock Write-StatusMessage { }
+    Mock Write-StatusMessage { Write-Error $Message }
     Mock Write-Warning { }
     Mock Write-Error { }
     Mock Write-Debug { }
@@ -36,7 +37,7 @@ Describe "Optimize-DevSetupEnvs" {
             Mock Get-DevSetupEnvPath { $null }
             $result = Optimize-DevSetupEnvs
             $result | Should -Be $false
-            Assert-MockCalled Write-Warning -Scope It -ParameterFilter { $Message -match "DevSetup environments path not found" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "DevSetup environments path not found" -and $Verbosity -eq "Warning" }
         }
 
         It "Should warn and return null if path does not exist" {
@@ -44,7 +45,7 @@ Describe "Optimize-DevSetupEnvs" {
             Mock Test-Path { $false }
             $result = Optimize-DevSetupEnvs
             $result | Should -Be $false
-            Assert-MockCalled Write-Warning -Scope It -ParameterFilter { $Message -match "DevSetup environments path not found" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "DevSetup environments path not found" -and $Verbosity -eq "Warning" }
         }
     }
 
@@ -56,7 +57,7 @@ Describe "Optimize-DevSetupEnvs" {
             $result | Should -BeOfType 'bool'
             $result | Should -Be $true
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Indexing 0 environment files" }
-            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -eq "[OK]" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "[OK]" }
         }
     }
 
@@ -70,11 +71,11 @@ Describe "Optimize-DevSetupEnvs" {
                 )
             }
             $result = Optimize-DevSetupEnvs
-            Assert-MockCalled Write-Error -Scope It -Exactly 0
-            #Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Object -match "Indexing 2 environment files" }
-            #Assert-MockCalled Write-Host -Scope It -ParameterFilter { $Object -eq "[OK]" }
+            Assert-MockCalled Write-StatusMessage -Scope It -Exactly 0 -ParameterFilter { $Verbosity -eq "Error" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Indexing 2 environment files" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "[OK]" }
             $result | Should -BeOfType 'bool'
-            $result | Should -Be $false          
+            $result | Should -Be $true
         }
     }
 
@@ -93,10 +94,10 @@ Describe "Optimize-DevSetupEnvs" {
                 @{ devsetup = @{ configuration = @{ os = @{ name = "Windows" }; version = "1.0.0" } } }
             }
             $result = Optimize-DevSetupEnvs
-            Assert-MockCalled Write-Error -Scope It -Exactly 0
-            Assert-MockCalled Write-Warning -Scope It -ParameterFilter { $Message -match "Failed to process bad.yaml" }            
+            Assert-MockCalled Write-StatusMessage -Scope It -Exactly 0 -ParameterFilter { $Verbosity -eq "Error" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Failed to process bad.yaml" -and $Verbosity -eq "Warning" }
             $result | Should -BeOfType 'bool'
-            $result | Should -Be $false
+            $result | Should -Be $true
 
         }
     }
@@ -112,7 +113,7 @@ Describe "Optimize-DevSetupEnvs" {
             Mock Out-File { throw "File error" }
             $result = Optimize-DevSetupEnvs
             $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -eq "[Failed]" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Failed to optimize DevSetup environments" }
         }
     }
 
@@ -121,7 +122,7 @@ Describe "Optimize-DevSetupEnvs" {
             Mock Get-DevSetupEnvPath { throw "Unexpected error" }
             $result = Optimize-DevSetupEnvs
             $result | Should -Be $false
-            Assert-MockCalled Write-Error -Scope It -ParameterFilter { $Message -match "Failed to optimize DevSetup environments" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Failed to optimize DevSetup environments" -and $Verbosity -eq "Error" }
         }
     }
 }

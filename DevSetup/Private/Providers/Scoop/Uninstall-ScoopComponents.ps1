@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Uninstalls multiple Scoop components (buckets and packages) from the system based on YAML configuration.
 

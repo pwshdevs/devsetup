@@ -1,5 +1,13 @@
 BeforeAll {
     . $PSScriptRoot\Test-ScoopInstalled.ps1
+    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Get-EnvironmentVariable.ps1
+    if ($PSVersionTable.PSVersion.Major -eq 5 -or ($PSVersionTable.PSVersion.Major -ge 6 -and $IsWindows)) {
+        Mock Get-EnvironmentVariable { return "$TestDrive\Users\TestUser" }
+    } elseif ($PSVersionTable.PSVersion.Major -ge 6 -and $IsLinux) {
+        Mock Get-EnvironmentVariable { return "$TestDrive/home/testuser" }
+    } elseif ($PSVersionTable.PSVersion.Major -ge 6 -and $IsMacOS) {
+        Mock Get-EnvironmentVariable { return "$TestDrive/Users/TestUser" }
+    }
 }
 
 Describe "Test-ScoopInstalled" {

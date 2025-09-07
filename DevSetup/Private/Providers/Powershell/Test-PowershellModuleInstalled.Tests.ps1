@@ -1,8 +1,72 @@
 BeforeAll {
     . $PSScriptRoot\Test-PowershellModuleInstalled.ps1
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Enums\InstalledState.ps1    
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1 
-    Mock Test-OperatingSystem { $true }
+    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1
+    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Get-EnvironmentVariable.ps1
+    if($PSVersionTable.PSVersion.Major -eq 5) {
+        $script:LocalModulePath = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\"
+        $script:AllUsersModulePath = "$env:ProgramFiles\WindowsPowerShell\Modules\"
+        Mock Get-EnvironmentVariable { 
+            Param(
+                [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+                $Name
+            )
+            switch ($Name) {
+                "USERPROFILE" { Write-Output $env:USERPROFILE }
+                "PSModulePath" { Write-Output "$env:USERPROFILE\Documents\WindowsPowerShell\Modules;$env:ProgramFiles\WindowsPowerShell\Modules" }
+            }
+        }
+        Mock Test-OperatingSystem { $true }
+    } else {
+        if($IsWindows) {
+            $script:LocalModulePath = "$env:USERPROFILE\Documents\PowerShell\Modules\"
+            $script:AllUsersModulePath = "$env:ProgramFiles\PowerShell\Modules\"
+            Mock Get-EnvironmentVariable { 
+                Param(
+                    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+                    $Name
+                )
+                switch ($Name) {
+                    "USERPROFILE" { Write-Output $env:USERPROFILE }
+                    "HOME" { Write-Output $env:HOME }
+                    "PSModulePath" { Write-Output "$env:USERPROFILE\Documents\PowerShell\Modules;$env:ProgramFiles\PowerShell\Modules" }
+                }                                
+            }
+            Mock Test-OperatingSystem { $true }
+        }
+        if($IsLinux) {
+            $script:LocalModulePath = "$env:HOME/.local/share/powershell/Modules/"
+            $script:AllUsersModulePath = "/usr/local/share/powershell/Modules/"
+            Mock Get-EnvironmentVariable {
+                Param(
+                    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+                    $Name
+                )
+                switch ($Name) {
+                    "USERPROFILE" { Write-Output $env:USERPROFILE }
+                    "HOME" { Write-Output $env:HOME }
+                    "PSModulePath" { Write-Output "$env:HOME/.local/share/powershell/Modules:/usr/local/share/powershell/Modules:/opt/microsoft/powershell/7/Modules" }
+                }                
+            }
+            Mock Test-OperatingSystem { $false }
+        }
+        if($IsMacOS) {
+            $script:LocalModulePath = "$env:HOME/.local/share/powershell/Modules/"
+            $script:AllUsersModulePath = "/usr/local/share/powershell/Modules/"
+            Mock Get-EnvironmentVariable { 
+                Param(
+                    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
+                    $Name
+                )
+                switch ($Name) {
+                    "USERPROFILE" { Write-Output $env:USERPROFILE }
+                    "HOME" { Write-Output $env:HOME }
+                    "PSModulePath" { Write-Output "$env:HOME/.local/share/powershell/Modules:/usr/local/share/powershell/Modules:/opt/microsoft/powershell/7/Modules" }
+                }                
+            }
+            Mock Test-OperatingSystem { $false }
+        }
+    }
 }
 
 Describe "Test-PowershellModuleInstalled" {
@@ -21,7 +85,7 @@ Describe "Test-PowershellModuleInstalled" {
                 [PSCustomObject]@{
                     Name = "posh-git"
                     Version = "1.0.0"
-                    Path = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\posh-git"
+                    Path = "$($script:LocalModulePath)posh-git"
                 }
             }
             $result = Test-PowershellModuleInstalled -ModuleName "posh-git"
@@ -36,7 +100,7 @@ Describe "Test-PowershellModuleInstalled" {
                 [PSCustomObject]@{
                     Name = "PSReadLine"
                     Version = "2.2.6"
-                    Path = "$env:USERPROFILE\Documents\PowerShell\Modules\PSReadLine"
+                    Path = "$($script:LocalModulePath)PSReadLine"
                 }
             }
             $result = Test-PowershellModuleInstalled -ModuleName "PSReadLine" -Version "2.2.6"
@@ -51,7 +115,7 @@ Describe "Test-PowershellModuleInstalled" {
                 [PSCustomObject]@{
                     Name = "PSReadLine"
                     Version = "2.2.5"
-                    Path = "$env:USERPROFILE\Documents\PowerShell\Modules\PSReadLine"
+                    Path = "$($script:LocalModulePath)PSReadLine"
                 }
             }
             $result = Test-PowershellModuleInstalled -ModuleName "PSReadLine" -Version "2.2.6"
@@ -66,7 +130,7 @@ Describe "Test-PowershellModuleInstalled" {
                 [PSCustomObject]@{
                     Name = "PowerShellGet"
                     Version = "2.2.5"
-                    Path = "$env:ProgramFiles\PowerShell\Modules\PowerShellGet"
+                    Path = "$($script:AllUsersModulePath)PowerShellGet"
                 }
             }
             $result = Test-PowershellModuleInstalled -ModuleName "PowerShellGet" -Scope "AllUsers"
@@ -81,7 +145,7 @@ Describe "Test-PowershellModuleInstalled" {
                 [PSCustomObject]@{
                     Name = "Az"
                     Version = "9.0.1"
-                    Path = "$env:USERPROFILE\Documents\PowerShell\Modules\Az"
+                    Path = "$($script:LocalModulePath)Az"
                 }
             }
             $result = Test-PowershellModuleInstalled -ModuleName "Az" -Scope "CurrentUser"

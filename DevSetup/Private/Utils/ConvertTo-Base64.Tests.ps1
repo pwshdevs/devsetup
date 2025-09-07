@@ -18,7 +18,7 @@ Describe "ConvertTo-Base64" {
     Context "When converting a file to Base64" {
         It "Should return the correct Base64 string" {
             $inputString = "File content"
-            $testFile = "${TestDrive}\test_input.txt"
+            $testFile = New-TemporaryFile
             Set-Content -Path $testFile -Value $inputString
             $stringBytes = [System.IO.File]::ReadAllBytes($testFile)
             $expected = [System.Convert]::ToBase64String($stringBytes)

@@ -1,8 +1,8 @@
 BeforeAll {
-    . $PSScriptRoot\Install-PowershellModules.ps1
-    . $PSScriptRoot\Install-PowerShellModule.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1
+    . (Join-Path $PSScriptRoot "Install-PowershellModules.ps1")
+    . (Join-Path $PSScriptRoot "Install-PowershellModule.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1")
     Mock Write-StatusMessage { }
     Mock Test-RunningAsAdmin { return $true }
     Mock Write-Error {}
@@ -49,7 +49,7 @@ Describe "Install-PowershellModules" {
     Context "When modules are installed successfully (string format)" {
         It "Should install all modules and return true" {
             $script:installCalls = @()
-            Mock Install-PowerShellModule -MockWith {
+            Mock Install-PowershellModule -MockWith {
                 param($ModuleName, $Force, $AllowClobber, $Scope, $Version)
                 $script:installCalls += $ModuleName
                 return $true
@@ -73,7 +73,7 @@ Describe "Install-PowershellModules" {
     Context "When modules are installed successfully (object format)" {
         It "Should install all modules and return true" {
             $script:installCalls = @()
-            Mock Install-PowerShellModule -MockWith {
+            Mock Install-PowershellModule -MockWith {
                 param($ModuleName, $Force, $AllowClobber, $Scope, $Version)
                 $script:installCalls += $ModuleName
                 return $true
@@ -100,7 +100,7 @@ Describe "Install-PowershellModules" {
     Context "When some modules fail to install" {
         It "Should continue and return true" {
             $script:installCalls = @()
-            Mock Install-PowerShellModule -MockWith {
+            Mock Install-PowershellModule -MockWith {
                 param($ModuleName, $Force, $AllowClobber, $Scope, $Version)
                 $script:installCalls += $ModuleName
                 if ($ModuleName -eq "PSReadLine") { return $false }
@@ -126,7 +126,7 @@ Describe "Install-PowershellModules" {
     Context "When module entry is empty or missing name" {
         It "Should skip invalid entries and return true" {
             $script:installCalls = @()
-            Mock Install-PowerShellModule -MockWith {
+            Mock Install-PowershellModule -MockWith {
                 param($ModuleName, $Force, $AllowClobber, $Scope, $Version)
                 $script:installCalls += $ModuleName
                 return $true
@@ -153,7 +153,7 @@ Describe "Install-PowershellModules" {
 
     Context "When an exception occurs during installation" {
         It "Should catch and return false" {
-            Mock Install-PowerShellModule { throw "Unexpected error" }
+            Mock Install-PowershellModule { throw "Unexpected error" }
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{

@@ -1,0 +1,80 @@
+name: Run Pester Tests
+on:
+    pull_request:
+        branches:
+            - develop
+            - main
+    workflow_dispatch:
+
+jobs:
+  pester-test-linux:
+    name: Pester test (On Linux)
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+        contents: read
+        issues: read
+        checks: write
+        pull-requests: write   
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Execute runTests.ps1
+        shell: pwsh
+        run: |
+          .\runTests.ps1 
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action/linux@v2
+        if: (!cancelled())
+        with:
+            check_name: Pester test (On Linux) Results
+            files: testResults.xml                 
+
+  pester-test-windows:
+    name: Pester test (On Windows)
+    runs-on: windows-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+        contents: read
+        issues: read
+        checks: write
+        pull-requests: write     
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Execute runTests.ps1
+        shell: pwsh
+        run: |
+          .\runTests.ps1 
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action/windows@v2
+        if: (!cancelled())
+        with:
+            check_name: Pester test (On Windows) Results
+            files: testResults.xml
+
+  pester-test-macos:
+    name: Pester test (On macOS)
+    runs-on: macos-latest
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+        contents: read
+        issues: read
+        checks: write
+        pull-requests: write     
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - name: Execute runTests.ps1
+        shell: pwsh
+        run: |
+          .\runTests.ps1   
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action/macos@v2
+        if: (!cancelled())
+        with:
+            check_name: Pester test (On macOS) Results
+            files: testResults.xml                        

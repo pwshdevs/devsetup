@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Installs Scoop buckets and packages from YAML configuration data.
 

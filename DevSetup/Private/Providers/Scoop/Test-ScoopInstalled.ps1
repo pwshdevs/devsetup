@@ -63,17 +63,17 @@ Function Test-ScoopInstalled {
         return $true
     } else {
         # Check for Scoop in user profile directory
-        $scoopPath = Join-Path $env:USERPROFILE "scoop\shims\scoop.ps1"
+        $scoopPath = Join-Path (Get-EnvironmentVariable USERPROFILE) "scoop\shims\scoop.ps1"
         if (Test-Path $scoopPath) {
             return $true
         }
 
-        $scoopPath = Join-Path $env:USERPROFILE "scoop\shims\scoop.cmd"
+        $scoopPath = Join-Path (Get-EnvironmentVariable USERPROFILE) "scoop\shims\scoop.cmd"
         if (Test-Path $scoopPath) {
             return $true
         }
 
-        $scoopPath = Join-Path $env:USERPROFILE "scoop\shims\scoop"
+        $scoopPath = Join-Path (Get-EnvironmentVariable USERPROFILE) "scoop\shims\scoop"
         if (Test-Path $scoopPath) {
             return $true
         }        

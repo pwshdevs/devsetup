@@ -1,8 +1,8 @@
 BeforeAll {
-    . $PSScriptRoot\Uninstall-PowershellModules.ps1
-    . $PSScriptRoot\Uninstall-PowerShellModule.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
+    . (Join-Path $PSScriptRoot "Uninstall-PowershellModules.ps1")
+    . (Join-Path $PSScriptRoot "Uninstall-PowershellModule.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
     Mock Write-StatusMessage { }
     Mock Write-Warning { }
     Mock Write-Error { }
@@ -49,7 +49,7 @@ Describe "Uninstall-PowershellModules" {
     Context "When modules are uninstalled successfully (string format)" {
         It "Should uninstall all modules and return true" {
             $script:uninstallCalls = @()
-            Mock Uninstall-PowerShellModule -MockWith {
+            Mock Uninstall-PowershellModule -MockWith {
                 param($ModuleName)
                 $script:uninstallCalls += $ModuleName
                 return $true
@@ -73,7 +73,7 @@ Describe "Uninstall-PowershellModules" {
     Context "When modules are uninstalled successfully (object format)" {
         It "Should uninstall all modules and return true" {
             $script:uninstallCalls = @()
-            Mock Uninstall-PowerShellModule -MockWith {
+            Mock Uninstall-PowershellModule -MockWith {
                 param($ModuleName)
                 $script:uninstallCalls += $ModuleName
                 return $true
@@ -100,7 +100,7 @@ Describe "Uninstall-PowershellModules" {
     Context "When some modules fail to uninstall" {
         It "Should continue and return true" {
             $script:uninstallCalls = @()
-            Mock Uninstall-PowerShellModule -MockWith {
+            Mock Uninstall-PowershellModule -MockWith {
                 param($ModuleName)
                 $script:uninstallCalls += $ModuleName
                 if ($ModuleName -eq "PSReadLine") { return $false }
@@ -126,7 +126,7 @@ Describe "Uninstall-PowershellModules" {
     Context "When module entry is empty or missing name" {
         It "Should skip invalid entries and return true" {
             $script:uninstallCalls = @()
-            Mock Uninstall-PowerShellModule -MockWith {
+            Mock Uninstall-PowershellModule -MockWith {
                 param($ModuleName)
                 $script:uninstallCalls += $ModuleName
                 return $true
@@ -153,7 +153,7 @@ Describe "Uninstall-PowershellModules" {
 
     Context "When an exception occurs during uninstallation" {
         It "Should catch and return false" {
-            Mock Uninstall-PowerShellModule { throw "Unexpected error" }
+            Mock Uninstall-PowershellModule { throw "Unexpected error" }
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{

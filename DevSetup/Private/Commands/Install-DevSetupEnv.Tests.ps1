@@ -1,11 +1,25 @@
 BeforeAll {
-    . $PSScriptRoot\Install-DevSetupEnv.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Providers\PowerShell\Install-PowershellModules.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Providers\Chocolatey\Install-ChocolateyPackages.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Providers\Scoop\Install-ScoopComponents.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Read-ConfigurationFile.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1
-    Mock Get-DevSetupEnvPath { "C:\DevSetupEnvs" }
+    . (Join-Path $PSScriptRoot "Install-DevSetupEnv.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Powershell\Install-PowershellModules.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Chocolatey\Install-ChocolateyPackages.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Scoop\Install-ScoopComponents.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Read-ConfigurationFile.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1")
+    if ($PSVersionTable.PSVersion.Major -eq 5) {
+        Mock Get-DevSetupEnvPath { "C:\DevSetup" }
+    } elseif ($PSVersionTable.PSVersion.Major -ge 6) {
+        if ($IsWindows) {
+            Mock Get-DevSetupEnvPath { "C:\DevSetup" }
+        }
+        if ($IsLinux) {
+            Mock Get-DevSetupEnvPath { "/home/testuser/devsetup" }
+        }
+        if ($IsMacOS) {
+            Mock Get-DevSetupEnvPath { "/Users/TestUser/devsetup" }
+        }
+    }
     Mock Test-Path { $true }
     Mock Read-ConfigurationFile { }
     Mock Install-PowershellModules { }
@@ -16,6 +30,8 @@ BeforeAll {
     Mock Write-Warning { }
     Mock Invoke-Command { }
     Mock Invoke-Expression { }
+    Mock Write-StatusMessage { }
+    Mock Test-OperatingSystem { $true }
 }
 
 Describe "Install-DevSetupEnv" {
@@ -25,7 +41,7 @@ Describe "Install-DevSetupEnv" {
             Mock Test-Path { $false }
             $result = Install-DevSetupEnv -Name "missing-env"
             $result | Should -Be $null
-            Assert-MockCalled Write-Error -Exactly 1 -Scope It -ParameterFilter { $Message -match "Environment file not found" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Environment file not found" -and $Verbosity -eq "Error" }
         }
     }
 
@@ -35,7 +51,7 @@ Describe "Install-DevSetupEnv" {
             Mock Read-ConfigurationFile { $null }
             $result = Install-DevSetupEnv -Name "bad-yaml"
             $result | Should -Be $null
-            Assert-MockCalled Write-Error -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to parse YAML" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to parse YAML" -and $Verbosity -eq "Error" }
         }
     }
 
@@ -48,7 +64,7 @@ Describe "Install-DevSetupEnv" {
             Assert-MockCalled Install-PowershellModules -Exactly 1 -Scope It
             Assert-MockCalled Install-ChocolateyPackages -Exactly 1 -Scope It
             Assert-MockCalled Install-ScoopComponents -Exactly 1 -Scope It
-            Assert-MockCalled Write-Host -Scope It -ParameterFilter { $Object -match "No commands found" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "No commands found" }
         }
     }
 
@@ -63,8 +79,8 @@ Describe "Install-DevSetupEnv" {
             $result = Install-DevSetupEnv -Name "cmd-env"
             $result | Should -Be $null
             Assert-MockCalled Invoke-Expression -Exactly 2 -Scope It
-            Assert-MockCalled Write-Host -Scope It -ParameterFilter { $Object -match "Executing command for: git" }
-            Assert-MockCalled Write-Host -Scope It -ParameterFilter { $Object -match "Executing command for: nodejs" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Executing command for: git" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Executing command for: nodejs" }
         }
     }
 
@@ -78,7 +94,7 @@ Describe "Install-DevSetupEnv" {
             Mock Read-ConfigurationFile { @{ devsetup = @{ commands = $commands } } }
             $result = Install-DevSetupEnv -Name "missing-cmd"
             $result | Should -Be $null
-            Assert-MockCalled Write-Warning -Exactly 1 -Scope It -ParameterFilter { $Message -match "missing command property" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "missing command property" -and $Verbosity -eq "Warning" }
             Assert-MockCalled Invoke-Expression -Exactly 1 -Scope It
         }
     }

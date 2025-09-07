@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Uninstalls multiple PowerShell modules from the system based on YAML configuration.
 

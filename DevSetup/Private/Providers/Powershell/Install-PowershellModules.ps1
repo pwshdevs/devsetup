@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Installs PowerShell modules from YAML configuration data.
 

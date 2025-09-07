@@ -1,9 +1,12 @@
-Function Optimize-DevSetupEnvs {
+﻿Function Optimize-DevSetupEnvs {
+    [CmdletBinding()]
+    [OutputType([bool])]
+    Param()
     try {
         # Get the DevSetup environments path
         $envPath = Get-DevSetupEnvPath
         if (-not $envPath -or -not (Test-Path $envPath)) {
-            Write-Warning "DevSetup environments path not found or doesn't exist: $envPath"
+            Write-StatusMessage "DevSetup environments path not found or doesn't exist: $envPath" -Verbosity Warning
             return $false
         }
         
@@ -60,10 +63,10 @@ Function Optimize-DevSetupEnvs {
                 
                 $environments += $envEntry
                 $platformDisplay = if ($platform) { $platform } else { 'Not specified' }
-                Write-Debug "  - Name: $envName, Version: $version, Platform: $platformDisplay"
+                Write-StatusMessage "  - Name: $envName, Version: $version, Platform: $platformDisplay" -Verbosity Debug
             }
             catch {
-                Write-Warning "Failed to process $($devsetupEnvFile.Name): $_"
+                Write-StatusMessage "Failed to process $($devsetupEnvFile.Name): $_" -Verbosity Warning
                 continue
             }
         }
@@ -74,20 +77,21 @@ Function Optimize-DevSetupEnvs {
         
         try {
             $jsonOutput = $environments | ConvertTo-Json -Depth 10
-            $jsonOutput | Out-File -FilePath $environmentsJsonPath -Encoding UTF8
-            Write-Debug "Environment index written to: $environmentsJsonPath"
-            #Write-Host "Processed $($environments.Count) environment(s) successfully" -ForegroundColor Green
+            $jsonOutput | Out-File -FilePath $environmentsJsonPath
+            Write-StatusMessage "Environment index written to: $environmentsJsonPath" -Verbosity Debug
             Write-StatusMessage "[OK]" -ForegroundColor Green
         }
         catch {
-            Write-StatusMessage "[Failed]" -ForegroundColor Red
+            Write-StatusMessage "Failed to optimize DevSetup environments: $_" -ForegroundColor Red -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace  -Verbosity Error
             return $false
         }
         
         return $true
     }
     catch {
-        Write-Error "Failed to optimize DevSetup environments: $_"
+        Write-StatusMessage "Failed to optimize DevSetup environments: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 }
