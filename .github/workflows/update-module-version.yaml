@@ -8,6 +8,7 @@ on:
 
 jobs:
   update_module_version:
+    name: Update Module Version
     runs-on: ubuntu-latest
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
