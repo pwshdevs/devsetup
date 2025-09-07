@@ -5,20 +5,39 @@ BeforeAll {
 }
 
 Describe "Get-ChocolateyCacheFile" {
-
     Context "When Get-DevSetupCachePath returns a valid path" {
         It "Should return the correct cache file path" {
-            Mock Get-DevSetupCachePath { return "C:\Users\Test\.devsetup\.cache" }
-            $result = Get-ChocolateyCacheFile
-            $result | Should -Be "C:\Users\Test\.devsetup\.cache\chocolatey.cache"
+            if ($PSVersionTable.PSVersion.Major -eq 5 -or ($PSVersionTable.PSVersion.Major -ge 6 -and $IsWindows)) {
+                Mock Get-DevSetupCachePath { return "$TestDrive\Users\Test\devsetup\.cache" }
+                $result = Get-ChocolateyCacheFile
+                $result | Should -Be "$TestDrive\Users\Test\devsetup\.cache\chocolatey.cache"
+            } elseif ($PSVersionTable.PSVersion.Major -ge 6 -and $IsLinux) {
+                Mock Get-DevSetupCachePath { return "$TestDrive/home/testuser/devsetup/.cache" }
+                $result = Get-ChocolateyCacheFile
+                $result | Should -Be "$TestDrive/home/testuser/devsetup/.cache/chocolatey.cache"
+            } elseif ($PSVersionTable.PSVersion.Major -ge 6 -and $IsMacOS) {
+                Mock Get-DevSetupCachePath { return "$TestDrive/Users/TestUser/devsetup/.cache" }
+                $result = Get-ChocolateyCacheFile
+                $result | Should -Be "$TestDrive/Users/TestUser/devsetup/.cache/chocolatey.cache"
+            }
         }
     }
 
     Context "When Get-DevSetupCachePath returns a different path" {
         It "Should append chocolatey.cache to the returned path" {
-            Mock Get-DevSetupCachePath { return "D:\DevSetupCache" }
-            $result = Get-ChocolateyCacheFile
-            $result | Should -Be "D:\DevSetupCache\chocolatey.cache"
+            if ($PSVersionTable.PSVersion.Major -eq 5 -or ($PSVersionTable.PSVersion.Major -ge 6 -and $IsWindows)) {
+                Mock Get-DevSetupCachePath { return "$TestDrive\DevSetupCache" }
+                $result = Get-ChocolateyCacheFile
+                $result | Should -Be "$TestDrive\DevSetupCache\chocolatey.cache"
+            } elseif ($PSVersionTable.PSVersion.Major -ge 6 -and $IsLinux) {
+                Mock Get-DevSetupCachePath { return "$TestDrive/home/testuser/devsetupcache/.cache" }
+                $result = Get-ChocolateyCacheFile
+                $result | Should -Be "$TestDrive/home/testuser/devsetupcache/.cache/chocolatey.cache"
+            } elseif ($PSVersionTable.PSVersion.Major -ge 6 -and $IsMacOS) {
+                Mock Get-DevSetupCachePath { return "$TestDrive/Users/TestUser/devsetupcache/.cache" }
+                $result = Get-ChocolateyCacheFile
+                $result | Should -Be "$TestDrive/Users/TestUser/devsetupcache/.cache/chocolatey.cache"
+            }
         }
     }
 

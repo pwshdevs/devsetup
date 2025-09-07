@@ -2,10 +2,12 @@ BeforeAll {
     . $PSScriptRoot\ConvertFrom-3rdPartyInstall.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\3rdParty\VisualStudio\ConvertFrom-VisualStudioInstall.ps1
     . $PSScriptRoot\..\..\..\DevSetup\Private\3rdParty\VisualStudioCode\ConvertFrom-VisualStudioCodeInstall.ps1
+    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1
     Mock Write-Host { }
     Mock Write-Warning { }
     Mock ConvertFrom-VisualStudioInstall { $true }
     Mock ConvertFrom-VisualStudioCodeInstall { $true }
+    Mock Test-OperatingSystem { $true }
 }
 
 Describe "ConvertFrom-3rdPartyInstall" {

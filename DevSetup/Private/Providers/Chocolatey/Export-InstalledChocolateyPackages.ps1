@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Exports installed Chocolatey packages to a YAML configuration file.
 

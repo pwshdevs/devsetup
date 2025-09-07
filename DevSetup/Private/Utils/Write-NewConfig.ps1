@@ -1,7 +1,8 @@
 Function Write-NewConfig {
     Param(
         [Parameter(Mandatory = $true)]
-        [string]$OutFile
+        [string]$OutFile,
+        [switch]$DryRun = $false
     )
 
     try {
@@ -89,6 +90,7 @@ Function Write-NewConfig {
             }
         }
         
+        $username = if ($env:USERNAME) { $env:USERNAME } elseif ($env:USER) { $env:USER } else { "Unknown" }
         # Handle versioning and preserve existing config
         $currentVersion = "1.0.0"  # Default version for new files
         $baseConfig = @{
@@ -111,7 +113,7 @@ Function Write-NewConfig {
                     description = "Auto-generated development environment configuration"
                     version = $currentVersion
                     createdDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                    createdBy = $env:USERNAME
+                    createdBy = $username
                     os = @{
                         name = $friendlyPlatform
                         version = $friendlyOsVersion
@@ -189,16 +191,24 @@ Function Write-NewConfig {
             return $false
         }
 
-        # Convert from installed Chocolatey packages
-        Write-Host "`nScanning installed Chocolatey packages..." -ForegroundColor Cyan
-        if (-not (Export-InstalledChocolateyPackages -Config $OutFile)) {
-            Write-Warning "Failed to convert Chocolatey packages, but continuing..."
-        }
+        if((Test-OperatingSystem -Windows)) {
+            # Convert from installed Chocolatey packages
+            Write-Host "`nScanning installed Chocolatey packages..." -ForegroundColor Cyan
+            if (-not (Export-InstalledChocolateyPackages -Config $OutFile)) {
+                Write-Warning "Failed to convert Chocolatey packages, but continuing..."
+            }
 
-        # Convert from installed Scoop packages
-        Write-Host "`nScanning installed Scoop packages..." -ForegroundColor Cyan
-        if (-not (Export-InstalledScoopPackages -Config $OutFile)) {
-            Write-Warning "Failed to convert Scoop packages, but continuing..."
+            # Convert from installed Scoop packages
+            Write-Host "`nScanning installed Scoop packages..." -ForegroundColor Cyan
+            if (-not (Export-InstalledScoopPackages -Config $OutFile)) {
+                Write-Warning "Failed to convert Scoop packages, but continuing..."
+            }
+        } else {
+            # Convert from installed Homebrew packages
+            Write-Host "`nScanning installed Homebrew packages..." -ForegroundColor Cyan
+            if (-not (Invoke-HomebrewComponentExport -Config $OutFile -DryRun:$DryRun)) {
+                Write-Warning "Failed to convert Homebrew packages, but continuing..."
+            }
         }
 
         # Convert from installed PowerShell modules

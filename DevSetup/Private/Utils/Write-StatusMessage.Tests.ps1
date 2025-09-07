@@ -1,10 +1,12 @@
 BeforeAll {
+    Function Write-EZLog {}
     . $PSScriptRoot\Write-StatusMessage.ps1
     Mock Write-Host { param($Message) }
     Mock Write-Verbose { param($Object) }
     Mock Write-Debug { param($Object) }
     Mock Write-Warning { param($Object) }
     Mock Write-Error { param($Object) }
+    Mock Write-EZLog { }
 }
 
 Describe "Write-StatusMessage" {

@@ -113,7 +113,7 @@ Function Use-DevSetup {
     .FUNCTIONALITY
     Environment Management, Configuration Installation, System Setup
 #>
-    
+    [CmdletBinding()]
     Param(
         [Parameter(Mandatory = $true, ParameterSetName = "Install")]
         [Parameter(Mandatory = $true, ParameterSetName = "InstallUrl")]
@@ -165,7 +165,10 @@ Function Use-DevSetup {
         
         [Parameter(Mandatory = $true, ParameterSetName = "InstallPath")]
         [Parameter(Mandatory = $true, ParameterSetName = "ExportPath")]
-        [string]$Path
+        [string]$Path,
+
+        [Parameter(Mandatory = $false)]
+        [switch]$DryRun = $false
     )
 
     try {
@@ -173,7 +176,7 @@ Function Use-DevSetup {
         $selectedAction = $PSCmdlet.ParameterSetName.ToLower()
         
 
-        function Repeat-Char($char, $count) { -join (1..$count | ForEach-Object { $char }) }
+        function Format-RepeatChar($char, $count) { -join (1..$count | ForEach-Object { $char }) }
 
         # Display fancy action header
         # Define box drawing characters using [char] codes
@@ -187,15 +190,15 @@ Function Use-DevSetup {
         $ml = [char]0x2560 # 
         $mr = [char]0x2563
         
-        $tb = "$tl" + (Repeat-Char $h 118) + "$tr"
-        $bm = "$ml" + (Repeat-Char $h 118) + "$mr"
-        $bb = "$bl" + (Repeat-Char $h 118) + "$br"
-        $sp = "$v" + (Repeat-Char " " 118) + "$v"
+        $tb = "$tl" + (Format-RepeatChar $h 118) + "$tr"
+        $bm = "$ml" + (Format-RepeatChar $h 118) + "$mr"
+        $bb = "$bl" + (Format-RepeatChar $h 118) + "$br"
+        $sp = "$v" + (Format-RepeatChar " " 118) + "$v"
         
         Write-Host ""
         Write-Host "$tb" -ForegroundColor Cyan
         Write-Host "$sp" -ForegroundColor Cyan
-        Write-Host "$v" (Repeat-Char " " 25) -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$tr " -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
@@ -215,9 +218,9 @@ Function Use-DevSetup {
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$tr" -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine 
-        Write-Host "$tr" (Repeat-Char " " 24) "$v" -ForegroundColor Cyan
+        Write-Host "$tr" (Format-RepeatChar " " 24) "$v" -ForegroundColor Cyan
 
-        Write-Host "$v" (Repeat-Char " " 25) -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$tl$h$h" -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
@@ -241,9 +244,9 @@ Function Use-DevSetup {
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$tl$h$h" -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr" (Repeat-Char " " 23) "$v" -ForegroundColor Cyan
+        Write-Host "$tr" (Format-RepeatChar " " 23) "$v" -ForegroundColor Cyan
 
-        Write-Host "$v" (Repeat-Char " " 25) -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$v  " -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
@@ -265,9 +268,9 @@ Function Use-DevSetup {
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$v" -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$br" (Repeat-Char " " 23) "$v" -ForegroundColor Cyan
+        Write-Host "$tl$br" (Format-RepeatChar " " 23) "$v" -ForegroundColor Cyan
 
-        Write-Host "$v" (Repeat-Char " " 25) -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$v  " -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
@@ -289,9 +292,9 @@ Function Use-DevSetup {
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$v" -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$h$h$h$br" (Repeat-Char " " 24) "$v" -ForegroundColor Cyan
+        Write-Host "$tl$h$h$h$br" (Format-RepeatChar " " 24) "$v" -ForegroundColor Cyan
 
-        Write-Host "$v" (Repeat-Char " " 25) -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$tl$br" -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
@@ -307,9 +310,9 @@ Function Use-DevSetup {
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
         Write-Host "$tl$br" -ForegroundColor Cyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v" (Repeat-Char " " 28) "$v" -ForegroundColor Cyan
+        Write-Host "$v" (Format-RepeatChar " " 28) "$v" -ForegroundColor Cyan
         
-        Write-Host "$v" (Repeat-Char " " 24) "$bl$h$h$h$h$h$br $bl$h$h$h$h$h$h$br  $bl$h$h$h$br  $bl$h$h$h$h$h$h$br$bl$h$h$h$h$h$h$br   $bl$h$br    $bl$h$h$h$h$h$br $bl$h$br" (Repeat-Char " " 28) "$v" -ForegroundColor Cyan
+        Write-Host "$v" (Format-RepeatChar " " 24) "$bl$h$h$h$h$h$br $bl$h$h$h$h$h$h$br  $bl$h$h$h$br  $bl$h$h$h$h$h$h$br$bl$h$h$h$h$h$h$br   $bl$h$br    $bl$h$h$h$h$h$br $bl$h$br" (Format-RepeatChar " " 28) "$v" -ForegroundColor Cyan
         
         Write-Host "$v" -ForegroundColor Cyan -NoNewline
         $version = Get-DevSetupVersion -Local
@@ -345,42 +348,49 @@ Function Use-DevSetup {
         Write-Host "$v" -ForegroundColor Cyan
         Write-Host "$bb" -ForegroundColor Cyan
         Write-Host ""
-        
+
+        $RunDate = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+        $LogFile = Join-Path -Path (Get-DevSetupLogPath) -ChildPath ([string]::Format("devsetup_{0}_{1}.log", $selectedAction, $RunDate))
+        $PSDefaultParameterValues = @{
+            'Write-EZLog:LogFile'   = $LogFile ;
+        }
+
+        Write-EZLog -Header
         switch ($selectedAction) {
             {$_ -eq 'install' -or $_ -eq 'installpath' -or $_ -eq 'installurl'} {
-                Write-Host "Installing development environment..." -ForegroundColor Yellow
+                Write-StatusMessage "Installing development environment..." -ForegroundColor Yellow
                 $ParameterCopy = [hashtable]$PSBoundParameters
                 $ParameterCopy.Remove('Install')
                 Install-DevSetupEnv @ParameterCopy
             }
             {$_ -eq 'update' -or $_ -eq 'updatemain' -or $_ -eq 'updatedevelop' -or $_ -eq 'updateversion'} {
-                Write-Host "Updating devsetup system..." -ForegroundColor Yellow
+                Write-StatusMessage "Updating devsetup system..." -ForegroundColor Yellow
                 $ParameterCopy = [hashtable]$PSBoundParameters
                 $ParameterCopy.Remove('Update')    
                 if($_ -eq 'update') {
                     $ParameterCopy['Latest'] = $true
-                }            
+                }
                 Update-DevSetup @ParameterCopy | Out-Null
             }
             'init' {
-                Write-Host "Initializing DevSetup system..." -ForegroundColor Yellow
+                Write-StatusMessage "Initializing DevSetup system..." -ForegroundColor Yellow
                 Initialize-DevSetup | Out-Null
             }
             { $_ -eq 'export' -or $_ -eq 'exportpath' } {
-                Write-Host "Exporting current development environment..." -ForegroundColor Yellow
+                Write-StatusMessage "Exporting current development environment..." -ForegroundColor Yellow
                 $ParameterCopy = [hashtable]$PSBoundParameters
-                $ParameterCopy.Remove('Export')                
+                $ParameterCopy.Remove('Export')   
                 Export-DevSetupEnv @ParameterCopy
             }
             { $_ -eq 'list' -or $_ -eq 'listplatform' -or $_ -eq 'listprovider' -or $_ -eq 'listproviderplatform' } {
                 $ParameterCopy = [hashtable]$PSBoundParameters
-                $ParameterCopy.Remove('List')                
+                $ParameterCopy.Remove('List')     
                 Show-DevSetupEnvList @ParameterCopy
             }
             'uninstall' {
-                Write-Host "Uninstalling development environment..." -ForegroundColor Yellow
+                Write-StatusMessage "Uninstalling development environment..." -ForegroundColor Yellow
                 $ParameterCopy = [hashtable]$PSBoundParameters
-                $ParameterCopy.Remove('Uninstall')                
+                $ParameterCopy.Remove('Uninstall')    
                 Uninstall-DevSetupEnv @ParameterCopy
             }
         }
@@ -388,6 +398,10 @@ Function Use-DevSetup {
         #Write-Host "DevSetup action '$selectedAction' completed successfully!" -ForegroundColor Green
     }
     catch {
-        Write-Error "Error executing DevSetup action '$selectedAction': $_"
+        Write-StatusMessage "Error executing DevSetup action '$selectedAction': $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
     }
+    Write-StatusMessage "Log file: $LogFile" -ForegroundColor DarkGray
+    Write-EZLog -Footer 
+    Write-Host ""
 }

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Installs Chocolatey packages from YAML configuration data.
 

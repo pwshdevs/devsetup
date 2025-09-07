@@ -20,18 +20,18 @@
 
 .EXAMPLE
     Uninstall-DevSetupEnv -Name "WebDev"
-    
+
     Uninstalls all packages and components from the "WebDev" environment configuration.
 
 .EXAMPLE
     Uninstall-DevSetupEnv "DataScience"
-    
+
     Removes the complete "DataScience" development environment using positional parameter.
 
 .EXAMPLE
     $envName = "GameDev"
     Uninstall-DevSetupEnv -Name $envName
-    
+
     Demonstrates using a variable to specify the environment name for uninstallation.
 
 .NOTES
@@ -40,7 +40,7 @@
     - Validates YAML file existence before attempting to parse configuration
     - Processes uninstallation in specific order:
       1. PowerShell modules via Uninstall-PowershellModules
-      2. Chocolatey packages via Uninstall-ChocolateyPackages  
+      2. Chocolatey packages via Uninstall-ChocolateyPackages
       3. Scoop packages via Uninstall-ScoopComponents
     - Each uninstaller function handles its own error reporting and validation
     - Does not remove the YAML configuration file itself after uninstallation
@@ -58,16 +58,22 @@
 
 Function Uninstall-DevSetupEnv {
     [CmdletBinding()]
+    [OutputType([void])]
     Param(
         [Parameter(Mandatory=$true, Position=0, ParameterSetName = "Uninstall")]
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName = "UninstallDry")]
         [string]$Name,
         [Parameter(Mandatory=$true, Position=0, ParameterSetName = "UninstallPath")]
-        [string]$Path                
+        [Parameter(Mandatory=$true, Position=0, ParameterSetName = "UninstallPathDry")]
+        [string]$Path,
+        [Parameter(Mandatory=$true, Position=1, ParameterSetName = "UninstallDry")]
+        [Parameter(Mandatory=$true, Position=1, ParameterSetName = "UninstallPathDry")]
+        [switch]$DryRun
     )
 
     try {
         $YamlFile = $null
-        
+
         if($PSBoundParameters.ContainsKey('Name')) {
             $Provider = "local"
 
@@ -83,38 +89,45 @@ Function Uninstall-DevSetupEnv {
                 Write-Error "Invalid Path provided"
                 return
             }
-            $YamlFile = $Path  
+            $YamlFile = $Path
         }
 
         #$YamlFile = Join-Path -Path (Get-DevSetupEnvPath) -ChildPath "$Name.yaml"
         if (-not (Test-Path $YamlFile)) {
-            Write-Error "Environment file not found: $YamlFile"
+            Write-StatusMessage "Environment file not found: $YamlFile" -Verbosity Error
             return
         }
 
-        Write-Host "Uninstalling DevSetup environment from: $YamlFile" -ForegroundColor Cyan
+        Write-StatusMessage "Uninstalling DevSetup environment from:" -ForegroundColor Cyan
+        Write-StatusMessage "- $YamlFile`n" -Indent 2 -ForegroundColor Gray
 
         # Read the configuration from the YAML file
         $YamlData = Read-ConfigurationFile -Config $YamlFile
-        
+
         # Check if YAML data was successfully parsed
         if ($null -eq $YamlData) {
-            Write-Error "Failed to parse YAML configuration from: $YamlFile"
+            Write-StatusMessage "Failed to parse YAML configuration from: $YamlFile" -Verbosity Error
             return
         }
-        
-        # Install PowerShell module dependencies
-        $status = Uninstall-PowershellModules -YamlData $YamlData
 
-        if ((Test-OperatingSystem -Windows)) {
-            # Install Chocolatey package dependencies
-            $status = Uninstall-ChocolateyPackages -YamlData $YamlData
+        # Uninstall PowerShell module dependencies
+        Uninstall-PowershellModules -YamlData $YamlData | Out-Null
 
-            # Install Scoop package dependencies
-            $status = Uninstall-ScoopComponents -YamlData $YamlData 
+        $windows = Test-OperatingSystem -Windows
+
+        if ($windows) {
+            # Uninstall Chocolatey package dependencies
+            Uninstall-ChocolateyPackages -YamlData $YamlData | Out-Null
+
+            # Uninstall Scoop package dependencies
+            Uninstall-ScoopComponents -YamlData $YamlData | Out-Null
+        } else {
+            # Uninstall Homebrew package dependencies
+            Invoke-HomebrewComponentsUninstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
         }
     } catch {
-        Write-Error "An error occurred during uninstallation: $_"
+        Write-StatusMessage "An error occurred during uninstallation: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return
-    } 
+    }
 }

@@ -1,13 +1,26 @@
 BeforeAll {
-    . $PSScriptRoot\Show-DevSetupEnvList.ps1
-    . $PSScriptRoot\Show-DevSetupEnvList.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Optimize-DevSetupEnvs.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Get-DevSetupPath.ps1
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1    
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Format-PrettyTable.ps1    
-    . $PSScriptRoot\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1 
-    Mock Get-DevSetupPath { "C:\DevSetup" }
+    . (Join-Path $PSScriptRoot "Show-DevSetupEnvList.ps1")
+    . (Join-Path $PSScriptRoot "Show-DevSetupEnvList.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Optimize-DevSetupEnvs.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Get-DevSetupPath.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Format-PrettyTable.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
+    if ($PSVersionTable.PSVersion.Major -eq 5) {
+        Mock Get-DevSetupPath { "C:\DevSetup" }
+    } elseif ($PSVersionTable.PSVersion.Major -ge 6) {
+        if ($IsWindows) {
+            Mock Get-DevSetupPath { "C:\DevSetup" }
+        }
+        if ($IsLinux) {
+            Mock Get-DevSetupPath { "/home/testuser/devsetup" }
+        }
+        if ($IsMacOS) {
+            Mock Get-DevSetupPath { "/Users/TestUser/devsetup" }
+        }
+    }
+
     Mock Optimize-DevSetupEnvs { }
     Mock Write-Host { }
     Mock Write-Warning { }

@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Retrieves all package dependencies from installed Chocolatey packages.
 
@@ -56,19 +56,20 @@
 
 Function Get-ChocolateyPackageDependencies {
     [CmdletBinding()]
+    [OutputType([array])]
     Param()
 
     write-Debug "Retrieving Chocolatey package dependencies..."
     $packageDependencies = @()
 
-    $chocolateyInstallPath = Join-Path $Env:ChocolateyInstall lib
+    $chocolateyInstallPath = Join-Path (Get-EnvironmentVariable ChocolateyInstall) lib
     if (-not (Test-Path $chocolateyInstallPath)) {
         Write-Debug "Chocolatey installation path not found: $chocolateyInstallPath"
         return $packageDependencies
     }
 
-    Get-ChildItem $chocolateyInstallPath -Recurse "*.nuspec" | % {
-        $dependencies = ([xml](Get-Content $_.FullName)).package.metadata.dependencies.dependency | Foreach-Object {
+    Get-ChildItem $chocolateyInstallPath -Recurse "*.nuspec" | ForEach-Object {
+        $dependencies = ([xml](Get-Content $_.FullName)).package.metadata.dependencies.dependency | ForEach-Object {
             if (-not ($_.id -like "chocolatey*")) {
                 $_.id
             }

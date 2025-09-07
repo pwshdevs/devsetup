@@ -66,7 +66,7 @@ Function Install-Nuget {
     try {
         # Check if we're on Windows - NuGet PackageProvider is Windows-only
         if (-not (Test-OperatingSystem -Windows)) {
-            Write-Host "NuGet PackageProvider is not available on this platform. Skipping installation." -ForegroundColor Yellow
+            Write-StatusMessage "NuGet PackageProvider is not available on this platform. Skipping installation." -ForegroundColor Yellow
             return $true
         }
         
@@ -79,7 +79,7 @@ Function Install-Nuget {
         $nugetProvider = Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue
         Write-StatusMessage "- Installing NuGet PackageProvider" -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline
         if ($nugetProvider) {
-            #Write-Host "NuGet PackageProvider is already installed (version: $($nugetProvider.Version))" -ForegroundColor Green
+            Write-StatusMessage "NuGet PackageProvider is already installed (version: $($nugetProvider.Version))" -ForegroundColor Green -Verbosity Verbose
             Write-StatusMessage "[OK]" -ForegroundColor Green
         } else {
             #Write-Host "Installing NuGet PackageProvider..." -ForegroundColor Cyan
@@ -88,7 +88,7 @@ Function Install-Nuget {
             # Verify installation
             $nugetProvider = Get-PackageProvider -Name NuGet -ErrorAction SilentlyContinue
             if ($nugetProvider) {
-                #Write-Host "NuGet PackageProvider successfully installed (version: $($nugetProvider.Version))" -ForegroundColor Green
+                Write-StatusMessage "NuGet PackageProvider successfully installed (version: $($nugetProvider.Version))" -ForegroundColor Green -Verbosity Verbose
                 Write-StatusMessage "[OK]" -ForegroundColor Green
             } else {
                 throw "Failed to install NuGet PackageProvider"
@@ -112,7 +112,8 @@ Function Install-Nuget {
         return $true
     }
     catch {
-        Write-Error "Error checking/installing NuGet: $_"
+        Write-StatusMessage "Error checking/installing NuGet: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 }

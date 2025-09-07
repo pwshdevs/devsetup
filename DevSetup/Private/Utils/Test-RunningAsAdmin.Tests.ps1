@@ -14,33 +14,35 @@ Describe "Test-RunningAsAdmin" {
         }
     }
 
-    Context "When running on Windows as administrator" {
-        It "Should return true" {
-            Mock Test-OperatingSystem { param($Windows) $true }
-            class MockPrincipal {
-                [bool] IsInRole([object]$role) { return $true }
+    if ($PSVersionTable.PSVersion.Major -eq 5 -or ($PSVersionTable.PSVersion.Major -eq 6 -and $IsWindows)) {
+        Context "When running on Windows as administrator" {
+            It "Should return true" {
+                Mock Test-OperatingSystem { param($Windows) $true }
+                class MockPrincipal {
+                    [bool] IsInRole([object]$role) { return $true }
+                }
+                Mock 'New-Object' -MockWith {
+                    param($type)
+                    return [MockPrincipal]::new()
+                }
+                $result = Test-RunningAsAdmin
+                $result | Should -Be $true
             }
-            Mock 'New-Object' -MockWith {
-                param($type)
-                return [MockPrincipal]::new()
-            }
-            $result = Test-RunningAsAdmin
-            $result | Should -Be $true
         }
-    }
 
-    Context "When running on Windows but not as administrator" {
-        It "Should return false" {
-            Mock Test-OperatingSystem { param($Windows) $true }
-            class MockPrincipal {
-                [bool] IsInRole([object]$role) { return $false }
+        Context "When running on Windows but not as administrator" {
+            It "Should return false" {
+                Mock Test-OperatingSystem { param($Windows) $true }
+                class MockPrincipal {
+                    [bool] IsInRole([object]$role) { return $false }
+                }
+                Mock 'New-Object' -MockWith {
+                    param($type)
+                    return [MockPrincipal]::new()
+                }
+                $result = Test-RunningAsAdmin
+                $result | Should -Be $false
             }
-            Mock 'New-Object' -MockWith {
-                param($type)
-                return [MockPrincipal]::new()
-            }
-            $result = Test-RunningAsAdmin
-            $result | Should -Be $false
         }
     }
 }
