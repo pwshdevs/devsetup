@@ -12,7 +12,10 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     permissions:
-      contents: write
+        contents: write
+        issues: read
+        checks: write
+        pull-requests: write 
     
     steps:
       - name: checkout
