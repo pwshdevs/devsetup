@@ -111,7 +111,7 @@ Describe "Initialize-DevSetupEnvs" {
             Mock Test-Path { $false }
             Mock Install-GitRepository { $null }
             $global:LASTEXITCODE = 1
-            $result = Initialize-DevSetupEnvs
+            Initialize-DevSetupEnvs
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -eq "[Failed]" }
         }
     }
@@ -121,14 +121,14 @@ Describe "Initialize-DevSetupEnvs" {
             Mock Test-Path { $false }
             Mock Install-GitRepository { $null }
             $global:LASTEXITCODE = 0
-            $result = Initialize-DevSetupEnvs
+            Initialize-DevSetupEnvs
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -eq "[OK]" }
         }
     }
 
     Context "When Optimize-DevSetupEnvs is called" {
         It "Should call Optimize-DevSetupEnvs after cloning" {
-            $result = Initialize-DevSetupEnvs
+            Initialize-DevSetupEnvs
             Assert-MockCalled Optimize-DevSetupEnvs -Scope It
         }
     }

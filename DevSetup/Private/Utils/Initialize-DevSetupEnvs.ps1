@@ -21,7 +21,7 @@
         # Check if the URI ends with .git, if not use Get-GitHubRepository to get clone_url
         if ($environmentsProjectUri -notlike "*.git") {
             try {
-                Set-GitHubConfiguration -DisableTelemetry
+                Set-GitHubConfiguration -DisableTelemetry | Out-Null
                 #Write-Host "GitHub API access is required to retrieve repository information." -ForegroundColor Yellow
                 #Write-Host "Please create a GitHub Personal Access Token with 'repo' scope at:" -ForegroundColor Yellow
                 #Write-Host "https://github.com/settings/tokens" -ForegroundColor Cyan
