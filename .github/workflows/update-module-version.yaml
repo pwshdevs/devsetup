@@ -46,3 +46,4 @@ jobs:
           title: Automated Release Tagging for ${{ steps.version_tracker.outputs.version }} in DevSetup.psd1
           body: Changing version to ${{ steps.version_tracker.outputs.version }}
           branch: update-release-version-to-${{ steps.version_tracker.outputs.version }}
+          token: ${{ secrets.WORKFLOW_TOKEN }}
