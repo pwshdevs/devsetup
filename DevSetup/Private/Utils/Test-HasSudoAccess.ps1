@@ -1,4 +1,5 @@
 Function Test-HasSudoAccess {
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute()]
     [CmdletBinding()]
     Param(
     )

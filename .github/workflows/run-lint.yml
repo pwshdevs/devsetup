@@ -1,10 +1,10 @@
 name: Run PSScriptAnalyzer Tests
 on:
-    pull_request:
-        branches:
-            - develop
-            - main
-    workflow_dispatch:
+  pull_request:
+    branches:
+      - develop
+      - main
+  workflow_dispatch:
 
 jobs:
   psscriptanalyzer:
@@ -17,7 +17,9 @@ jobs:
         pull-requests: write
         security-events: write 
     steps:
-      - uses: actions/checkout@v4    
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4  
+
       - name: Lint with PSScriptAnalyzer
         shell: pwsh
         run: |

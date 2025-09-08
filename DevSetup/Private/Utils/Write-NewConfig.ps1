@@ -2,6 +2,7 @@ Function Write-NewConfig {
     Param(
         [Parameter(Mandatory = $true)]
         [string]$OutFile,
+        [Parameter(Mandatory = $false)]
         [switch]$DryRun = $false
     )
 
@@ -11,91 +12,15 @@ Function Write-NewConfig {
             throw "This operation requires administrator privileges. Please run as administrator."
         }
 
-        # Create base config file
-        #Write-Host "Creating base configuration file: $OutFile" -ForegroundColor Cyan
-        
-        # Get OS information in a PowerShell 5.1 compatible way
-        $platform = [System.Environment]::OSVersion.Platform.ToString()
-        $osArchitecture = if ([System.Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" }
-        
-        # Make platform more user-friendly
-        $friendlyPlatform = switch ($platform) {
-            "Win32NT" { "Windows" }
-            "Unix" { 
-                # Check if it's macOS or Linux in a PS 5.1 compatible way
-                $uname = ""
-                try {
-                    $uname = (& uname -s 2>$null)
-                } catch {}
-                if ($uname -eq "Darwin") {
-                    "macOS"
-                } else {
-                    "Linux"
-                }
-            }
-            default { $platform }
-        }
-        
-        # Get friendly OS version
-        $friendlyOsVersion = switch ($platform) {
-            "Win32NT" {
-                try {
-                    $osInfo = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue
-                    if ($osInfo) {
-                        $osInfo.Caption -replace "Microsoft ", ""
-                    } else {
-                        [System.Environment]::OSVersion.VersionString
-                    }
-                }
-                catch {
-                    [System.Environment]::OSVersion.VersionString
-                }
-            }
-            "Unix" {
-                if ($friendlyPlatform -eq "macOS") {
-                    try {
-                        $macVersion = (& sw_vers -productVersion 2>$null)
-                        if ($macVersion) {
-                            "macOS $macVersion"
-                        } else {
-                            [System.Environment]::OSVersion.VersionString
-                        }
-                    }
-                    catch {
-                        [System.Environment]::OSVersion.VersionString
-                    }
-                } else {
-                    # Linux
-                    try {
-                        $linuxVersion = ""
-                        if (Test-Path "/etc/os-release") {
-                            $osRelease = Get-Content "/etc/os-release" | Where-Object { $_ -like "PRETTY_NAME=*" }
-                            if ($osRelease) {
-                                $linuxVersion = ($osRelease -split '=')[1] -replace '"', ''
-                            }
-                        }
-                        if ($linuxVersion) {
-                            $linuxVersion
-                        } else {
-                            [System.Environment]::OSVersion.VersionString
-                        }
-                    }
-                    catch {
-                        [System.Environment]::OSVersion.VersionString
-                    }
-                }
-            }
-            default {
-                [System.Environment]::OSVersion.VersionString
-            }
-        }
-        
-        $username = if ($env:USERNAME) { $env:USERNAME } elseif ($env:USER) { $env:USER } else { "Unknown" }
+        $osArchitecture = (Get-HostArchitecture)
+        $friendlyPlatform = (Get-HostOperatingSystem)
+        $friendlyOsVersion = (Get-HostOperatingSystemVersion)
+        $username = if (Get-EnvironmentVariable USERNAME) { (Get-EnvironmentVariable USERNAME) } elseif (Get-EnvironmentVariable USER) { (Get-EnvironmentVariable USER) } else { "Unknown" }
         # Handle versioning and preserve existing config
         $currentVersion = "1.0.0"  # Default version for new files
-        $baseConfig = @{
-            devsetup = @{
-                dependencies = @{
+        $baseConfig = [ordered]@{
+            devsetup = [ordered]@{
+                dependencies = [ordered]@{
                     chocolatey = @{
                         packages = @()
                     }
@@ -109,17 +34,17 @@ Function Write-NewConfig {
                     }
                 }
                 commands = @()
-                configuration = @{
+                configuration = [ordered]@{
                     description = "Auto-generated development environment configuration"
                     version = $currentVersion
                     createdDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
                     createdBy = $username
-                    os = @{
+                    os = [ordered]@{
                         name = $friendlyPlatform
                         version = $friendlyOsVersion
                         architecture = $osArchitecture
                     }
-                    powershell = @{
+                    powershell = [ordered]@{
                         version = $PSVersionTable.PSVersion.ToString()
                         edition = $PSVersionTable.PSEdition
                     }
@@ -129,7 +54,7 @@ Function Write-NewConfig {
         
         if (Test-Path $OutFile) {
             try {
-                Write-Host "- Using existing configuration..." -ForegroundColor Gray
+                Write-StatusMessage "- Using existing configuration..." -ForegroundColor Gray
                 $existingConfig = Read-ConfigurationFile -Config $OutFile
                 if ($existingConfig -and $existingConfig.devsetup) {
                     # Preserve existing dependencies
@@ -152,13 +77,13 @@ Function Write-NewConfig {
                             $newMinor = $existingVersion.Minor + 1
                             $currentVersion = "$($existingVersion.Major).$newMinor.$($existingVersion.Build)"
                             $baseConfig.devsetup.configuration.version = $currentVersion
-                            Write-Host "- Version: $existingVersionString -> $currentVersion" -ForegroundColor Gray
+                            Write-StatusMessage "- Version: $existingVersionString -> $currentVersion" -ForegroundColor Gray
                         }
                         catch {
-                            Write-Warning "- Version: $currentVersion"
+                            Write-StatusMessage "- Version: $currentVersion" -Verbosity Warning
                         }
                     } else {
-                        Write-Host "- Version: $currentVersion" -ForegroundColor Gray
+                        Write-StatusMessage "- Version: $currentVersion" -ForegroundColor Gray
                     }
                     
                     # Preserve other configuration fields but update system info
@@ -174,60 +99,61 @@ Function Write-NewConfig {
                 }
             }
             catch {
-                Write-Warning "Failed to read existing configuration for merging: $_"
-                Write-Host "- Using new configuration with default version: $currentVersion" -ForegroundColor Gray
+                Write-StatusMessage "Failed to read existing configuration for merging: $_" -Verbosity Warning
+                Write-StatusMessage "- Using new configuration with default version: $currentVersion" -ForegroundColor Gray
             }
         } else {
-            Write-Host "- Using new configuration file, starting with version: $currentVersion" -ForegroundColor Green
+            Write-StatusMessage "- Using new configuration file, starting with version: $currentVersion" -ForegroundColor Green
         }
         
         try {
-            $yamlOutput = $baseConfig | ConvertTo-Yaml
-            $yamlOutput | Out-File -FilePath $OutFile -Encoding UTF8
-            Write-Debug "Base configuration file created successfully!"
+            $yamlOutput = ($baseConfig | ConvertTo-Yaml)
+            $yamlOutput | Out-File -FilePath $OutFile | Out-Null
+            Write-StatusMessage "Base configuration file created successfully!" -Verbosity Debug
         }
         catch {
-            Write-Error "Failed to create base configuration file: $_"
+            Write-StatusMessage "Failed to create base configuration file: $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
             return $false
         }
 
         if((Test-OperatingSystem -Windows)) {
             # Convert from installed Chocolatey packages
-            Write-Host "`nScanning installed Chocolatey packages..." -ForegroundColor Cyan
+            Write-StatusMessage "`nScanning installed Chocolatey packages..." -ForegroundColor Cyan
             if (-not (Export-InstalledChocolateyPackages -Config $OutFile)) {
-                Write-Warning "Failed to convert Chocolatey packages, but continuing..."
+                Write-StatusMessage "Failed to convert Chocolatey packages, but continuing..." -Verbosity Warning
             }
 
             # Convert from installed Scoop packages
-            Write-Host "`nScanning installed Scoop packages..." -ForegroundColor Cyan
+            Write-StatusMessage "`nScanning installed Scoop packages..." -ForegroundColor Cyan
             if (-not (Export-InstalledScoopPackages -Config $OutFile)) {
-                Write-Warning "Failed to convert Scoop packages, but continuing..."
+                Write-StatusMessage "Failed to convert Scoop packages, but continuing..." -Verbosity Warning
             }
         } else {
             # Convert from installed Homebrew packages
-            Write-Host "`nScanning installed Homebrew packages..." -ForegroundColor Cyan
-            if (-not (Invoke-HomebrewComponentExport -Config $OutFile -DryRun:$DryRun)) {
-                Write-Warning "Failed to convert Homebrew packages, but continuing..."
+            Write-StatusMessage "`nScanning installed Homebrew packages..." -ForegroundColor Cyan
+            if (-not (Invoke-HomebrewComponentsExport -Config $OutFile -DryRun:$DryRun)) {
+                Write-StatusMessage "Failed to convert Homebrew packages, but continuing..." -Verbosity Warning
             }
         }
 
         # Convert from installed PowerShell modules
-        Write-Host "`nScanning installed PowerShell modules..." -ForegroundColor Cyan
+        Write-StatusMessage "`nScanning installed PowerShell modules..." -ForegroundColor Cyan
         if (-not (Export-InstalledPowershellModules -Config $OutFile)) {
-            Write-Warning "Failed to convert PowerShell modules, but continuing..."
+            Write-StatusMessage "Failed to convert PowerShell modules, but continuing..." -Verbosity Warning
         }
 
-        ConvertFrom-3rdPartyInstall -Config $OutFile
+        ConvertFrom-3rdPartyInstall -Config $OutFile | Out-Null
 
-        Write-Host "`nConfiguration file generation completed!" -ForegroundColor Green
-        Write-Host "- Configuration saved to: $OutFile" -ForegroundColor Gray
-        Write-Host ""
+        Write-StatusMessage "`nConfiguration file generation completed!" -ForegroundColor Green
+        Write-StatusMessage "- Configuration saved to: $OutFile`n" -ForegroundColor Gray
 
         Optimize-DevSetupEnvs
         return $true
     }
     catch {
-        Write-Error "Error creating new configuration: $_"
+        Write-StatusMessage "Error creating new configuration: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 }

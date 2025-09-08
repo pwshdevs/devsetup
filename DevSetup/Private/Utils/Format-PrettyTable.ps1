@@ -1,4 +1,5 @@
 Function Format-PrettyTable {
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute()]
     [cmdletbinding()]
     Param(
         [Parameter(Mandatory=$true)]

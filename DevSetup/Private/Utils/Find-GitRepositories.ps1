@@ -1,4 +1,5 @@
 ﻿Function Find-GitRepository {
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute
     [CmdletBinding()]
     Param(
         [Parameter(

@@ -1,4 +1,5 @@
 Function Invoke-ExternalCommand {
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute()]
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory)]
