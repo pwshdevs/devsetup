@@ -3,7 +3,7 @@ Function Get-HostOperatingSystem {
     [cmdletbinding()]
     [OutputType([string])]
     Param()
-    $platform = [System.Environment]::OSVersion.Platform.ToString()
+    $platform = Invoke-Command -Script { [System.Environment]::OSVersion.Platform.ToString() }
     $DecodedPlatform = switch ($platform) {
             "Win32NT" { 
                 "Windows" 
@@ -12,7 +12,7 @@ Function Get-HostOperatingSystem {
             "Unix" { 
                 $uname = ""
                 try {
-                    $uname = (& uname -s 2>$null)
+                    $uname = Invoke-Command -Script { & uname -s } 2>$null
                 } catch {
                 }
                 if ($uname -eq "Darwin") {

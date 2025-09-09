@@ -8,7 +8,6 @@ BeforeAll {
         $script:AllUsersModulePath = "$env:ProgramFiles\WindowsPowerShell\Modules\"
         Mock Get-EnvironmentVariable { 
             Param(
-                [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
                 $Name
             )
             switch ($Name) {
@@ -23,7 +22,6 @@ BeforeAll {
             $script:AllUsersModulePath = "$env:ProgramFiles\PowerShell\Modules\"
             Mock Get-EnvironmentVariable { 
                 Param(
-                    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
                     $Name
                 )
                 switch ($Name) {
@@ -39,7 +37,6 @@ BeforeAll {
             $script:AllUsersModulePath = "/usr/local/share/powershell/Modules/"
             Mock Get-EnvironmentVariable {
                 Param(
-                    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
                     $Name
                 )
                 switch ($Name) {
@@ -55,7 +52,6 @@ BeforeAll {
             $script:AllUsersModulePath = "/usr/local/share/powershell/Modules/"
             Mock Get-EnvironmentVariable { 
                 Param(
-                    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
                     $Name
                 )
                 switch ($Name) {

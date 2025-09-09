@@ -1,5 +1,5 @@
 BeforeAll {
-    . (Join-Path $PSScriptRoot "Uninstall-PowershellModules.ps1")
+    . (Join-Path $PSScriptRoot "Invoke-PowershellModulesUninstall.ps1")
     . (Join-Path $PSScriptRoot "Uninstall-PowershellModule.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
@@ -10,12 +10,12 @@ BeforeAll {
     Mock Write-Host { }
 }
 
-Describe "Uninstall-PowershellModules" {
+Describe "Invoke-PowershellModulesUninstall" {
 
     Context "When YAML configuration is missing PowerShell modules" {
         It "Should return false and warn" {
             $yamlData = @{ devsetup = @{ dependencies = @{ powershell = @{ } } } }
-            $result = Uninstall-PowershellModules -YamlData $yamlData
+            $result = Invoke-PowershellModulesUninstall -YamlData $yamlData
             $result | Should -Be $false
         }
     }
@@ -23,7 +23,7 @@ Describe "Uninstall-PowershellModules" {
     Context "When YAML configuration is missing dependencies" {
         It "Should return false and warn" {
             $yamlData = @{ devsetup = @{ } }
-            $result = Uninstall-PowershellModules -YamlData $yamlData
+            $result = Invoke-PowershellModulesUninstall -YamlData $yamlData
             $result | Should -Be $false
         }
     }
@@ -41,7 +41,7 @@ Describe "Uninstall-PowershellModules" {
                     }
                 }
             }
-            $result = Uninstall-PowershellModules -YamlData $yamlData
+            $result = Invoke-PowershellModulesUninstall -YamlData $yamlData
             $result | Should -Be $false
         }
     }
@@ -63,7 +63,7 @@ Describe "Uninstall-PowershellModules" {
                     }
                 }
             }
-            $result = Uninstall-PowershellModules -YamlData $yamlData
+            $result = Invoke-PowershellModulesUninstall -YamlData $yamlData
             $result | Should -Be $true
             $uninstallCalls | Should -Contain "posh-git"
             $uninstallCalls | Should -Contain "PSReadLine"
@@ -90,7 +90,7 @@ Describe "Uninstall-PowershellModules" {
                     }
                 }
             }
-            $result = Uninstall-PowershellModules -YamlData $yamlData
+            $result = Invoke-PowershellModulesUninstall -YamlData $yamlData
             $result | Should -Be $true
             $uninstallCalls | Should -Contain "posh-git"
             $uninstallCalls | Should -Contain "PSReadLine"
@@ -115,7 +115,7 @@ Describe "Uninstall-PowershellModules" {
                     }
                 }
             }
-            $result = Uninstall-PowershellModules -YamlData $yamlData
+            $result = Invoke-PowershellModulesUninstall -YamlData $yamlData
             $result | Should -Be $true
             $uninstallCalls | Should -Contain "posh-git"
             $uninstallCalls | Should -Contain "PSReadLine"
@@ -144,7 +144,7 @@ Describe "Uninstall-PowershellModules" {
                     }
                 }
             }
-            $result = Uninstall-PowershellModules -YamlData $yamlData
+            $result = Invoke-PowershellModulesUninstall -YamlData $yamlData
             $result | Should -Be $true
             $uninstallCalls | Should -Contain "posh-git"
             $uninstallCalls.Count | Should -Be 1
@@ -163,7 +163,7 @@ Describe "Uninstall-PowershellModules" {
                     }
                 }
             }
-            $result = Uninstall-PowershellModules -YamlData $yamlData
+            $result = Invoke-PowershellModulesUninstall -YamlData $yamlData
             $result | Should -Be $false
         }
     }

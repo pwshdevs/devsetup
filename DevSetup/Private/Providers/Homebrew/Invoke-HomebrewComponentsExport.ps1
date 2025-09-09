@@ -5,9 +5,7 @@ Function Invoke-HomebrewComponentsExport {
         [Parameter(Mandatory = $true)]
         [string]$Config,
         [Parameter(Mandatory = $false)]
-        [string]$OutFile,
-        [Parameter(Mandatory = $false)]
-        [switch]$DryRun
+        [string]$OutFile
     )
 
     $YamlData = Read-ConfigurationFile -Config $Config

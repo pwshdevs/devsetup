@@ -3,7 +3,7 @@ Function Get-HostOperatingSystemVersion {
     [cmdletbinding()]
     [OutputType([string])]
     Param()
-    $platform = [System.Environment]::OSVersion.Platform.ToString()
+    $platform = Invoke-Command -Script { [System.Environment]::OSVersion.Platform.ToString() }
     $friendlyPlatform = (Get-HostOperatingSystem)
         # Get friendly OS version
     $friendlyOsVersion = switch ($platform) {
@@ -13,26 +13,26 @@ Function Get-HostOperatingSystemVersion {
                 if ($osInfo) {
                     $osInfo.Caption -replace "Microsoft ", ""
                 } else {
-                    [System.Environment]::OSVersion.VersionString
+                    Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
                 }
             }
             catch {
-                [System.Environment]::OSVersion.VersionString
+                Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
             }
         }
 
         "Unix" {
             if ($friendlyPlatform -eq "macOS") {
                 try {
-                    $macVersion = (& sw_vers -productVersion 2>$null)
+                    $macVersion = Invoke-Command -Script { & sw_vers -productVersion 2>$null }
                     if ($macVersion) {
                         "macOS $macVersion"
                     } else {
-                        [System.Environment]::OSVersion.VersionString
+                        Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
                     }
                 }
                 catch {
-                    [System.Environment]::OSVersion.VersionString
+                    Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
                 }
             } else {
                 # Linux
@@ -47,16 +47,16 @@ Function Get-HostOperatingSystemVersion {
                     if ($linuxVersion) {
                         $linuxVersion
                     } else {
-                        [System.Environment]::OSVersion.VersionString
+                        Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
                     }
                 }
                 catch {
-                    [System.Environment]::OSVersion.VersionString
+                    Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
                 }
             }
         }
         default {
-            [System.Environment]::OSVersion.VersionString
+            Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
         }
     }
     return $friendlyOsVersion

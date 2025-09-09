@@ -27,17 +27,17 @@
     Returns $false if there are errors during the export process.
 
 .EXAMPLE
-    Export-InstalledPowershellModules -Config "environment.yaml"
+    Invoke-PowershellModulesExport -Config "environment.yaml"
     
     Exports installed PowerShell modules to the existing environment.yaml configuration file.
 
 .EXAMPLE
-    Export-InstalledPowershellModules -Config "current.yaml" -OutFile "backup.yaml"
+    Invoke-PowershellModulesExport -Config "current.yaml" -OutFile "backup.yaml"
     
     Reads from current.yaml and saves the updated configuration with installed modules to backup.yaml.
 
 .EXAMPLE
-    Export-InstalledPowershellModules -Config "dev-env.yaml" -DryRun
+    Invoke-PowershellModulesExport -Config "dev-env.yaml" -DryRun
     
     Shows what the configuration would look like without actually saving to file.
 
@@ -65,7 +65,7 @@
     Configuration Export, Module Discovery, YAML Generation
 #>
 
-Function Export-InstalledPowershellModules {
+Function Invoke-PowershellModulesExport {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory = $true)]
@@ -84,11 +84,11 @@ Function Export-InstalledPowershellModules {
         }
 
         # Get installed PowerShell modules
-        Write-Host "- Getting list of installed PowerShell modules..." -ForegroundColor Gray
+        Write-StatusMessage "- Getting list of installed PowerShell modules..." -ForegroundColor Gray
         $installedModules = Get-InstalledModule -ErrorAction SilentlyContinue
 
         if (-not $installedModules) {
-            Write-Warning "No PowerShell modules found or PowerShellGet is not available."
+            Write-StatusMessage "No PowerShell modules found or PowerShellGet is not available." -Verbosity Warning
             return $true
         }
 
@@ -112,7 +112,7 @@ Function Export-InstalledPowershellModules {
         foreach ($module in $installedModules) {
             # Skip core dependency modules
             if ($module.Name -in $coreModulesToSkip) {
-                Write-Verbose "Skipping core dependency module: $($module.Name)"
+                Write-StatusMessage "Skipping core dependency module: $($module.Name)" -Verbosity Verbose
                 continue
             }
             
@@ -132,18 +132,18 @@ Function Export-InstalledPowershellModules {
             }
             
             if ($scope -eq "CurrentUser" -or $scope -eq "AllUsers") {
-                Write-Debug "Found module: $($module.Name) (version: $($module.Version), scope: $scope)"
+                Write-StatusMessage "Found module: $($module.Name) (version: $($module.Version), scope: $scope)" -Verbosity Debug
                 $powershellModules += @{
                     name = $module.Name
                     version = $module.Version.ToString()
                     scope = $scope
                 }
             } else {
-                Write-Verbose "Skipping module with unknown scope: $($module.Name)"
+                Write-StatusMessage "Skipping module with unknown scope: $($module.Name)" -Verbosity Verbose
             }
         }
 
-        Write-Debug "  - Found $($powershellModules.Count) PowerShell modules in CurrentUser or AllUsers scope (excluding core dependencies)"
+        Write-StatusMessage "  - Found $($powershellModules.Count) PowerShell modules in CurrentUser or AllUsers scope (excluding core dependencies)" -Verbosity Debug
 
         # Read existing YAML configuration
         $YamlData = Read-ConfigurationFile -Config $Config
@@ -163,7 +163,7 @@ Function Export-InstalledPowershellModules {
             }
 
             if (-not $existingModule) {
-                Write-Host "  - Adding module: $($module.name) ($($module.version), $($module.scope))" -ForegroundColor Gray
+                Write-StatusMessage "  - Adding module: $($module.name) ($($module.version), $($module.scope))" -ForegroundColor Gray
                 $YamlData.devsetup.dependencies.powershell.modules += @{
                     name = $module.name
                     minimumVersion = $module.version
@@ -179,7 +179,7 @@ Function Export-InstalledPowershellModules {
                 }
 
                 if ($existingVersion -and $existingVersion -ne $module.version) {
-                    Write-Host "    - Updating module: $($module.name) ($existingVersion -> $($module.version))" -ForegroundColor Gray
+                    Write-StatusMessage "    - Updating module: $($module.name) ($existingVersion -> $($module.version))" -ForegroundColor Gray
 
                     # Find index and update
                     $index = $YamlData.devsetup.dependencies.powershell.modules.IndexOf($existingModule)
@@ -200,7 +200,7 @@ Function Export-InstalledPowershellModules {
                         }
                     }
                 } elseif (-not $existingVersion) {
-                    Write-Host "  - Updating module version: $($module.name)" -ForegroundColor Gray
+                    Write-StatusMessage "  - Updating module version: $($module.name)" -ForegroundColor Gray
 
                     # Find index and add version
                     $index = $YamlData.devsetup.dependencies.powershell.modules.IndexOf($existingModule)
@@ -220,7 +220,7 @@ Function Export-InstalledPowershellModules {
                         }
                     }
                 } else {
-                    Write-Host "  - Skipping module (No Change): $($module.name) ($($module.version))" -ForegroundColor Gray
+                    Write-StatusMessage "  - Skipping module (No Change): $($module.name) ($($module.version))" -ForegroundColor Gray
                 }
             }
         }
@@ -230,35 +230,40 @@ Function Export-InstalledPowershellModules {
             $yamlOutput = $YamlData | ConvertTo-Yaml
         }
         catch {
-            Write-Warning "Could not convert to YAML format. Showing PowerShell object instead:"
+            Write-StatusMessage "Could not convert to YAML format. Showing PowerShell object instead:" -Verbosity Warning
             $yamlOutput = $YamlData | ConvertTo-Json -Depth 10
         }
 
         # Handle output based on parameters
         if ($DryRun) {
-            Write-Host "`nDry Run - Configuration would be saved as:" -ForegroundColor Cyan
-            Write-Host $yamlOutput -ForegroundColor White
-            Write-Host "`nNo files were modified (dry run mode)." -ForegroundColor Yellow
+            Write-StatusMessage "`nDry Run - Configuration would be saved as:" -ForegroundColor Cyan
+            Write-StatusMessage $yamlOutput -ForegroundColor White
+            Write-StatusMessage "`nNo files were modified (dry run mode)." -ForegroundColor Yellow
         } else {
             # Determine output file
             $outputFile = if ($OutFile) { $OutFile } else { $Config }
             
             try {
-                Write-Debug "`nSaving configuration to: $outputFile"
-                $yamlOutput | Out-File -FilePath $outputFile
-                Write-Debug "Configuration saved successfully!"
+                Write-StatusMessage "`nSaving configuration to: $outputFile" -Verbosity Debug
+                if ($PSVersionTable.PSVersion.Major -eq 5) {
+                    $yamlOutput | Out-File -FilePath $outputFile
+                } else {
+                    $yamlOutput | Out-File -FilePath $outputFile -Encoding ([System.Text.Encoding]::UTF8)
+                }
+                Write-StatusMessage "Configuration saved successfully!" -Verbosity Debug
             }
             catch {
-                Write-Error "Failed to save configuration to $outputFile`: $_"
+                Write-StatusMessage "Failed to save configuration to $outputFile`: $_" -Verbosity Error
                 return $false
             }
         }
 
-        Write-Host "PowerShell modules conversion completed!" -ForegroundColor Green
+        Write-StatusMessage "PowerShell modules conversion completed!" -ForegroundColor Green
         return $true
     }
     catch {
-        Write-Error "Error converting PowerShell modules: $_"
+        Write-StatusMessage "Error converting PowerShell modules: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 }

@@ -21,7 +21,7 @@
 
 .EXAMPLE
     $config = Read-ConfigurationFile -Path "environment.yaml"
-    Uninstall-PowershellModules -YamlData $config
+    Invoke-PowershellModulesUninstall -YamlData $config
     
     Uninstalls all PowerShell modules defined in the environment.yaml configuration.
 
@@ -36,12 +36,12 @@
             }
         }
     }
-    Uninstall-PowershellModules -YamlData $yamlData
+    Invoke-PowershellModulesUninstall -YamlData $yamlData
     
     Demonstrates uninstalling modules using a programmatically created configuration.
 
 .EXAMPLE
-    if (Uninstall-PowershellModules -YamlData $config) {
+    if (Invoke-PowershellModulesUninstall -YamlData $config) {
         Write-Host "All PowerShell modules processed successfully"
     } else {
         Write-Host "PowerShell module uninstallation encountered errors"
@@ -76,17 +76,19 @@
     Package Management, Batch Uninstallation, Configuration Processing, Module Management
 #>
 
-Function Uninstall-PowershellModules {
+Function Invoke-PowershellModulesUninstall {
     Param(
         [Parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]
-        [PSCustomObject]$YamlData
+        [PSCustomObject]$YamlData,
+        [Parameter(Mandatory=$false, Position=1)]
+        [switch]$DryRun
     )
     
     try {
         # Check if PowerShell modules dependencies exist
         if (-not $YamlData -or -not $YamlData.devsetup -or -not $YamlData.devsetup.dependencies -or -not $YamlData.devsetup.dependencies.powershell -or -not $YamlData.devsetup.dependencies.powershell.modules) {
-            Write-Warning "PowerShell modules not found in YAML configuration. Skipping uninstallation."
+            Write-StatusMessage "PowerShell modules not found in YAML configuration. Skipping uninstallation." -Verbosity Warning
             return $false
         }
         
@@ -122,7 +124,7 @@ Function Uninstall-PowershellModules {
             
             # Validate module name
             if ([string]::IsNullOrEmpty($moduleObj.name)) {
-                Write-Warning "Module entry #$moduleCount has no name specified, skipping"
+                Write-StatusMessage "Module entry #$moduleCount has no name specified, skipping" -Verbosity Warning
                 continue
             }
             
@@ -132,6 +134,7 @@ Function Uninstall-PowershellModules {
             # Set defaults and build parameters
             $installParams = @{
                 ModuleName = $moduleObj.name
+                WhatIf = $DryRun
             }
             
             if ($moduleObj.minimumVersion) {
@@ -146,12 +149,12 @@ Function Uninstall-PowershellModules {
                 Write-StatusMessage "[FAILED]" -ForegroundColor Red
             }
         }
-        Write-StatusMessage "- PowerShell modules uninstallation completed! Processed $moduleCount modules." -ForegroundColor Green
-        Write-Host ""
+        Write-StatusMessage "- PowerShell modules uninstallation completed! Processed $moduleCount modules.`n" -ForegroundColor Green
         return $true
     }
     catch {
-        Write-Error "Error uninstalling PowerShell modules: $_"
+        Write-StatusMessage "Error uninstalling PowerShell modules: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 }

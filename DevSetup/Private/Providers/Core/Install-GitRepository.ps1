@@ -101,40 +101,43 @@ Function Install-GitRepository {
         # Check common Git installation path
         $gitPath = "C:\Program Files\Git\cmd\git.exe"
         if (Test-Path $gitPath) {
-            Write-Host "Using Git from: $gitPath" -ForegroundColor Gray
+            Write-StatusMessage "Using Git from: $gitPath" -ForegroundColor Gray
             # Use the full path for git commands
             $gitExecutable = $gitPath
         } else {
-            Write-Error "Git is not installed or not found in PATH. Please install Git and try again."
+            Write-StatusMessage "Git is not installed or not found in PATH. Please install Git and try again." -Verbosity Error
             return $false
         }
     } else {
         $gitExecutable = "git"
-        Write-Host "Git found in PATH" -ForegroundColor Gray
+        Write-StatusMessage "Git found in PATH" -ForegroundColor Gray
     }
 
     try {
         # Check if destination already exists
         if (Test-Path -Path $DestinationPath) {
             if ($UpdateExisting) {
-                Write-Host "Updating existing repository at $DestinationPath" -ForegroundColor Yellow
+                Write-StatusMessage "Updating existing repository at $DestinationPath" -ForegroundColor Yellow
                 
                 # Change to the repository directory and pull updates
                 Push-Location $DestinationPath
                 try {
-                    & $gitExecutable pull
+                    $command = {
+                        & $gitExecutable pull
+                    }
+                    Invoke-Command -ScriptBlock $command *> $null
                     if ($LASTEXITCODE -ne 0) {
-                        Write-Error "Failed to update repository at $DestinationPath"
+                        Write-StatusMessage "Failed to update repository at $DestinationPath" -Verbosity Error
                         return $false
                     }
-                    Write-Host "Repository updated successfully" -ForegroundColor Green
+                    Write-StatusMessage "Repository updated successfully" -ForegroundColor Green
                     return $true
                 }
                 finally {
                     Pop-Location
                 }
             } else {
-                Write-Host "Removing existing directory to perform fresh clone: $DestinationPath" -ForegroundColor Yellow
+                Write-StatusMessage "Removing existing directory to perform fresh clone: $DestinationPath" -ForegroundColor Yellow
                 Remove-Item -Path $DestinationPath -Recurse -Force
             }
         }
@@ -146,9 +149,9 @@ Function Install-GitRepository {
         if (-not [string]::IsNullOrWhiteSpace($Branch)) {
             $gitArgs += "--branch"
             $gitArgs += $Branch
-            Write-Host "Cloning repository from $RepositoryUrl (branch: $Branch) to $DestinationPath" -ForegroundColor Cyan
+            Write-StatusMessage "Cloning repository from $RepositoryUrl (branch: $Branch) to $DestinationPath" -ForegroundColor Cyan
         } else {
-            Write-Host "Cloning repository from $RepositoryUrl (default branch) to $DestinationPath" -ForegroundColor Cyan
+            Write-StatusMessage "Cloning repository from $RepositoryUrl (default branch) to $DestinationPath" -ForegroundColor Cyan
         }
         
         # Add repository URL and destination path
@@ -156,18 +159,20 @@ Function Install-GitRepository {
         $gitArgs += $DestinationPath
         
         # Execute git clone command
-        & $gitExecutable @gitArgs
-        
+        $command = {
+            & $gitExecutable @gitArgs
+        }
+        Invoke-Command -ScriptBlock $command *> $null
         if ($LASTEXITCODE -ne 0) {
-            Write-Error "Failed to clone repository from $RepositoryUrl to $DestinationPath"
+            Write-StatusMessage "Failed to clone repository from $RepositoryUrl to $DestinationPath" -Verbosity Error
             return $false
         }
         
-        Write-Host "Repository cloned successfully to $DestinationPath" -ForegroundColor Green
+        Write-StatusMessage "Repository cloned successfully to $DestinationPath" -ForegroundColor Green
         return $true
     }
     catch {
-        Write-Error "Error cloning repository: $_"
+        Write-StatusMessage "Error cloning repository: $_" -Verbosity Error
         return $false
     }
 }

@@ -26,7 +26,7 @@ Describe "Invoke-HomebrewComponentsExport" {
             Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ homebrew = @() } } } }
             Mock Find-Homebrew { "/usr/local/bin/brew" }
             Mock Invoke-ExternalCommand {
-                Param($Command, $Arguments)
+                Param($Arguments)
                 if ($Arguments -contains "list --versions") {
                     return "git 2.30.1`nnode 14.17.0"
                 } elseif ($Arguments -contains "list --installed-on-request") {
@@ -53,7 +53,7 @@ Describe "Invoke-HomebrewComponentsExport" {
             Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ homebrew = @() } } } }
             Mock Find-Homebrew { "/usr/local/bin/brew" }
             Mock Invoke-ExternalCommand {
-                Param($Command, $Arguments)
+                Param($Arguments)
                 if ($Arguments -contains "list --versions") {
                     return "git 2.30.1"
                 } elseif ($Arguments -contains "list --installed-on-request") {
@@ -78,7 +78,7 @@ Describe "Invoke-HomebrewComponentsExport" {
             Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ homebrew = @() } } } }
             Mock Find-Homebrew { "/usr/local/bin/brew" }
             Mock Invoke-ExternalCommand {
-                Param($Command, $Arguments)
+                Param($Arguments)
                 if ($Arguments -contains "list --versions") {
                     return "git 2.30.1"
                 } elseif ($Arguments -contains "list --installed-on-request") {
@@ -101,7 +101,7 @@ Describe "Invoke-HomebrewComponentsExport" {
             Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ homebrew = @() } } } }
             Mock Find-Homebrew { "/usr/local/bin/brew" }
             Mock Invoke-ExternalCommand {
-                Param($Command, $Arguments)
+                Param($Arguments)
                 if ($Arguments -contains "list --versions") {
                     return "git 2.30.1"
                 } elseif ($Arguments -contains "list --installed-on-request") {
@@ -132,7 +132,7 @@ Describe "Invoke-HomebrewComponentsExport" {
             Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ homebrew = @() } } } }
             Mock Find-Homebrew { "/home/linuxbrew/.linuxbrew/bin/brew" }
             Mock Invoke-ExternalCommand {
-                Param($Command, $Arguments)
+                Param($Arguments)
                 if ($Arguments -contains "list --versions") {
                     return "git 2.30.1"
                 } elseif ($Arguments -contains "list --installed-on-request") {
@@ -151,7 +151,7 @@ Describe "Invoke-HomebrewComponentsExport" {
             Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ homebrew = @() } } } }
             Mock Find-Homebrew { "/opt/homebrew/bin/brew" }
             Mock Invoke-ExternalCommand {
-                Param($Command, $Arguments)
+                Param($Arguments)
                 if ($Arguments -contains "list --versions") {
                     return "git 2.30.1"
                 } elseif ($Arguments -contains "list --installed-on-request") {

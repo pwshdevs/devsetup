@@ -3,7 +3,11 @@ Function Get-HostArchitecture {
     [cmdletbinding()]
     [OutputType([string])]
     Param()
-
-    $architecture = if ([System.Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" }
-    return $architecture
+    try {
+        $systemArch = Invoke-Command -Script { [System.Environment]::Is64BitOperatingSystem }
+        $architecture = if ($systemArch) { "x64" } else { "x86" }
+        return $architecture
+    } catch {
+        return "x86"
+    }
 }

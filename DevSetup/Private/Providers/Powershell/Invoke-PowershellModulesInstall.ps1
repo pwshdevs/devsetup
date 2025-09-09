@@ -21,7 +21,7 @@
 
 .EXAMPLE
     $yamlData = Get-Content "config.yaml" | ConvertFrom-Yaml
-    Install-PowershellModules -YamlData $yamlData
+    Invoke-PowershellModulesInstall -YamlData $yamlData
     
     Installs PowerShell modules from a YAML configuration file.
 
@@ -48,7 +48,7 @@
             }
         }
     }
-    Install-PowershellModules -YamlData $yamlData
+    Invoke-PowershellModulesInstall -YamlData $yamlData
     
     Demonstrates the PSCustomObject structure and installs the configured modules.
 
@@ -76,20 +76,22 @@
     Bulk Installation, Configuration Processing, Module Management
 #>
 
-Function Install-PowershellModules {
+Function Invoke-PowershellModulesInstall {
     Param(
         [Parameter(Mandatory=$true, Position=0)]
         [ValidateNotNullOrEmpty()]
-        [PSCustomObject]$YamlData
+        [PSCustomObject]$YamlData,
+        
+        [Parameter(Mandatory=$false, Position=1)]
+        [switch]$DryRun = $false
     )
     
     try {
         Write-StatusMessage "- Installing PowerShell modules from configuration:" -ForegroundColor Cyan
         # Check if PowerShell modules dependencies exist
         if (-not $YamlData -or -not $YamlData.devsetup -or -not $YamlData.devsetup.dependencies -or -not $YamlData.devsetup.dependencies.powershell -or -not $YamlData.devsetup.dependencies.powershell.modules) {
-            Write-Debug "PowerShell modules not found in YAML configuration. Skipping installation."
-            Write-StatusMessage "- PowerShell modules installation completed! Processed 0 modules." -ForegroundColor Green
-            Write-Host ""
+            Write-StatusMessage "PowerShell modules not found in YAML configuration. Skipping installation." -Verbosity Debug
+            Write-StatusMessage "- PowerShell modules installation completed! Processed 0 modules.`n" -ForegroundColor Green
             return $false
         }
         
@@ -123,7 +125,7 @@ Function Install-PowershellModules {
             
             # Validate module name
             if ([string]::IsNullOrEmpty($moduleObj.name)) {
-                Write-Warning "Module entry #$moduleCount has no name specified, skipping"
+                Write-StatusMessage "Module entry #$moduleCount has no name specified, skipping" -Verbosity Warning
                 continue
             }
             
@@ -136,6 +138,7 @@ Function Install-PowershellModules {
                 Force = if ($moduleObj.force -is [bool]) { $moduleObj.force } else { $true }
                 AllowClobber = if ($moduleObj.allowClobber -is [bool]) { $moduleObj.allowClobber } else { $true }
                 Scope = $moduleScope
+                WhatIf = $DryRun
             }
             
             if ($moduleObj.minimumVersion) {
@@ -151,12 +154,12 @@ Function Install-PowershellModules {
                 Write-StatusMessage "[FAILED]" -ForegroundColor Red
             }
         }
-        Write-StatusMessage "- PowerShell modules installation completed! Processed $moduleCount modules." -ForegroundColor Green
-        Write-Host ""
+        Write-StatusMessage "- PowerShell modules installation completed! Processed $moduleCount modules.`n" -ForegroundColor Green
         return $true
     }
     catch {
-        Write-Error "Error installing PowerShell modules: $_"
+        Write-StatusMessage "Error installing PowerShell modules: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 }

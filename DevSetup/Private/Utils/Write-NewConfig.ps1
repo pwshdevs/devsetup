@@ -132,14 +132,14 @@ Function Write-NewConfig {
         } else {
             # Convert from installed Homebrew packages
             Write-StatusMessage "`nScanning installed Homebrew packages..." -ForegroundColor Cyan
-            if (-not (Invoke-HomebrewComponentsExport -Config $OutFile -DryRun:$DryRun)) {
+            if (-not (Invoke-HomebrewComponentsExport -Config $OutFile -WhatIf:$DryRun)) {
                 Write-StatusMessage "Failed to convert Homebrew packages, but continuing..." -Verbosity Warning
             }
         }
 
         # Convert from installed PowerShell modules
         Write-StatusMessage "`nScanning installed PowerShell modules..." -ForegroundColor Cyan
-        if (-not (Export-InstalledPowershellModules -Config $OutFile)) {
+        if (-not (Invoke-PowershellModulesExport -Config $OutFile -DryRun:$DryRun)) {
             Write-StatusMessage "Failed to convert PowerShell modules, but continuing..." -Verbosity Warning
         }
 
@@ -148,7 +148,7 @@ Function Write-NewConfig {
         Write-StatusMessage "`nConfiguration file generation completed!" -ForegroundColor Green
         Write-StatusMessage "- Configuration saved to: $OutFile`n" -ForegroundColor Gray
 
-        Optimize-DevSetupEnvs
+        Optimize-DevSetupEnvs | Out-Null
         return $true
     }
     catch {

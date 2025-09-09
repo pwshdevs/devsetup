@@ -1,11 +1,11 @@
 BeforeAll {
-    . $PSScriptRoot\Install-PowershellModule.ps1
-    . $PSScriptRoot\Test-PowershellModuleInstalled.ps1
-    . $PSScriptRoot\Uninstall-PowershellModule.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Enums\InstalledState.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1
-    Mock Write-Error {}
-    Mock Write-Warning {}
+    . (Join-Path $PSScriptRoot "Install-PowershellModule.ps1")
+    . (Join-Path $PSScriptRoot "Test-PowershellModuleInstalled.ps1")
+    . (Join-Path $PSScriptRoot "Uninstall-PowershellModule.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Enums\InstalledState.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
+    Mock Write-StatusMessage { }
 }
 
 Describe "Install-PowershellModule" {
@@ -39,21 +39,10 @@ Describe "Install-PowershellModule" {
             }
             $script:uninstallCalled = $false
             Mock Uninstall-PowershellModule -MockWith {
-                param(
-                    [string]$ModuleName,
-                    [string]$Scope
-                )
                 $script:uninstallCalled = $true
             }
             $script:installCalled = $false
             Mock Install-Module -MockWith {
-                param(
-                    [string]$Name,
-                    [switch]$Force,
-                    [string]$Scope,
-                    [switch]$AllowClobber,
-                    [string]$RequiredVersion
-                )
                 $script:installCalled = $true
             }
             $result = Install-PowershellModule -ModuleName "Az"
@@ -71,13 +60,6 @@ Describe "Install-PowershellModule" {
             }
             $script:installCalled = $false
             Mock Install-Module -MockWith {
-                param(
-                    [string]$Name,
-                    [switch]$Force,
-                    [string]$Scope,
-                    [switch]$AllowClobber,
-                    [string]$RequiredVersion
-                )
                 $script:installCalled = $true
             }
             $result = Install-PowershellModule -ModuleName "Az"

@@ -111,7 +111,7 @@ Function Uninstall-DevSetupEnv {
         }
 
         # Uninstall PowerShell module dependencies
-        Uninstall-PowershellModules -YamlData $YamlData | Out-Null
+        Invoke-PowershellModulesUninstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
 
         $windows = Test-OperatingSystem -Windows
 

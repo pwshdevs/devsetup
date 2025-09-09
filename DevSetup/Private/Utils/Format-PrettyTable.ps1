@@ -24,13 +24,13 @@ Function Format-PrettyTable {
 
     # Light single-line for inner separators
     $sepV   = [char]0x2502 # │
-    $sepH   = [char]0x2500 # ─
-    $sepT   = [char]0x252C # ┬
-    $sepM   = [char]0x253C # ┼
-    $sepB   = [char]0x2534 # ┴
+    #$sepH   = [char]0x2500 # ─
+    #$sepT   = [char]0x252C # ┬
+    #$sepM   = [char]0x253C # ┼
+    #$sepB   = [char]0x2534 # ┴
 
-    function Repeat-Char($char, $count) { -join (1..$count | ForEach-Object { $char }) }
-    function Center-Text($text, $width) {
+    function Write-RepeatChar($char, $count) { -join (1..$count | ForEach-Object { $char }) }
+    function Write-CenterText($text, $width) {
         $text = "$text"
         $pad = $width - $text.Length
         if ($pad -le 0) { return $text }
@@ -39,13 +39,13 @@ Function Format-PrettyTable {
         (' ' * $left) + $text + (' ' * $right)
     }   
 
-    function Left-Text($text, $width) {
+    function Write-LeftText($text, $width) {
         $text = " $text"
         if ($text.Length -ge $width) { return $text }
         return $text + (' ' * ($width - $text.Length))
     }
 
-    function Right-Text($text, $width) {
+    function Write-RightText($text, $width) {
         $text = "$text "
         if ($text.Length -ge $width) { return $text }
         return (' ' * ($width - $text.Length)) + $text
@@ -58,9 +58,9 @@ Function Format-PrettyTable {
 
     $idx = 0;
     foreach ($column in $Columns.Values) {
-        $topBorder += (Repeat-Char $edgeH $column.Width)
-        $middleBorder += (Repeat-Char $edgeH $column.Width)
-        $bottomBorder += (Repeat-Char $edgeH $column.Width)
+        $topBorder += (Write-RepeatChar $edgeH $column.Width)
+        $middleBorder += (Write-RepeatChar $edgeH $column.Width)
+        $bottomBorder += (Write-RepeatChar $edgeH $column.Width)
 
         if ($idx -lt $Columns.Count -1) {
             # Add light separators
@@ -75,32 +75,32 @@ Function Format-PrettyTable {
     $middleBorder += $edgeV
     $bottomBorder += $edgeBR
 
-    Write-Host $topBorder -ForegroundColor $TableFormat.BorderColor
-    Write-Host $edgeV -ForegroundColor $TableFormat.BorderColor -NoNewLine
+    Write-StatusMessage $topBorder -ForegroundColor $TableFormat.BorderColor
+    Write-StatusMessage $edgeV -ForegroundColor $TableFormat.BorderColor -NoNewLine
 
     $idx = 0;
     foreach ($column in $Columns.Values) {
         $columnText = switch ($column.Alignment) {
-            "Left"   { Left-Text $column.Name $column.Width }
-            "Center" { Center-Text $column.Name $column.Width }
-            "Right"  { Right-Text $column.Name $column.Width }
+            "Left"   { Write-LeftText $column.Name $column.Width }
+            "Center" { Write-CenterText $column.Name $column.Width }
+            "Right"  { Write-RightText $column.Name $column.Width }
             default  { $column.Name }
         }
 
-        Write-Host $columnText -ForegroundColor $column.Color -NoNewLine
+        Write-StatusMessage $columnText -ForegroundColor $column.Color -NoNewLine
 
         if ($idx -lt $Columns.Count -1) {
-            Write-Host $sepV -ForegroundColor $TableFormat.BorderColor -NoNewLine
+            Write-StatusMessage $sepV -ForegroundColor $TableFormat.BorderColor -NoNewLine
         }
         $idx++
     }
 
-    Write-Host $edgeV -ForegroundColor $TableFormat.BorderColor
+    Write-StatusMessage $edgeV -ForegroundColor $TableFormat.BorderColor
 
-    Write-Host $middleBorder -ForegroundColor $TableFormat.BorderColor
+    Write-StatusMessage $middleBorder -ForegroundColor $TableFormat.BorderColor
 
     foreach ($row in $Rows) {
-        Write-Host $edgeV -ForegroundColor $TableFormat.BorderColor -NoNewLine
+        Write-StatusMessage $edgeV -ForegroundColor $TableFormat.BorderColor -NoNewLine
         $idx = 0;
         foreach ($column in $Columns.Values) {
             if ($row -is [hashtable]) {
@@ -110,22 +110,22 @@ Function Format-PrettyTable {
             }
 
             $columnText = switch ($column.Alignment) {
-                "Left"   { Left-Text $value $column.Width }
-                "Center" { Center-Text $value $column.Width }
-                "Right"  { Right-Text $value $column.Width }
+                "Left"   { Write-LeftText $value $column.Width }
+                "Center" { Write-CenterText $value $column.Width }
+                "Right"  { Write-RightText $value $column.Width }
                 default  { $value }
             }
 
-            Write-Host $columnText -ForegroundColor $row.Color -NoNewLine
+            Write-StatusMessage $columnText -ForegroundColor $row.Color -NoNewLine
 
             if ($idx -lt $Columns.Count -1) {
-                Write-Host $sepV -ForegroundColor $TableFormat.BorderColor -NoNewLine
+                Write-StatusMessage $sepV -ForegroundColor $TableFormat.BorderColor -NoNewLine
             }
             $idx++
         }
-        Write-Host $edgeV -ForegroundColor $TableFormat.BorderColor
+        Write-StatusMessage $edgeV -ForegroundColor $TableFormat.BorderColor
     }
 
-    Write-Host $bottomBorder -ForegroundColor $TableFormat.BorderColor
+    Write-StatusMessage $bottomBorder -ForegroundColor $TableFormat.BorderColor
 
 }

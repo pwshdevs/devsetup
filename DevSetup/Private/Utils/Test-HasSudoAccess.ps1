@@ -5,10 +5,14 @@ Function Test-HasSudoAccess {
     )
 
     # Try running a harmless command with sudo
-    (bash -c "sudo -n true") *>$null
-    if ($LASTEXITCODE -eq 0) {
-        return $true
-    } else {
+    try { 
+        Invoke-Command -Script { bash -c "sudo -n true" } *>$null
+        if ($LASTEXITCODE -eq 0) {
+            return $true
+        } else {
+            return $false
+        }
+    } catch {
         return $false
     }
 }
