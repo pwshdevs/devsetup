@@ -7,7 +7,7 @@ BeforeAll {
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Scoop\Install-ScoopComponents.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Chocolatey\Install-ChocolateyPackages.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Chocolatey\Invoke-ChocolateyPackageInstall.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Powershell\Invoke-PowershellModulesInstall.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Homebrew\Invoke-HomebrewComponentsInstall.ps1")
     Mock Get-DevSetupEnvPath { "$TestDrive\DevSetup\DevSetupEnvs" }
@@ -15,7 +15,7 @@ BeforeAll {
     Mock Test-Path { $true }
     Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
     Mock Invoke-PowershellModulesInstall { Param($YamlData, $DryRun) $true }
-    Mock Install-ChocolateyPackages { Param($YamlData) $true }
+    Mock Invoke-ChocolateyPackageInstall { Param($YamlData) $true }
     Mock Install-ScoopComponents { Param($YamlData) $true }
     Mock Test-OperatingSystem { Param($Windows, $Linux, $MacOS) { return $true } }
     Mock Write-Host { }
@@ -58,7 +58,7 @@ Describe "Install-DevSetupEnv" {
             $result | Should -Be $null
             Assert-MockCalled Test-OperatingSystem -Exactly 1 -Scope It -ParameterFilter { $Windows -eq $true }
             Assert-MockCalled Invoke-PowershellModulesInstall -Exactly 1 -Scope It
-            Assert-MockCalled Install-ChocolateyPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ChocolateyPackageInstall -Exactly 1 -Scope It
             Assert-MockCalled Install-ScoopComponents -Exactly 1 -Scope It
             Assert-MockCalled Invoke-HomebrewComponentsInstall -Exactly 0 -Scope It
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Installing DevSetup environment from:" }
@@ -74,7 +74,7 @@ Describe "Install-DevSetupEnv" {
             $result | Should -Be $null
             Assert-MockCalled Test-OperatingSystem -Exactly 1 -Scope It -ParameterFilter { $Windows -eq $true }
             Assert-MockCalled Invoke-PowershellModulesInstall -Exactly 1 -Scope It
-            Assert-MockCalled Install-ChocolateyPackages -Exactly 0 -Scope It
+            Assert-MockCalled Invoke-ChocolateyPackageInstall -Exactly 0 -Scope It
             Assert-MockCalled Install-ScoopComponents -Exactly 0 -Scope It
             Assert-MockCalled Invoke-HomebrewComponentsInstall -Exactly 1 -Scope It
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Installing DevSetup environment from:" }
@@ -86,7 +86,7 @@ Describe "Install-DevSetupEnv" {
             Mock Test-OperatingSystem { return $true }
             $script:callCount = 0
             Mock Invoke-PowershellModulesInstall { $script:callCount++; $false }
-            Mock Install-ChocolateyPackages { $script:callCount++; $true }
+            Mock Invoke-ChocolateyPackageInstall { $script:callCount++; $true }
             Mock Install-ScoopComponents { $script:callCount++; $true }
             Mock Invoke-HomebrewComponentsInstall { $script:callCount++; $true }
             Mock Test-Path { $true }
@@ -95,7 +95,7 @@ Describe "Install-DevSetupEnv" {
             $result = Install-DevSetupEnv -Name "partial-fail"
             Assert-MockCalled Test-OperatingSystem -Exactly 1 -Scope It -ParameterFilter { $Windows -eq $true }
             Assert-MockCalled Invoke-PowershellModulesInstall -Exactly 1 -Scope It
-            Assert-MockCalled Install-ChocolateyPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ChocolateyPackageInstall -Exactly 1 -Scope It
             Assert-MockCalled Install-ScoopComponents -Exactly 1 -Scope It
             Assert-MockCalled Invoke-HomebrewComponentsInstall -Exactly 0 -Scope It
             $result | Should -Be $null
@@ -122,7 +122,7 @@ Describe "Install-DevSetupEnv" {
             $result | Should -Be $null
             Assert-MockCalled Test-Path -Exactly 2 -Scope It -ParameterFilter { $Path -eq "$TestDrive\valid.yaml" }
             Assert-MockCalled Invoke-PowershellModulesInstall -Exactly 1 -Scope It
-            Assert-MockCalled Install-ChocolateyPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ChocolateyPackageInstall -Exactly 1 -Scope It
             Assert-MockCalled Install-ScoopComponents -Exactly 1 -Scope It
         }
     }
@@ -159,7 +159,7 @@ Describe "Install-DevSetupEnv" {
             Assert-MockCalled Read-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Invoke-WebRequest -Exactly 1 -Scope It
             Assert-MockCalled Invoke-PowershellModulesInstall -Exactly 1 -Scope It
-            Assert-MockCalled Install-ChocolateyPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ChocolateyPackageInstall -Exactly 1 -Scope It
             Assert-MockCalled Install-ScoopComponents -Exactly 1 -Scope It
         }
     }
@@ -230,7 +230,7 @@ Describe "Install-DevSetupEnv" {
             $result = Install-DevSetupEnv -Name "dry-run-env" -DryRun
             $result | Should -Be $null
             Assert-MockCalled Invoke-PowershellModulesInstall -Exactly 1 -Scope It -ParameterFilter { $DryRun -eq $true }
-            Assert-MockCalled Install-ChocolateyPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ChocolateyPackageInstall -Exactly 1 -Scope It
             Assert-MockCalled Install-ScoopComponents -Exactly 1 -Scope It
             Assert-MockCalled Invoke-HomebrewComponentsInstall -Exactly 0 -Scope It
         }
@@ -244,7 +244,7 @@ Describe "Install-DevSetupEnv" {
             $result = Install-DevSetupEnv -Name "dry-run-env" -DryRun
             $result | Should -Be $null
             Assert-MockCalled Invoke-PowershellModulesInstall -Exactly 1 -Scope It -ParameterFilter { $DryRun -eq $true }
-            Assert-MockCalled Install-ChocolateyPackages -Exactly 0 -Scope It
+            Assert-MockCalled Invoke-ChocolateyPackageInstall -Exactly 0 -Scope It
             Assert-MockCalled Install-ScoopComponents -Exactly 0 -Scope It
             Assert-MockCalled Invoke-HomebrewComponentsInstall -Exactly 1 -Scope It -ParameterFilter { $DryRun -eq $true }
         }
@@ -292,7 +292,7 @@ Describe "Install-DevSetupEnv" {
             Mock Test-OperatingSystem { return $true }
             $result = Install-DevSetupEnv -Name "win-env"
             $result | Should -Be $null
-            Assert-MockCalled Install-ChocolateyPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ChocolateyPackageInstall -Exactly 1 -Scope It
         }
 
         It "Should work on Linux" {

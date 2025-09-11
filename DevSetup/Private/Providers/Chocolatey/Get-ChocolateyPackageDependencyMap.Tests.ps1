@@ -1,5 +1,5 @@
 BeforeAll {
-    . $PSScriptRoot\Get-ChocolateyPackageDependencies.ps1
+    . $PSScriptRoot\Get-ChocolateyPackageDependencyMap.ps1
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Get-EnvironmentVariable.ps1
     Mock Write-Debug { }
     if ($PSVersionTable.PSVersion.Major -eq 5 -or ($PSVersionTable.PSVersion.Major -ge 6 -and $IsWindows)) {
@@ -11,12 +11,12 @@ BeforeAll {
     }
 }
 
-Describe "Get-ChocolateyPackageDependencies" {
+Describe "Get-ChocolateyPackageDependencyMap" {
 
     Context "When Chocolatey install path does not exist" {
         It "Should return $null in PS5, empty array in PS6+" {
             Mock Test-Path { return $false }
-            $result = Get-ChocolateyPackageDependencies
+            $result = Get-ChocolateyPackageDependencyMap
             $result | Should -Be $null
         }
     }
@@ -25,7 +25,7 @@ Describe "Get-ChocolateyPackageDependencies" {
         It "Should return $null in PS5, empty array in PS6+" {
             Mock Test-Path { return $true }
             Mock Get-ChildItem { @() }
-            $result = Get-ChocolateyPackageDependencies
+            $result = Get-ChocolateyPackageDependencyMap
             $result | Should -Be $null
         }
     }
@@ -55,7 +55,7 @@ Describe "Get-ChocolateyPackageDependencies" {
             Mock Get-Content { 
                 '<package><metadata><dependencies></dependencies></metadata></package>' 
             }
-            $result = Get-ChocolateyPackageDependencies
+            $result = Get-ChocolateyPackageDependencyMap
             $result | Should -Be $null
         }
     }
@@ -89,7 +89,7 @@ Describe "Get-ChocolateyPackageDependencies" {
                     <dependency id="nodejs" />
                 </dependencies></metadata></package>' 
             }
-            $result = Get-ChocolateyPackageDependencies
+            $result = Get-ChocolateyPackageDependencyMap
             $result | Should -Not -Be $null
             $result | Should -Contain "git"
             $result | Should -Contain "nodejs"
@@ -136,7 +136,7 @@ Describe "Get-ChocolateyPackageDependencies" {
             Mock Get-Content -MockWith {
                 $nuspecs[$script:callCount++]
             }
-            $result = Get-ChocolateyPackageDependencies
+            $result = Get-ChocolateyPackageDependencyMap
             $result | Should -Not -Be $null          
             $result | Should -Contain "git"
             $result | Should -Contain "nodejs"

@@ -54,7 +54,7 @@
     Dependency Analysis, Package Management, Metadata Extraction
 #>
 
-Function Get-ChocolateyPackageDependencies {
+Function Get-ChocolateyPackageDependencyMap {
     [CmdletBinding()]
     [OutputType([array])]
     Param()

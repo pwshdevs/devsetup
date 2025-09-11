@@ -21,7 +21,7 @@
 
 .EXAMPLE
     $config = Read-ConfigurationFile -Path "environment.yaml"
-    Uninstall-ChocolateyPackages -YamlData $config
+    Invoke-ChocolateyPackageUninstall -YamlData $config
     
     Uninstalls all Chocolatey packages defined in the environment.yaml configuration.
 
@@ -35,12 +35,12 @@
             }
         }
     }
-    Uninstall-ChocolateyPackages -YamlData $yamlData
+    Invoke-ChocolateyPackageUninstall -YamlData $yamlData
     
     Demonstrates uninstalling packages using a programmatically created configuration.
 
 .EXAMPLE
-    if (Uninstall-ChocolateyPackages -YamlData $config) {
+    if (Invoke-ChocolateyPackageUninstall -YamlData $config) {
         Write-Host "All Chocolatey packages processed successfully"
     } else {
         Write-Host "Chocolatey uninstallation encountered errors"
@@ -74,77 +74,91 @@
     Package Management, Batch Uninstallation, Configuration Processing, System Cleanup
 #>
 
-Function Uninstall-ChocolateyPackages {
+Function Invoke-ChocolateyPackageUninstall {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [PSCustomObject]$YamlData
+        [PSCustomObject]$YamlData,
+        [switch]$DryRun
     )
     
     try {
         # Check if running as administrator
         if (-not (Test-RunningAsAdmin)) {
-            throw "Chocolatey package uninstallation requires administrator privileges. Please run as administrator."
-        }
-        
-        # Check if chocolatey dependencies exist
-        if (-not $YamlData -or -not $YamlData.devsetup -or -not $YamlData.devsetup.dependencies -or -not $YamlData.devsetup.dependencies.chocolatey -or -not $YamlData.devsetup.dependencies.chocolatey.packages) {
-            Write-Warning "Chocolatey packages not found in YAML configuration. Skipping uninstallation."
-            return
-        }
-
-        if (-not (Write-ChocolateyCache)) {
-            Write-Warning "Failed to write Chocolatey cache."
+            Write-StatusMessage "Chocolatey package uninstallation requires administrator privileges. Please run as administrator." -Verbosity Error
             return $false
         }
-
-        $chocolateyPackages = $YamlData.devsetup.dependencies.chocolatey.packages
-        Write-StatusMessage "- Uninstalling Chocolatey packages from configuration:" -ForegroundColor Cyan
+    } catch {
+        Write-StatusMessage "Error checking administrator privileges: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
         
-        $packageCount = 0
-        
-        foreach ($package in $chocolateyPackages) {
-            if (-not $package) { continue }
-            
-            $packageCount++
-            
-            # Normalize package to object format
-            if ($package -is [string]) {
-                $packageObj = @{ name = $package }
-            } else {
-                $packageObj = $package
-            }
-            
-            # Validate package name
-            if ([string]::IsNullOrEmpty($packageObj.name)) {
-                Write-Warning "Package entry #$packageCount has no name specified, skipping"
-                continue
-            }
-            
-            # Build install parameters
-            $installParams = @{ 
-                PackageName = $packageObj.name 
-            }
-            if ($packageObj.version) {
-                Write-StatusMessage "- Uninstalling Chocolatey package: $($packageObj.name) (version: $($packageObj.version))" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewline
-            } else {
-                Write-StatusMessage "- Uninstalling Chocolatey package: $($packageObj.name) (version: latest)" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewline
-            }
+    # Check if chocolatey dependencies exist
+    if (-not $YamlData -or -not $YamlData.devsetup -or -not $YamlData.devsetup.dependencies -or -not $YamlData.devsetup.dependencies.chocolatey -or -not $YamlData.devsetup.dependencies.chocolatey.packages) {
+        Write-StatusMessage "Chocolatey packages not found in YAML configuration. Skipping uninstallation." -Verbosity Warning
+        return $false
+    }
 
+    try {
+        if (-not (Write-ChocolateyCache)) {
+            Write-StatusMessage "Failed to write Chocolatey cache." -Verbosity Warning
+            return $false
+        }
+    } catch {
+        Write-StatusMessage "Error writing Chocolatey cache: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    $chocolateyPackages = $YamlData.devsetup.dependencies.chocolatey.packages
+    Write-StatusMessage "- Uninstalling Chocolatey packages from configuration:" -ForegroundColor Cyan
+    
+    $packageCount = 0
+    
+    foreach ($package in $chocolateyPackages) {
+        if (-not $package) { continue }
+        
+        $packageCount++
+        
+        # Normalize package to object format
+        if ($package -is [string]) {
+            $packageObj = @{ name = $package }
+        } else {
+            $packageObj = $package
+        }
+        
+        # Validate package name
+        if ([string]::IsNullOrEmpty($packageObj.name)) {
+            Write-StatusMessage "Package entry #$packageCount has no name specified, skipping" -Verbosity Warning
+            continue
+        }
+        
+        # Build install parameters
+        $installParams = @{ 
+            PackageName = $packageObj.name
+            WhatIf = $DryRun
+        }
+        if ($packageObj.version) {
+            Write-StatusMessage "- Uninstalling Chocolatey package: $($packageObj.name) (version: $($packageObj.version))" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewline
+        } else {
+            Write-StatusMessage "- Uninstalling Chocolatey package: $($packageObj.name) (version: latest)" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewline
+        }
+
+        try {
             if((Uninstall-ChocolateyPackage @installParams)) {
                 Write-StatusMessage "[OK]" -ForegroundColor Green
             } else {
                 Write-StatusMessage "[FAILED]" -ForegroundColor Red
             }
-        }
-
-        Write-StatusMessage "- Chocolatey packages uninstallation completed! Processed $packageCount packages." -ForegroundColor Green
-        write-host ""
-        return $true
+        } catch {
+            Write-StatusMessage "Error uninstalling Chocolatey package: $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false
+        }          
     }
-    catch {
-        Write-Error "Error uninstalling Chocolatey packages: $_"
-        return $false
-    }    
+
+    Write-StatusMessage "- Chocolatey packages uninstallation completed! Processed $packageCount packages.`n" -ForegroundColor Green
+    return $true  
 }

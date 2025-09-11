@@ -128,7 +128,7 @@ Function Write-NewConfig {
         if((Test-OperatingSystem -Windows)) {
             # Convert from installed Chocolatey packages
             Write-StatusMessage "`nScanning installed Chocolatey packages..." -ForegroundColor Cyan
-            if (-not (Export-InstalledChocolateyPackages -Config $OutFile)) {
+            if (-not (Invoke-ChocolateyPackageExport -Config $OutFile -DryRun:$DryRun)) {
                 Write-StatusMessage "Failed to convert Chocolatey packages, but continuing..." -Verbosity Warning
             }
 

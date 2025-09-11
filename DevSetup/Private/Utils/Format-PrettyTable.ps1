@@ -31,6 +31,7 @@ Function Format-PrettyTable {
 
     function Write-RepeatChar($char, $count) { -join (1..$count | ForEach-Object { $char }) }
     function Write-CenterText($text, $width) {
+        if([string]::IsNullOrWhiteSpace($text)) { $text = "[BLANK]" }
         $text = "$text"
         $pad = $width - $text.Length
         if ($pad -le 0) { return $text }
@@ -40,12 +41,14 @@ Function Format-PrettyTable {
     }   
 
     function Write-LeftText($text, $width) {
+        if([string]::IsNullOrWhiteSpace($text)) { $text = "[BLANK]" }
         $text = " $text"
         if ($text.Length -ge $width) { return $text }
         return $text + (' ' * ($width - $text.Length))
     }
 
     function Write-RightText($text, $width) {
+        if([string]::IsNullOrWhiteSpace($text)) { $text = "[BLANK]" }
         $text = "$text "
         if ($text.Length -ge $width) { return $text }
         return (' ' * ($width - $text.Length)) + $text
@@ -75,29 +78,32 @@ Function Format-PrettyTable {
     $middleBorder += $edgeV
     $bottomBorder += $edgeBR
 
-    Write-StatusMessage $topBorder -ForegroundColor $TableFormat.BorderColor
-    Write-StatusMessage $edgeV -ForegroundColor $TableFormat.BorderColor -NoNewLine
+    if( $TableFormat.ContainsKey("NoHeader") -and $TableFormat.NoHeader -eq $true ) {
+        Write-StatusMessage $topBorder -ForegroundColor $TableFormat.BorderColor
+    } else {
+        Write-StatusMessage $topBorder -ForegroundColor $TableFormat.BorderColor
+        Write-StatusMessage $edgeV -ForegroundColor $TableFormat.BorderColor -NoNewLine
 
-    $idx = 0;
-    foreach ($column in $Columns.Values) {
-        $columnText = switch ($column.Alignment) {
-            "Left"   { Write-LeftText $column.Name $column.Width }
-            "Center" { Write-CenterText $column.Name $column.Width }
-            "Right"  { Write-RightText $column.Name $column.Width }
-            default  { $column.Name }
+        $idx = 0;
+        foreach ($column in $Columns.Values) {
+            $columnText = switch ($column.Alignment) {
+                "Left"   { Write-LeftText $column.Name $column.Width }
+                "Center" { Write-CenterText $column.Name $column.Width }
+                "Right"  { Write-RightText $column.Name $column.Width }
+                default  { $column.Name }
+            }
+
+            Write-StatusMessage $columnText -ForegroundColor $column.Color -NoNewLine
+
+            if ($idx -lt $Columns.Count -1) {
+                Write-StatusMessage $sepV -ForegroundColor $TableFormat.BorderColor -NoNewLine
+            }
+            $idx++
         }
 
-        Write-StatusMessage $columnText -ForegroundColor $column.Color -NoNewLine
-
-        if ($idx -lt $Columns.Count -1) {
-            Write-StatusMessage $sepV -ForegroundColor $TableFormat.BorderColor -NoNewLine
-        }
-        $idx++
+        Write-StatusMessage $edgeV -ForegroundColor $TableFormat.BorderColor
+        Write-StatusMessage $middleBorder -ForegroundColor $TableFormat.BorderColor
     }
-
-    Write-StatusMessage $edgeV -ForegroundColor $TableFormat.BorderColor
-
-    Write-StatusMessage $middleBorder -ForegroundColor $TableFormat.BorderColor
 
     foreach ($row in $Rows) {
         Write-StatusMessage $edgeV -ForegroundColor $TableFormat.BorderColor -NoNewLine

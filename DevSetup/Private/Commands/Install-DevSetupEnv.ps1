@@ -39,7 +39,7 @@
     - Commands are executed after all package installations are complete
     - Individual installation failures do not stop the overall process
     - Uses Read-DevSetupEnvFile to parse YAML configuration
-    - Leverages Install-PowershellModules, Install-ChocolateyPackages, and Install-ScoopComponents functions
+    - Leverages Install-PowershellModules, Invoke-ChocolateyPackageInstall, and Install-ScoopComponents functions
     - Custom commands are executed using Invoke-CommandFromEnv function
     - Provides detailed console output with color-coded status messages
     - Skips command entries that are missing the required command property
@@ -132,7 +132,7 @@ Function Install-DevSetupEnv {
 
         if ((Test-OperatingSystem -Windows)) {
             # Install Chocolatey package dependencies
-            Install-ChocolateyPackages -YamlData $YamlData | Out-Null
+            Invoke-ChocolateyPackageInstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
 
             # Install Scoop package dependencies
             Install-ScoopComponents -YamlData $YamlData | Out-Null
@@ -163,10 +163,7 @@ Function Install-DevSetupEnv {
                         }
                         $CommandParams.LogFile = $PSDefaultParameterValues['Write-EZLog:LogFile']
                         $Command = $commandEntry.command
-                        $commandScript = {
-                            & $Command @CommandParams
-                        }
-                        $result = Invoke-Command -ScriptBlock $commandScript
+                        $result = Invoke-Command -ScriptBlock { & $Command @CommandParams }
                         if ($LASTEXITCODE -ne 0) {
                             Write-StatusMessage "Command failed with exit code $LASTEXITCODE : $result" -Verbosity Error
                         } else {

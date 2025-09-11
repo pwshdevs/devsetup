@@ -40,7 +40,7 @@
     - Validates YAML file existence before attempting to parse configuration
     - Processes uninstallation in specific order:
       1. PowerShell modules via Uninstall-PowershellModules
-      2. Chocolatey packages via Uninstall-ChocolateyPackages
+      2. Chocolatey packages via Invoke-ChocolateyPackageUninstall
       3. Scoop packages via Uninstall-ScoopComponents
     - Each uninstaller function handles its own error reporting and validation
     - Does not remove the YAML configuration file itself after uninstallation
@@ -117,7 +117,7 @@ Function Uninstall-DevSetupEnv {
 
         if ($windows) {
             # Uninstall Chocolatey package dependencies
-            Uninstall-ChocolateyPackages -YamlData $YamlData | Out-Null
+            Invoke-ChocolateyPackageUninstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
 
             # Uninstall Scoop package dependencies
             Uninstall-ScoopComponents -YamlData $YamlData | Out-Null
