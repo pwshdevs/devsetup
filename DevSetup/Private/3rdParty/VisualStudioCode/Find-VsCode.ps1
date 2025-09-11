@@ -10,23 +10,24 @@ Function Find-VsCode {
         try {
             $codeCommand = (Get-Command code -ErrorAction SilentlyContinue).Path
             if ($codeCommand) {
-                Write-StatusMessage "Found VS Code at $codeCommand" -Verbosity Debug
+                Write-StatusMessage "Found Visual Studio Code at $codeCommand" -Verbosity Debug
                 return $codeCommand
             }
         } catch {
             Write-StatusMessage "Get-Command code failed: $_" -Verbosity Debug
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Debug
         }
 
         $userPath = [string]::Format("{0}\Programs\Microsoft VS Code\bin\code.cmd", (Get-EnvironmentVariable -Name "LocalAppData"))
         $systemPath = [string]::Format("{0}\Microsoft VS Code\bin\code.cmd", (Get-EnvironmentVariable -Name "ProgramFiles"))
 
         if (Test-Path $userPath) {
-            Write-StatusMessage "Found VS Code at $userPath" -Verbosity Debug
+            Write-StatusMessage "Found Visual Studio Code at $userPath" -Verbosity Debug
             return $userPath
         }
         
         if (Test-Path $systemPath) {
-            Write-StatusMessage "Found VS Code at $systemPath" -Verbosity Debug
+            Write-StatusMessage "Found Visual Studio Code at $systemPath" -Verbosity Debug
             return $systemPath
         }
     }

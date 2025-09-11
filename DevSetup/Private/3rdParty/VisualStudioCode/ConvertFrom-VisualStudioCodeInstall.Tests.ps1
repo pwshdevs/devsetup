@@ -1,11 +1,11 @@
 BeforeAll {
-    Function ConvertTo-Yaml { }
     . (Join-Path $PSScriptRoot "ConvertFrom-VisualStudioCodeInstall.ps1")
     . (Join-Path $PSScriptRoot "Find-VsCode.ps1")
     . (Join-Path $PSScriptRoot "Add-VsCodeToPackageManager.ps1")
     . (Join-Path $PSScriptRoot "Invoke-VsCodeExtensionsExport.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Read-ConfigurationFile.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Read-DevSetupEnvFile.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Update-DevSetupEnvFile.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
     Mock Test-OperatingSystem {
         Param($Windows, $Linux, $MacOS)
@@ -13,13 +13,12 @@ BeforeAll {
         if ($Linux) { return $false }
         if ($MacOS) { return $false }
     }  # Default to Windows
-    Mock Read-ConfigurationFile { @{ devsetup = @{ commands = @() } } }
+    Mock Read-DevSetupEnvFile { @{ devsetup = @{ commands = @() } } }
     Mock Find-VsCode { "$TestDrive\Code\bin\code.cmd" }
     Mock Add-VsCodeToPackageManager { $true }
     Mock Invoke-VsCodeExtensionsExport { "mocked extensions json" }
     Mock Write-StatusMessage { }
-    Mock ConvertTo-Yaml { "mocked yaml output" }
-    Mock Out-File { }
+    Mock Update-DevSetupEnvFile { }
 }
 
 Describe "ConvertFrom-VisualStudioCodeInstall" {
@@ -30,8 +29,7 @@ Describe "ConvertFrom-VisualStudioCodeInstall" {
             $result | Should -Be $true
             Assert-MockCalled Add-VsCodeToPackageManager -Exactly 1 -Scope It
             Assert-MockCalled Invoke-VsCodeExtensionsExport -Exactly 1 -Scope It
-            Assert-MockCalled ConvertTo-Yaml -Exactly 1 -Scope It
-            Assert-MockCalled Out-File -Exactly 1 -Scope It
+            Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It -ParameterFilter { $EnvFilePath -eq "$TestDrive\config.devsetup" }
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -eq "Visual Studio Code installation conversion completed!" -and $ForegroundColor -eq "Green" }
         }
     }
@@ -61,8 +59,7 @@ Describe "ConvertFrom-VisualStudioCodeInstall" {
         It "Should return true" {
             Mock Invoke-VsCodeExtensionsExport { $null }
             $result = ConvertFrom-VisualStudioCodeInstall -Config "$TestDrive\config.devsetup"
-            Assert-MockCalled ConvertTo-Yaml -Exactly 0 -Scope It
-            Assert-MockCalled Out-File -Exactly 0 -Scope It
+            Assert-MockCalled Update-DevSetupEnvFile -Exactly 0 -Scope It -ParameterFilter { $EnvFilePath -eq "$TestDrive\config.devsetup" }
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -eq "[FAILED]" -and $ForegroundColor -eq "Red" }
             $result | Should -Be $true          
         }
@@ -70,24 +67,24 @@ Describe "ConvertFrom-VisualStudioCodeInstall" {
 
     Context "When saving config fails" {
         It "Should return false and write error" {
-            Mock Out-File { throw "Save failed" }
+            Mock Update-DevSetupEnvFile { throw "Save failed" }
             $result = ConvertFrom-VisualStudioCodeInstall -Config "$TestDrive\config.devsetup"
             $result | Should -Be $false
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to save updated devsetup environment:" -and $Verbosity -eq "Error" }
         }
     }
 
-    Context "When WhatIf is true" {
+    Context "When DryRun is true" {
         It "Should not save config" {
-            $result = ConvertFrom-VisualStudioCodeInstall -Config "$TestDrive\config.devsetup" -WhatIf:$true
+            $result = ConvertFrom-VisualStudioCodeInstall -Config "$TestDrive\config.devsetup" -DryRun:$true
             $result | Should -Be $true
-            Assert-MockCalled Out-File -Exactly 0 -Scope It
+            Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It -ParameterFilter { $EnvFilePath -eq "$TestDrive\config.devsetup" }
         }
     }
 
     Context "When existing command is present" {
         It "Should update the existing command" {
-            Mock Read-ConfigurationFile { @{ devsetup = @{ commands = @(@{ packageName = "invoke.vs.code.extensions.import"; command = "old"; params = @{} }) } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ commands = @(@{ packageName = "invoke.vs.code.extensions.import"; command = "old"; params = @{} }) } } }
             $result = ConvertFrom-VisualStudioCodeInstall -Config "$TestDrive\config.devsetup"
             $result | Should -Be $true
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -eq "- Updating Visual Studio Code import command..." -and $ForegroundColor -eq "Gray" }
@@ -96,7 +93,7 @@ Describe "ConvertFrom-VisualStudioCodeInstall" {
 
     Context "When no existing command" {
         It "Should add new command" {
-            Mock Read-ConfigurationFile { @{ devsetup = @{ commands = @() } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ commands = @() } } }
             $result = ConvertFrom-VisualStudioCodeInstall -Config "$TestDrive\config.devsetup"
             $result | Should -Be $true
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -eq "- Adding Visual Studio Code import command..." -and $ForegroundColor -eq "Gray" }
@@ -105,16 +102,16 @@ Describe "ConvertFrom-VisualStudioCodeInstall" {
 
     Context "When YAML structure is missing" {
         It "Should create structure" {
-            Mock Read-ConfigurationFile { @{ } }
+            Mock Read-DevSetupEnvFile { @{ } }
             $result = ConvertFrom-VisualStudioCodeInstall -Config "$TestDrive\config.devsetup"
             $result | Should -Be $true
-            Assert-MockCalled ConvertTo-Yaml -Exactly 1 -Scope It
+            Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It -ParameterFilter { $EnvFilePath -eq "$TestDrive\config.devsetup" }
         }
     }
 
     Context "When exception occurs in try block" {
         It "Should return false and write error" {
-            Mock Read-ConfigurationFile { throw "Read failed" }
+            Mock Read-DevSetupEnvFile { throw "Read failed" }
             $result = ConvertFrom-VisualStudioCodeInstall -Config "$TestDrive\config.devsetup"
             $result | Should -Be $false
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Error detecting Visual Studio Code installation:" -and $Verbosity -eq "Error" }

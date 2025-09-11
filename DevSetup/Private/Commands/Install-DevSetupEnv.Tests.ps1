@@ -1,7 +1,7 @@
 BeforeAll {
     Function Write-EZLog { }
     . (Join-Path $PSScriptRoot "Install-DevSetupEnv.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Read-ConfigurationFile.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Read-DevSetupEnvFile.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Get-DevSetupLocalEnvPath.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1")
@@ -13,7 +13,7 @@ BeforeAll {
     Mock Get-DevSetupEnvPath { "$TestDrive\DevSetup\DevSetupEnvs" }
     Mock Get-DevSetupLocalEnvPath { "$TestDrive\DevSetup\LocalEnvs" }
     Mock Test-Path { $true }
-    Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+    Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
     Mock Invoke-PowershellModulesInstall { Param($YamlData, $DryRun) $true }
     Mock Install-ChocolateyPackages { Param($YamlData) $true }
     Mock Install-ScoopComponents { Param($YamlData) $true }
@@ -25,7 +25,7 @@ BeforeAll {
     Mock Invoke-HomebrewComponentsInstall { Param($YamlData, $DryRun) $true }
     Mock Invoke-WebRequest { }
     Mock Read-Host { "Y" }
-    Mock Invoke-Expression { }
+    Mock Invoke-Command { }
 }
 
 Describe "Install-DevSetupEnv" {
@@ -42,7 +42,7 @@ Describe "Install-DevSetupEnv" {
     Context "When YAML parsing fails" {
         It "Should write error and return" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { $null }
+            Mock Read-DevSetupEnvFile { $null }
             $result = Install-DevSetupEnv -Name "bad-yaml"
             $result | Should -Be $null
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to parse YAML" -and $Verbosity -eq "Error" }
@@ -52,7 +52,7 @@ Describe "Install-DevSetupEnv" {
     Context "When all installers succeed on Windows" {
         It "Should call all Windows installers and write status" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { Param($Windows, $Linux, $MacOS) { return $true } }
             $result = Install-DevSetupEnv -Name "basic-env"
             $result | Should -Be $null
@@ -68,7 +68,7 @@ Describe "Install-DevSetupEnv" {
     Context "When all installers succeed on non-Windows" {
         It "Should call Homebrew installer and write status" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { return $false }
             $result = Install-DevSetupEnv -Name "basic-env"
             $result | Should -Be $null
@@ -90,7 +90,7 @@ Describe "Install-DevSetupEnv" {
             Mock Install-ScoopComponents { $script:callCount++; $true }
             Mock Invoke-HomebrewComponentsInstall { $script:callCount++; $true }
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
 
             $result = Install-DevSetupEnv -Name "partial-fail"
             Assert-MockCalled Test-OperatingSystem -Exactly 1 -Scope It -ParameterFilter { $Windows -eq $true }
@@ -106,7 +106,7 @@ Describe "Install-DevSetupEnv" {
     Context "When an exception occurs during install" {
         It "Should write error and return" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { throw "Unexpected error" }
+            Mock Read-DevSetupEnvFile { throw "Unexpected error" }
             $result = Install-DevSetupEnv -Name "exception-env"
             $result | Should -Be $null
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Verbosity -eq "Error" }
@@ -116,7 +116,7 @@ Describe "Install-DevSetupEnv" {
     Context "When using Path parameter with valid path" {
         It "Should use the provided path and install" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { return $true }
             $result = Install-DevSetupEnv -Path "$TestDrive\valid.yaml"
             $result | Should -Be $null
@@ -150,13 +150,13 @@ Describe "Install-DevSetupEnv" {
                 if ($script:testPathCallCount -eq 1) { return $false }  # File doesn't exist initially
                 else { return $true }  # File exists after download
             }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { return $true }
             Mock Invoke-WebRequest { }
             $result = Install-DevSetupEnv -Url "https://example.com/config.yaml"
             $result | Should -Be $null
             Assert-MockCalled Test-Path -Exactly 2 -Scope It
-            Assert-MockCalled Read-ConfigurationFile -Exactly 1 -Scope It
+            Assert-MockCalled Read-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Invoke-WebRequest -Exactly 1 -Scope It
             Assert-MockCalled Invoke-PowershellModulesInstall -Exactly 1 -Scope It
             Assert-MockCalled Install-ChocolateyPackages -Exactly 1 -Scope It
@@ -167,7 +167,7 @@ Describe "Install-DevSetupEnv" {
     Context "When using Url parameter and file exists, user chooses to overwrite" {
         It "Should overwrite and install" {
             Mock Test-Path { $true }  # File exists
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { return $true }
             Mock Invoke-WebRequest { }
             Mock Read-Host { "Y" }
@@ -201,7 +201,7 @@ Describe "Install-DevSetupEnv" {
     Context "When Name includes provider" {
         It "Should parse provider and name correctly" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { return $true }
             $result = Install-DevSetupEnv -Name "custom:MyEnv"
             $result | Should -Be $null
@@ -213,7 +213,7 @@ Describe "Install-DevSetupEnv" {
     Context "When Name does not include provider" {
         It "Should default to local provider" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { return $true }
             $result = Install-DevSetupEnv -Name "MyEnv"
             $result | Should -Be $null
@@ -225,7 +225,7 @@ Describe "Install-DevSetupEnv" {
     Context "When DryRun is specified on Windows" {
         It "Should pass DryRun to installers" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { return $true }
             $result = Install-DevSetupEnv -Name "dry-run-env" -DryRun
             $result | Should -Be $null
@@ -239,7 +239,7 @@ Describe "Install-DevSetupEnv" {
     Context "When DryRun is specified on non-Windows" {
         It "Should pass DryRun to Homebrew installer" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { return $false }
             $result = Install-DevSetupEnv -Name "dry-run-env" -DryRun
             $result | Should -Be $null
@@ -253,12 +253,12 @@ Describe "Install-DevSetupEnv" {
     Context "When commands are present in YAML" {
         It "Should execute commands" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ commands = @(@{ command = "echo hello"; packageName = "test" }) } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ commands = @(@{ command = "echo hello"; packageName = "test" }) } } }
             Mock Test-OperatingSystem { return $true }
-            Mock Invoke-Expression { }
+            Mock Invoke-Command { }
             $result = Install-DevSetupEnv -Name "with-commands"
             $result | Should -Be $null
-            Assert-MockCalled Invoke-Expression -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-Command -Exactly 1 -Scope It
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Executing configuration commands" }
         }
     }
@@ -266,7 +266,7 @@ Describe "Install-DevSetupEnv" {
     Context "When commands are missing command property" {
         It "Should skip and warn" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ commands = @(@{ packageName = "test" }) } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ commands = @(@{ packageName = "test" }) } } }
             Mock Test-OperatingSystem { return $true }
             $result = Install-DevSetupEnv -Name "missing-command"
             $result | Should -Be $null
@@ -277,7 +277,7 @@ Describe "Install-DevSetupEnv" {
     Context "When no commands are present" {
         It "Should write no commands message" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { return $true }
             $result = Install-DevSetupEnv -Name "no-commands"
             $result | Should -Be $null
@@ -288,7 +288,7 @@ Describe "Install-DevSetupEnv" {
     Context "Cross-platform compatibility" {
         It "Should work on Windows" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { return $true }
             $result = Install-DevSetupEnv -Name "win-env"
             $result | Should -Be $null
@@ -297,7 +297,7 @@ Describe "Install-DevSetupEnv" {
 
         It "Should work on Linux" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { return $false }
             $result = Install-DevSetupEnv -Name "linux-env"
             $result | Should -Be $null
@@ -306,7 +306,7 @@ Describe "Install-DevSetupEnv" {
 
         It "Should work on macOS" {
             Mock Test-Path { $true }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
             Mock Test-OperatingSystem { return $false }
             $result = Install-DevSetupEnv -Name "mac-env"
             $result | Should -Be $null

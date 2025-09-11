@@ -181,7 +181,7 @@ Function Export-InstalledScoopPackages {
         Write-Debug "Found $($scoopPackages.Count) Scoop packages and $($scoopBuckets.Count) buckets"
 
         # Read existing YAML configuration
-        $YamlData = Read-ConfigurationFile -Config $Config
+        $YamlData = Read-DevSetupEnvFile -Config $Config
 
         # Ensure scoopPackages and scoopBuckets sections exist
         if (-not $YamlData.devsetup) { $YamlData.devsetup = @{} }
@@ -195,7 +195,7 @@ Function Export-InstalledScoopPackages {
             # Check if bucket already exists
             $existingBucket = $YamlData.devsetup.dependencies.scoop.buckets | Where-Object {
                 ($_ -is [string] -and $_ -eq $bucket.name) -or
-                ($_ -is [hashtable] -and $_.name -eq $bucket.name)
+                ($_.name -eq $bucket.name)
             }
 
             if (-not $existingBucket) {
@@ -212,7 +212,7 @@ Function Export-InstalledScoopPackages {
                 # Bucket exists, check if source has changed
                 $existingSource = $null
                 
-                if ($existingBucket -is [hashtable]) {
+                if (-not ($existingBucket -is [string])) {
                     $existingSource = $existingBucket.source
                 }
 
@@ -263,7 +263,7 @@ Function Export-InstalledScoopPackages {
             # Check if package already exists
             $existingPackage = $YamlData.devsetup.dependencies.scoop.packages | Where-Object {
                 ($_ -is [string] -and $_ -eq $package.name) -or
-                ($_ -is [hashtable] -and $_.name -eq $package.name)
+                ($_.name -eq $package.name)
             }
 
             if (-not $existingPackage) {
@@ -290,7 +290,7 @@ Function Export-InstalledScoopPackages {
                 $existingGlobal = $false
                 $existingBucket = $null
                 
-                if ($existingPackage -is [hashtable]) {
+                if (-not ($existingPackage -is [string])) {
                     $existingVersion = $existingPackage.version
                     $existingGlobal = $existingPackage.global
                     $existingBucket = $existingPackage.bucket
@@ -373,33 +373,16 @@ Function Export-InstalledScoopPackages {
             }
         }
 
-        # Convert to YAML
+        $outputFile = if ($OutFile) { $OutFile } else { $Config }
+
         try {
-            $yamlOutput = $YamlData | ConvertTo-Yaml
+            Write-Debug "`nSaving configuration to: $outputFile"
+            $YamlData | Update-DevSetupEnvFile -EnvFilePath $outputFile -WhatIf:$DryRun
+            Write-Debug "Configuration saved successfully!"
         }
         catch {
-            Write-Warning "Could not convert to YAML format. Showing PowerShell object instead:"
-            $yamlOutput = $YamlData | ConvertTo-Json -Depth 10
-        }
-
-        # Handle output based on parameters
-        if ($DryRun) {
-            Write-Host "`nDry Run - Configuration would be saved as:" -ForegroundColor Cyan
-            Write-Host $yamlOutput -ForegroundColor White
-            Write-Host "`nNo files were modified (dry run mode)." -ForegroundColor Yellow
-        } else {
-            # Determine output file
-            $outputFile = if ($OutFile) { $OutFile } else { $Config }
-
-            try {
-                Write-Debug "`nSaving configuration to: $outputFile"
-                $yamlOutput | Out-File -FilePath $outputFile
-                Write-Debug "Configuration saved successfully!"
-            }
-            catch {
-                Write-Error "Failed to save configuration to $outputFile`: $_"
-                return $false
-            }
+            Write-Error "Failed to save configuration to $outputFile`: $_"
+            return $false
         }
 
         Write-Host "Scoop packages conversion completed!" -ForegroundColor Green

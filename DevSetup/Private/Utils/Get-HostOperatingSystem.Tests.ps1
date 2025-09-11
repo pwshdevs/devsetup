@@ -1,5 +1,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot "Get-HostOperatingSystem.ps1")
+    . (Join-Path $PSScriptRoot "Write-StatusMessage.ps1")
+    Mock Write-StatusMessage { }
 }
 
 Describe "Get-HostOperatingSystem" {
@@ -13,6 +15,33 @@ Describe "Get-HostOperatingSystem" {
             $result | Should -Be "Windows"
         }
     }
+
+    Context "When Invoke-Command throws exception" {
+        It "Should return Windows" {
+            Mock Invoke-Command {
+                throw "Test exception"
+            }
+            $result = Get-HostOperatingSystem
+            $result | Should -Be "Windows"
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to determine operating system platform" -and $Verbosity -eq "Error" }
+        }
+    } 
+    
+    Context "When on Linux and Invoke-Command throws exception" {
+        It "Should return Windows" {
+            $script:callCount = 0
+            Mock Invoke-Command {
+                if ($script:callCount -eq 0) {
+                    $script:callCount++
+                    return "Unix"
+                }
+                throw "Test exception"
+            }
+            $result = Get-HostOperatingSystem
+            $result | Should -Be "Linux"
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to determine operating system platform using uname" -and $Verbosity -eq "Error" }
+        }
+    }     
 
     Context "When on Linux" {
         It "Should return Linux" {

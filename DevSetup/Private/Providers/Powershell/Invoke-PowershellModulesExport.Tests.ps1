@@ -1,9 +1,9 @@
 BeforeAll {
-    function ConvertTo-Yaml { }
     function Write-EZLog {}
     . (Join-Path $PSScriptRoot "Invoke-PowershellModulesExport.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Read-ConfigurationFile.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Read-DevSetupEnvFile.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Update-DevSetupEnvFile.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Get-DevSetupManifest.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
     Mock Test-RunningAsAdmin { $true }
@@ -13,10 +13,8 @@ BeforeAll {
     ) }
     Mock Get-DevSetupManifest { @{ RequiredModules = @("ModuleA") } }
     Mock Get-Module { param($Name) @{ Name = $Name; ModuleBase = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\$Name"; Version = [version]"1.0.0" } }
-    Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @() } } } } }
-    Mock ConvertTo-Yaml { "yaml-output" }
-    Mock ConvertTo-Json { "json-output" }
-    Mock Out-File { }
+    Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @() } } } } }
+    Mock Update-DevSetupEnvFile { }
     Mock Write-Host { }
     Mock Write-Warning { }
     Mock Write-Error { }
@@ -68,7 +66,7 @@ Describe "Invoke-PowershellModulesExport" {
 
     Context "When module version changes" {
         It "Should update the module version in the config" {
-            Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @(@{ name = "ModuleB"; minimumVersion = "1.0.0"; scope = "CurrentUser" }) } } } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @(@{ name = "ModuleB"; minimumVersion = "1.0.0"; scope = "CurrentUser" }) } } } } }
             Mock Get-InstalledModule { @(@{ Name = "ModuleB"; Version = [version]"2.0.0" }) }
             Invoke-PowershellModulesExport -Config "test.yaml"
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Updating module: ModuleB" }
@@ -77,7 +75,7 @@ Describe "Invoke-PowershellModulesExport" {
 
     Context "When module exists but has no version" {
         It "Should add minimumVersion to the module" {
-            Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @(@{ name = "ModuleB"; scope = "CurrentUser" }) } } } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @(@{ name = "ModuleB"; scope = "CurrentUser" }) } } } } }
             Mock Get-InstalledModule { @(@{ Name = "ModuleB"; Version = [version]"2.0.0" }) }
             Invoke-PowershellModulesExport -Config "test.yaml"
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Updating module version: ModuleB" }
@@ -86,7 +84,7 @@ Describe "Invoke-PowershellModulesExport" {
 
     Context "When module is unchanged" {
         It "Should skip updating the module" {
-            Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @(@{ name = "ModuleB"; minimumVersion = "2.0.0"; scope = "CurrentUser" }) } } } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @(@{ name = "ModuleB"; minimumVersion = "2.0.0"; scope = "CurrentUser" }) } } } } }
             Mock Get-InstalledModule { @(@{ Name = "ModuleB"; Version = [version]"2.0.0" }) }
             Invoke-PowershellModulesExport -Config "test.yaml"
             #Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Skipping module (No Change): ModuleB" }
@@ -94,12 +92,11 @@ Describe "Invoke-PowershellModulesExport" {
     }
 
     Context "When DryRun is used" {
-        It "Should display YAML output and not write to file" {
+        It "Should call Update-DevSetupEnvFile with -WhatIf and not write to file" {
             $result = Invoke-PowershellModulesExport -Config "test.yaml" -DryRun
             $result | Should -BeTrue
-            Assert-MockCalled ConvertTo-Yaml -Scope It
-            Assert-MockCalled Out-File -Times 0 -Scope It
-            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Dry Run" }
+            Assert-MockCalled Update-DevSetupEnvFile -Times 1 -Scope It
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Configuration saved successfully!" }
         }
     }
 
@@ -107,24 +104,13 @@ Describe "Invoke-PowershellModulesExport" {
         It "Should write YAML output to the specified file" {
             $result = Invoke-PowershellModulesExport -Config "test.yaml" -OutFile "out.yaml"
             $result | Should -BeTrue
-            Assert-MockCalled ConvertTo-Yaml -Scope It
-            Assert-MockCalled Out-File -Scope It -ParameterFilter { $FilePath -eq "out.yaml" }
-        }
-    }
-
-    Context "When YAML conversion fails" {
-        It "Should fallback to JSON output" {
-            Mock ConvertTo-Yaml { throw "YAML error" }
-            $result = Invoke-PowershellModulesExport -Config "test.yaml" -DryRun
-            $result | Should -BeTrue
-            Assert-MockCalled ConvertTo-Json -Scope It
-            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Could not convert to YAML format" -and $Verbosity -eq "Warning" }
+            Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It
         }
     }
 
     Context "When Out-File fails" {
         It "Should write error and return false" {
-            Mock Out-File { throw "File error" }
+            Mock Update-DevSetupEnvFile { throw "File error" }
             $result = Invoke-PowershellModulesExport -Config "test.yaml"
             $result | Should -BeFalse
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Failed to save configuration" -and $Verbosity -eq "Error"}

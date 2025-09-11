@@ -5,7 +5,7 @@ BeforeAll {
     . $PSScriptRoot\Get-DevSetupEnvPath.ps1
     . $PSScriptRoot\Get-DevSetupPath.ps1
     . $PSScriptRoot\Write-StatusMessage.ps1
-    . $PSScriptRoot\Read-ConfigurationFile.ps1
+    . $PSScriptRoot\Read-DevSetupEnvFile.ps1
     Mock Get-DevSetupEnvPath { "$TestDrive\DevSetupEnvs" }
     Mock Get-DevSetupPath { "$TestDrive\DevSetup" }
     Mock Join-Path { Param($Path, $ChildPath) "$Path\$ChildPath" }
@@ -16,7 +16,7 @@ BeforeAll {
     Mock Write-Host { }
     Mock ConvertTo-Json { param($obj) "json-output" }
     Mock Out-File { }
-    Mock Read-ConfigurationFile { 
+    Mock Read-DevSetupEnvFile { 
         param($Config)
         switch ($Config) {
             "$TestDrive\DevSetupEnvs\env1.yaml" { 
@@ -88,7 +88,7 @@ Describe "Optimize-DevSetupEnvs" {
                     @{ Name = "bad.yaml"; FullName = "$TestDrive\DevSetupEnvs\bad.yaml" }
                 )
             }
-            Mock Read-ConfigurationFile {
+            Mock Read-DevSetupEnvFile {
                 param($Config)
                 if ($Config -eq "$TestDrive\DevSetupEnvs\bad.yaml") { throw "YAML error" }
                 @{ devsetup = @{ configuration = @{ os = @{ name = "Windows" }; version = "1.0.0" } } }

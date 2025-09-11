@@ -146,7 +146,7 @@ Function Invoke-PowershellModulesExport {
         Write-StatusMessage "  - Found $($powershellModules.Count) PowerShell modules in CurrentUser or AllUsers scope (excluding core dependencies)" -Verbosity Debug
 
         # Read existing YAML configuration
-        $YamlData = Read-ConfigurationFile -Config $Config
+        $YamlData = Read-DevSetupEnvFile -Config $Config
 
         # Ensure powershellModules section exists
         if (-not $YamlData.devsetup) { $YamlData.devsetup = @{} }
@@ -159,7 +159,7 @@ Function Invoke-PowershellModulesExport {
             # Check if module already exists
             $existingModule = $YamlData.devsetup.dependencies.powershell.modules | Where-Object {
                 ($_ -is [string] -and $_ -eq $module.name) -or
-                ($_ -is [hashtable] -and $_.name -eq $module.name)
+                ($_.name -eq $module.name)
             }
 
             if (-not $existingModule) {
@@ -172,9 +172,9 @@ Function Invoke-PowershellModulesExport {
             } else {
                 # Module exists, check if version has changed
                 $existingVersion = $null
-                if ($existingModule -is [hashtable] -and $existingModule.minimumVersion) {
+                if ((-not ($existingModule -is [string])) -and $existingModule.minimumVersion) {
                     $existingVersion = $existingModule.minimumVersion
-                } elseif ($existingModule -is [hashtable] -and $existingModule.version) {
+                } elseif ((-not ($existingModule -is [string])) -and $existingModule.version) {
                     $existingVersion = $existingModule.version
                 }
 
@@ -225,37 +225,18 @@ Function Invoke-PowershellModulesExport {
             }
         }
 
-        # Convert to YAML
+        # Handle output based on parameters
+        # Determine output file
+        $outputFile = if ($OutFile) { $OutFile } else { $Config }
+        
         try {
-            $yamlOutput = $YamlData | ConvertTo-Yaml
+            Write-StatusMessage "`nSaving configuration to: $outputFile" -Verbosity Debug
+            $YamlData | Update-DevSetupEnvFile -EnvFilePath $Config -WhatIf:$DryRun
+            Write-StatusMessage "Configuration saved successfully!" -Verbosity Debug
         }
         catch {
-            Write-StatusMessage "Could not convert to YAML format. Showing PowerShell object instead:" -Verbosity Warning
-            $yamlOutput = $YamlData | ConvertTo-Json -Depth 10
-        }
-
-        # Handle output based on parameters
-        if ($DryRun) {
-            Write-StatusMessage "`nDry Run - Configuration would be saved as:" -ForegroundColor Cyan
-            Write-StatusMessage $yamlOutput -ForegroundColor White
-            Write-StatusMessage "`nNo files were modified (dry run mode)." -ForegroundColor Yellow
-        } else {
-            # Determine output file
-            $outputFile = if ($OutFile) { $OutFile } else { $Config }
-            
-            try {
-                Write-StatusMessage "`nSaving configuration to: $outputFile" -Verbosity Debug
-                if ($PSVersionTable.PSVersion.Major -eq 5) {
-                    $yamlOutput | Out-File -FilePath $outputFile
-                } else {
-                    $yamlOutput | Out-File -FilePath $outputFile -Encoding ([System.Text.Encoding]::UTF8)
-                }
-                Write-StatusMessage "Configuration saved successfully!" -Verbosity Debug
-            }
-            catch {
-                Write-StatusMessage "Failed to save configuration to $outputFile`: $_" -Verbosity Error
-                return $false
-            }
+            Write-StatusMessage "Failed to save configuration to $outputFile`: $_" -Verbosity Error
+            return $false
         }
 
         Write-StatusMessage "PowerShell modules conversion completed!" -ForegroundColor Green

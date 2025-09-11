@@ -1,13 +1,14 @@
 Function Add-VsCodeToPackageManager {
-    [CmdletBinding(SupportsShouldProcess=$true)]
+    [CmdletBinding()]
     [OutputType([bool])]
     Param(
         [Parameter(Mandatory=$true, Position=0)]
-        [string]$Config
+        [string]$Config,
+        [switch]$DryRun
     )
 
     if ((Test-OperatingSystem -Windows)) {
-        $YamlData = Read-ConfigurationFile -Config $Config
+        $YamlData = Read-DevSetupEnvFile -Config $Config
         
         # Ensure chocolateyPackages section exists
         if (-not $YamlData.devsetup) { $YamlData.devsetup = @{} }
@@ -17,10 +18,10 @@ Function Add-VsCodeToPackageManager {
         # Check if vscode is already in chocolatey packages
         $existingVscodePackage = $YamlData.devsetup.dependencies.chocolatey.packages | Where-Object { 
             ($_ -is [string] -and $_ -eq "vscode") -or 
-            ($_ -is [hashtable] -and $_.name -eq "vscode")
+            ($_.name -eq "vscode")
         }
         if ($existingVscodePackage) {
-            Write-StatusMessage "VS Code is already listed as a chocolatey package." -Verbosity Debug
+            Write-StatusMessage "Visual Studio Code is already listed as a chocolatey package." -Verbosity Debug
             return $true
         } else {
             # Add vscode to chocolatey packages
@@ -30,15 +31,8 @@ Function Add-VsCodeToPackageManager {
             }
             
             try {
-                $yamlOutput = $YamlData | ConvertTo-Yaml
-                if ($PSCmdlet.ShouldProcess("Add To Chocolately Package List", "Update Environment")) {
-                    if ($PSVersionTable.PSVersion.Major -eq 5) {
-                        $yamlOutput | Out-File -FilePath $Config
-                    } else {
-                        $yamlOutput | Out-File -FilePath $Config -Encoding ([System.Text.Encoding]::UTF8)
-                    }
-                    Write-StatusMessage "- Configuration updated successfully" -Verbosity Debug
-                }
+                $YamlData | Update-DevSetupEnvFile -EnvFilePath $Config -WhatIf:$DryRun
+                Write-StatusMessage "- Configuration updated successfully" -Verbosity Debug
                 return $true
             }
             catch {

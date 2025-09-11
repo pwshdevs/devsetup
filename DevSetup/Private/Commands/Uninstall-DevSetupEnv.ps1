@@ -102,7 +102,7 @@ Function Uninstall-DevSetupEnv {
         Write-StatusMessage "- $YamlFile`n" -Indent 2 -ForegroundColor Gray
 
         # Read the configuration from the YAML file
-        $YamlData = Read-ConfigurationFile -Config $YamlFile
+        $YamlData = Read-DevSetupEnvFile -Config $YamlFile
 
         # Check if YAML data was successfully parsed
         if ($null -eq $YamlData) {

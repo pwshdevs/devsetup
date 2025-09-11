@@ -127,7 +127,7 @@ Function Export-InstalledChocolateyPackages {
         Write-Debug "Found $($chocolateyPackages.Count) Chocolatey packages (excluding .install and chocolatey* packages)"
 
         # Read existing YAML configuration
-        $YamlData = Read-ConfigurationFile -Config $Config
+        $YamlData = Read-DevSetupEnvFile -Config $Config
 
         # Ensure chocolateyPackages section exists
         if (-not $YamlData.devsetup) { $YamlData.devsetup = @{} }
@@ -140,7 +140,7 @@ Function Export-InstalledChocolateyPackages {
             # Check if package already exists
             $existingPackage = $YamlData.devsetup.dependencies.chocolatey.packages | Where-Object {
                 ($_ -is [string] -and $_ -eq $package.name) -or
-                ($_ -is [hashtable] -and $_.name -eq $package.name)
+                ($_.name -eq $package.name)
             }
 
             if (-not $existingPackage) {
@@ -152,7 +152,7 @@ Function Export-InstalledChocolateyPackages {
             } else {
                 # Package exists, check if version has changed
                 $existingVersion = $null
-                if ($existingPackage -is [hashtable] -and $existingPackage.version) {
+                if ((-not ($existingPackage -is [string])) -and $existingPackage.version) {
                     $existingVersion = $existingPackage.version
                 }
 

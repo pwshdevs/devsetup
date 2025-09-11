@@ -3,10 +3,10 @@ BeforeAll {
     . $PSScriptRoot\Export-InstalledChocolateyPackages.ps1
     . $PSScriptRoot\Get-ChocolateyPackageDependencies.ps1
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Read-ConfigurationFile.ps1
+    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Read-DevSetupEnvFile.ps1
     Mock Test-RunningAsAdmin { $true }
     Mock Get-ChocolateyPackageDependencies { @('chocolatey-core.extension') }
-    Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @() } } } } }
+    Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @() } } } } }
     Mock ConvertTo-Yaml { param($obj) "yaml-output" }
     Mock ConvertTo-Json { param($obj) "json-output" }
     Mock Out-File { $true }
@@ -83,7 +83,7 @@ Describe "Export-InstalledChocolateyPackages" {
     Context "When package version changes" {
         It "Should update the package version in the config" {
             Mock Invoke-Expression { @("git|2.41.0") }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @(@{ name = "git"; version = "2.40.0" }) } } } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @(@{ name = "git"; version = "2.40.0" }) } } } } }
             $result = Export-InstalledChocolateyPackages -Config "test.yaml"
             $result | Should -BeTrue
             Assert-MockCalled Write-Host -Scope It -ParameterFilter { $Object -match "Updating package: git" }
@@ -93,7 +93,7 @@ Describe "Export-InstalledChocolateyPackages" {
     Context "When package is new" {
         It "Should add the package to the config" {
             Mock Invoke-Expression { @("newpkg|1.0.0") }
-            Mock Read-ConfigurationFile { @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @() } } } } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @() } } } } }
             $result = Export-InstalledChocolateyPackages -Config "test.yaml"
             $result | Should -BeTrue
             Assert-MockCalled Write-Host -Scope It -ParameterFilter { $Object -match "Adding package: newpkg" }

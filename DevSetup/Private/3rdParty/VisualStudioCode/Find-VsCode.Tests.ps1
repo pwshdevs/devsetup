@@ -32,7 +32,7 @@ Describe "Find-VsCode" {
             Mock Get-Command { [PSCustomObject]@{ Path = "$TestDrive\Code\bin\code.cmd" } }
             $result = Find-VsCode
             $result | Should -Be "$TestDrive\Code\bin\code.cmd"
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Found VS Code at" -and $Verbosity -eq "Debug" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Found Visual Studio Code at" -and $Verbosity -eq "Debug" }
             Assert-MockCalled Get-EnvironmentVariable -Exactly 0 -Scope It
             Assert-MockCalled Test-Path -Exactly 0 -Scope It
         }
@@ -59,7 +59,7 @@ Describe "Find-VsCode" {
                 } 
             }
             $result = Find-VsCode
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Found VS Code at" -and $Verbosity -eq "Debug" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Found Visual Studio Code at" -and $Verbosity -eq "Debug" }
             Assert-MockCalled Test-Path -Exactly 1 -Scope It -ParameterFilter { $Path -eq "$TestDrive\LocalAppData\Programs\Microsoft VS Code\bin\code.cmd" }
             $result | Should -Be "$TestDrive\LocalAppData\Programs\Microsoft VS Code\bin\code.cmd"
         }
@@ -77,7 +77,7 @@ Describe "Find-VsCode" {
             }
             $result = Find-VsCode
             $result | Should -Be "$TestDrive\ProgramFiles\Microsoft VS Code\bin\code.cmd"
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Found VS Code at" -and $Verbosity -eq "Debug" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Found Visual Studio Code at" -and $Verbosity -eq "Debug" }
             Assert-MockCalled Test-Path -Exactly 2 -Scope It  # Once for user, once for system
         }
     }
@@ -89,7 +89,7 @@ Describe "Find-VsCode" {
             $result = Find-VsCode
             $result | Should -Be $null
             Assert-MockCalled Test-Path -Exactly 2 -Scope It
-            Assert-MockCalled Write-StatusMessage -Exactly 0 -Scope It -ParameterFilter { $Verbosity -eq "Debug" -and $Message -match "Found VS Code" }
+            Assert-MockCalled Write-StatusMessage -Exactly 0 -Scope It -ParameterFilter { $Verbosity -eq "Debug" -and $Message -match "Found Visual Studio Code" }
         }
     }
 

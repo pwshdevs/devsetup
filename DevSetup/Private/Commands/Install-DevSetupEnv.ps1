@@ -38,7 +38,7 @@
     - Processes dependencies in a specific order: PowerShell modules, Chocolatey packages, then Scoop components
     - Commands are executed after all package installations are complete
     - Individual installation failures do not stop the overall process
-    - Uses Read-ConfigurationFile to parse YAML configuration
+    - Uses Read-DevSetupEnvFile to parse YAML configuration
     - Leverages Install-PowershellModules, Install-ChocolateyPackages, and Install-ScoopComponents functions
     - Custom commands are executed using Invoke-CommandFromEnv function
     - Provides detailed console output with color-coded status messages
@@ -119,7 +119,7 @@ Function Install-DevSetupEnv {
         Write-StatusMessage "- $YamlFile`n" -Indent 2 -ForegroundColor Gray
 
         # Read the configuration from the YAML file
-        $YamlData = Read-ConfigurationFile -Config $YamlFile
+        $YamlData = Read-DevSetupEnvFile -Config $YamlFile
 
         # Check if YAML data was successfully parsed
         if ($null -eq $YamlData) {
@@ -147,7 +147,41 @@ Function Install-DevSetupEnv {
             foreach ($commandEntry in $YamlData.devsetup.commands) {
                 if ($commandEntry.command) {
                     Write-StatusMessage "- Executing command for: $($commandEntry.packageName)" -Indent 2 -ForegroundColor Gray
-                    Invoke-Expression -Command $commandEntry.command *> $null
+                    if ($commandEntry.params) {
+                        Write-StatusMessage "Running command: $Command with parameters: " -Verbosity Debug
+                        $CommandParams = @{}
+                        if ($commandEntry.params -is [hashtable]) {
+                            foreach ($param in $commandEntry.params.GetEnumerator()) {
+                                $CommandParams[$param.Key] = $param.Value
+                                Write-StatusMessage " - Parameter: $($param.Key) = $($param.Value)" -Verbosity Debug
+                            }
+                        } elseif ($commandEntry.params -is [PSCustomObject]) {
+                            foreach ($param in $commandEntry.params.PSObject.Properties) {
+                                $CommandParams[$param.Name] = $param.Value
+                                Write-StatusMessage " - Parameter: $($param.Name) = $($param.Value)" -Verbosity Debug
+                            }
+                        }
+                        $CommandParams.LogFile = $PSDefaultParameterValues['Write-EZLog:LogFile']
+                        $Command = $commandEntry.command
+                        $commandScript = {
+                            & $Command @CommandParams
+                        }
+                        $result = Invoke-Command -ScriptBlock $commandScript
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-StatusMessage "Command failed with exit code $LASTEXITCODE : $result" -Verbosity Error
+                        } else {
+                            Write-StatusMessage "Command completed successfully." -Verbosity Verbose
+                            Write-StatusMessage "- Command $($commandEntry.packageName) completed successfully." -ForegroundColor Gray -Indent 2
+                        }
+                    } else {
+                        Invoke-Command -ScriptBlock { $commandEntry.command *> $null }
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-StatusMessage "Command failed with exit code $LASTEXITCODE" -Verbosity Error
+                        } else {
+                            Write-StatusMessage "Command completed successfully." -Verbosity Verbose
+                            Write-StatusMessage "- Command $($commandEntry.packageName) completed successfully." -ForegroundColor Gray -Indent 2
+                        }
+                    }
                 } else {
                     Write-StatusMessage "Skipping command entry with missing command property" -Verbosity Warning
                 }

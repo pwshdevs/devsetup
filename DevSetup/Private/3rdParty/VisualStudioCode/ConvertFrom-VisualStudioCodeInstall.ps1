@@ -1,15 +1,16 @@
 Function ConvertFrom-VisualStudioCodeInstall {
-    [CmdletBinding(SupportsShouldProcess=$true)]
+    [CmdletBinding()]
     [OutputType([bool])]
     Param (
-        [string]$Config
+        [string]$Config,
+        [switch]$DryRun
     )
 
     try {
         Write-StatusMessage "- Detecting Visual Studio Code installation..." -ForegroundColor Gray
         
         # Read existing configuration
-        $YamlData = Read-ConfigurationFile -Config $Config
+        $YamlData = Read-DevSetupEnvFile -Config $Config
         
         # Ensure chocolateyPackages section exists
         if (-not $YamlData.devsetup) { $YamlData.devsetup = @{} }
@@ -18,8 +19,8 @@ Function ConvertFrom-VisualStudioCodeInstall {
         $vsCode = Find-VsCode
 
         if ($vsCode) {
-            Write-StatusMessage "- Adding Visual Studio Code to package manager" -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline
-            $packageAddStatus = Add-VsCodeToPackageManager -Config $Config -WhatIf:$WhatIf
+            Write-StatusMessage "- Adding Visual Studio Code to package manager" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewline
+            $packageAddStatus = Add-VsCodeToPackageManager -Config $Config -DryRun:$DryRun
             if ($packageAddStatus) {
                 Write-StatusMessage "[OK]" -ForegroundColor Green
             } else {
@@ -27,47 +28,43 @@ Function ConvertFrom-VisualStudioCodeInstall {
                 return $false
             }
 
-            Write-StatusMessage "- Exporting Visual Studio Code extensions..." -Indent 2 -ForegroundColor Gray -Width 77 -NoNewline
+            Write-StatusMessage "- Exporting Visual Studio Code extensions..." -Indent 2 -ForegroundColor Gray -Width 112 -NoNewline
             $extensions = Invoke-VsCodeExtensionsExport
 
             if ($extensions) {
                 Write-StatusMessage "[OK]" -ForegroundColor Green
                 # Check if import.vscode.extensions command already exists
                 $existingCommand = $YamlData.devsetup.commands | Where-Object { 
-                    ($_ -is [hashtable] -and ($_.packageName -eq "invoke.vs.code.extensions.import" -or $_.packageName -eq "vscode.importConfig"))
+                    ($_.packageName -eq "invoke.vs.code.extensions.import" -or $_.packageName -eq "vscode.importConfig")
                 }
                 
                 if ($existingCommand) {
+                    $commandIndex = $YamlData.devsetup.commands.IndexOf($existingCommand)
                     # Update existing command with new encoded config
-                    $existingCommand.command = "Invoke-VsCodeExtensionsImport"
-                    $existingCommand.packageName = "invoke.vs.code.extensions.import"
-                    $existingCommand.params = @{
-                        extensions = $extensions
-                    }
-                    Write-StatusMessage "- Updating Visual Studio Code import command..." -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline
+                    $YamlData.devsetup.commands[$commandIndex] = @{
+                        packageName = "invoke.vs.code.extensions.import"
+                        command = "Invoke-VsCodeExtensionsImport"
+                        params = @{
+                            extensions = $extensions
+                        }
+                    }                    
+                    Write-StatusMessage "- Updating Visual Studio Code import command..." -ForegroundColor Gray -Indent 2 -Width 112 -NoNewline
                 } else {
                     # Add new Invoke-VsCodeExtensionsImport command
                     $YamlData.devsetup.commands += @{
                         command = "Invoke-VsCodeExtensionsImport"
-                        packageName = "import.vscode.extensions"
+                        packageName = "invoke.vs.code.extensions.import"
                         params = @{
                             extensions = $extensions
                         }
                     }
-                    Write-StatusMessage "- Adding Visual Studio Code import command..." -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline
+                    Write-StatusMessage "- Adding Visual Studio Code import command..." -ForegroundColor Gray -Indent 2 -Width 112 -NoNewline
                 }
                 
                 # Save updated configuration
                 try {
-                    if ($PSCmdlet.ShouldProcess("Add to devsetup commands list", "Update Environment")) {
-                        $yamlOutput = $YamlData | ConvertTo-Yaml
-                        if ($PSVersionTable.PSVersion.Major -eq 5) {
-                            $yamlOutput | Out-File -FilePath $Config
-                        } else {
-                            $yamlOutput | Out-File -FilePath $Config -Encoding ([System.Text.Encoding]::UTF8)
-                        }
-                        Write-StatusMessage "[OK]" -ForegroundColor Green
-                    }
+                    Write-StatusMessage "[OK]" -ForegroundColor Green
+                    $YamlData | Update-DevSetupEnvFile -EnvFilePath $Config -WhatIf:$DryRun
                 } catch {
                     Write-StatusMessage "Failed to save updated devsetup environment: $_" -Verbosity Error
                     Write-StatusMessage $_.ScriptStackTrace -Verbosity Error

@@ -15,12 +15,17 @@ Function Write-NewConfig {
         $osArchitecture = (Get-HostArchitecture)
         $friendlyPlatform = (Get-HostOperatingSystem)
         $friendlyOsVersion = (Get-HostOperatingSystemVersion)
-        $username = if (Get-EnvironmentVariable USERNAME) { (Get-EnvironmentVariable USERNAME) } elseif (Get-EnvironmentVariable USER) { (Get-EnvironmentVariable USER) } else { "Unknown" }
+        $username = "Unknown"
+        if((Test-OperatingSystem -Windows)) {
+            $username = (Get-EnvironmentVariable USERNAME) 
+        } else {
+            $username = (Get-EnvironmentVariable USER)
+        }
         # Handle versioning and preserve existing config
         $currentVersion = "1.0.0"  # Default version for new files
-        $baseConfig = [ordered]@{
-            devsetup = [ordered]@{
-                dependencies = [ordered]@{
+        $baseConfig = [PSCustomObject][ordered]@{
+            devsetup = [PSCustomObject][ordered]@{
+                dependencies = [PSCustomObject][ordered]@{
                     chocolatey = @{
                         packages = @()
                     }
@@ -39,12 +44,12 @@ Function Write-NewConfig {
                     version = $currentVersion
                     createdDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
                     createdBy = $username
-                    os = [ordered]@{
+                    os = [PSCustomObject][ordered]@{
                         name = $friendlyPlatform
                         version = $friendlyOsVersion
                         architecture = $osArchitecture
                     }
-                    powershell = [ordered]@{
+                    powershell = [PSCustomObject][ordered]@{
                         version = $PSVersionTable.PSVersion.ToString()
                         edition = $PSVersionTable.PSEdition
                     }
@@ -55,7 +60,7 @@ Function Write-NewConfig {
         if (Test-Path $OutFile) {
             try {
                 Write-StatusMessage "- Using existing configuration..." -ForegroundColor Gray
-                $existingConfig = Read-ConfigurationFile -Config $OutFile
+                $existingConfig = Read-DevSetupEnvFile -Config $OutFile
                 if ($existingConfig -and $existingConfig.devsetup) {
                     # Preserve existing dependencies
                     if ($existingConfig.devsetup.dependencies) {
@@ -93,7 +98,11 @@ Function Write-NewConfig {
                         if ($existingConfig.devsetup.configuration.createdDate) {
                             # Keep original creation date, but we could add a lastModified field
                             $baseConfig.devsetup.configuration.createdDate = $existingConfig.devsetup.configuration.createdDate
-                            $baseConfig.devsetup.configuration.lastModified = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                        }
+                        if($existingConfig.devsetup.configuration.lastModifiedDate) {
+                            $baseConfig.devsetup.configuration.lastModifiedDate = $existingConfig.devsetup.configuration.lastModifiedDate
+                        } else {
+                            $baseConfig.devsetup.configuration['lastModifiedDate'] = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
                         }
                     }
                 }
@@ -107,8 +116,7 @@ Function Write-NewConfig {
         }
         
         try {
-            $yamlOutput = ($baseConfig | ConvertTo-Yaml)
-            $yamlOutput | Out-File -FilePath $OutFile | Out-Null
+            $baseConfig | Update-DevSetupEnvFile -EnvFilePath $OutFile -WhatIf:$DryRun
             Write-StatusMessage "Base configuration file created successfully!" -Verbosity Debug
         }
         catch {
@@ -143,7 +151,7 @@ Function Write-NewConfig {
             Write-StatusMessage "Failed to convert PowerShell modules, but continuing..." -Verbosity Warning
         }
 
-        ConvertFrom-3rdPartyInstall -Config $OutFile | Out-Null
+        ConvertFrom-3rdPartyInstall -Config $OutFile -DryRun:$DryRun | Out-Null
 
         Write-StatusMessage "`nConfiguration file generation completed!" -ForegroundColor Green
         Write-StatusMessage "- Configuration saved to: $OutFile`n" -ForegroundColor Gray

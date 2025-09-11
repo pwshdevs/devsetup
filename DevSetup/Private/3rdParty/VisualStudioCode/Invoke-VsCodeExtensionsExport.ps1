@@ -13,10 +13,7 @@ Function Invoke-VsCodeExtensionsExport {
 
         # Get list of installed extensions
         try {
-            $command = {
-                & $codeCommand --list-extensions --show-versions 2>$null
-            }
-            $extensionsOutput = Invoke-Command -ScriptBlock $command
+            $extensionsOutput = Invoke-Command -ScriptBlock { & $codeCommand --list-extensions --show-versions 2>$null }
             if ($LASTEXITCODE -ne 0) {
                 Write-StatusMessage "Failed to get Visual Studio Code extensions list" -Verbosity Debug
                 return $null

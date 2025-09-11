@@ -3,61 +3,79 @@ Function Get-HostOperatingSystemVersion {
     [cmdletbinding()]
     [OutputType([string])]
     Param()
-    $platform = Invoke-Command -Script { [System.Environment]::OSVersion.Platform.ToString() }
-    $friendlyPlatform = (Get-HostOperatingSystem)
-        # Get friendly OS version
-    $friendlyOsVersion = switch ($platform) {
-        "Win32NT" {
+
+    $unfriendlyOsVersion = "Unknown"
+    try {
+        $unfriendlyOsVersion = Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
+        if ([string]::IsNullOrEmpty($unfriendlyOsVersion)) {
+            $unfriendlyOsVersion = "Unknown"
+        }
+    } catch {
+        Write-StatusMessage "Failed to get OS version string: $_" -Verbosity Error
+        return $unfriendlyOsVersion  # Default to Windows if detection fails
+    }
+
+    try {
+        $friendlyPlatform = (Get-HostOperatingSystem)
+    } catch {
+        Write-StatusMessage "Failed to get friendly OS platform: $_" -Verbosity Error
+        return $unfriendlyOsVersion
+    }
+
+    $friendlyOsVersion = switch($friendlyPlatform) {
+        "Windows" { 
             try {
                 $osInfo = Get-CimInstance -ClassName Win32_OperatingSystem -ErrorAction SilentlyContinue
-                if ($osInfo) {
+                if (-not ([string]::IsNullOrEmpty($osInfo))) {
                     $osInfo.Caption -replace "Microsoft ", ""
                 } else {
-                    Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
+                    $unfriendlyOsVersion
                 }
             }
             catch {
-                Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
-            }
-        }
-
-        "Unix" {
-            if ($friendlyPlatform -eq "macOS") {
-                try {
-                    $macVersion = Invoke-Command -Script { & sw_vers -productVersion 2>$null }
-                    if ($macVersion) {
-                        "macOS $macVersion"
-                    } else {
-                        Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
-                    }
-                }
-                catch {
-                    Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
-                }
-            } else {
-                # Linux
-                try {
-                    $linuxVersion = ""
-                    if (Test-Path "/etc/os-release") {
-                        $osRelease = Get-Content "/etc/os-release" | Where-Object { $_ -like "PRETTY_NAME=*" }
-                        if ($osRelease) {
-                            $linuxVersion = ($osRelease -split '=')[1] -replace '"', ''
-                        }
-                    }
-                    if ($linuxVersion) {
-                        $linuxVersion
-                    } else {
-                        Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
-                    }
-                }
-                catch {
-                    Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
+                Write-StatusMessage "Failed to get Windows OS information: $_" -Verbosity Error
+                Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+                $unfriendlyOsVersion
+            }            
+         }
+        "macOS" { 
+            try {
+                $macVersion = Invoke-Command -Script { & sw_vers -productVersion 2>$null }
+                if (-not ([string]::IsNullOrEmpty($macVersion))) {
+                    "macOS $macVersion"
+                } else {
+                    $unfriendlyOsVersion
                 }
             }
+            catch {
+                Write-StatusMessage "Failed to get macOS information: $_" -Verbosity Error
+                Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+                $unfriendlyOsVersion
+            }            
         }
-        default {
-            Invoke-Command -Script { [System.Environment]::OSVersion.VersionString }
-        }
+        "Linux" { 
+            try {
+                $linuxVersion = $null
+                if (Test-Path "/etc/os-release") {
+                    $osRelease = Get-Content "/etc/os-release" | Where-Object { $_ -like "PRETTY_NAME=*" }
+                    if ($osRelease) {
+                        $linuxVersion = ($osRelease -split '=')[1] -replace '"', ''
+                    }
+                }
+                if (-not ([string]::IsNullOrEmpty($linuxVersion))) {
+                    $linuxVersion
+                } else {
+                    $unfriendlyOsVersion
+                }
+            }
+            catch {
+                Write-StatusMessage "Failed to get Linux OS information: $_" -Verbosity Error
+                Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+                $unfriendlyOsVersion
+            }            
+         }
+        default { $unfriendlyOsVersion }
     }
+
     return $friendlyOsVersion
 }
