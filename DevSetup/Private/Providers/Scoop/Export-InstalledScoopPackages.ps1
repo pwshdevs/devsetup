@@ -183,9 +183,7 @@ Function Export-InstalledScoopPackages {
         # Read existing YAML configuration
         $YamlData = Read-DevSetupEnvFile -Config $Config
 
-        # Ensure scoopPackages and scoopBuckets sections exist
-        if (-not $YamlData.devsetup) { $YamlData.devsetup = @{} }
-        if (-not $YamlData.devsetup.dependencies) { $YamlData.devsetup.dependencies = @{} }
+        # Ensure scoop-specific sections exist
         if (-not $YamlData.devsetup.dependencies.scoop) { $YamlData.devsetup.dependencies.scoop = @{} }
         if (-not $YamlData.devsetup.dependencies.scoop.packages) { $YamlData.devsetup.dependencies.scoop.packages = @() }
         if (-not $YamlData.devsetup.dependencies.scoop.buckets) { $YamlData.devsetup.dependencies.scoop.buckets = @() }

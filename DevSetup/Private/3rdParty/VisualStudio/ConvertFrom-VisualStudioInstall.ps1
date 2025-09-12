@@ -26,8 +26,7 @@ Function ConvertFrom-VisualStudioInstall {
             # Read existing YAML configuration
             $YamlData = Read-DevSetupEnvFile -Config $Config
 
-            # Ensure chocolateyPackages section exists
-            if (-not $YamlData.devsetup) { $YamlData.devsetup = @{} }
+            # Ensure commands section exists
             if (-not $YamlData.devsetup.commands) { $YamlData.devsetup.commands = @() }  
 
             # Create temporary file for Visual Studio configuration export

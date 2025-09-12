@@ -33,13 +33,7 @@ Function Invoke-VsConfigImport {
 
     try {
         # Write the decoded configuration to the config file
-        $Params = @{
-            FilePath = $configFile
-        }        
-        if((Get-PwshVersion).Major -ge 6) {
-            $Params.Encoding = ([System.Text.Encoding]::UTF8)
-        }
-        $Config | Out-File @Params
+        Set-Content -Path $configFile -Value $Config -Encoding UTF8 -Force
     } catch {
         Write-StatusMessage "Failed to write configuration to file: $_" -Verbosity Error
         Write-StatusMessage $_.ScriptStackTrace -Verbosity Error

@@ -102,7 +102,15 @@ Describe "ConvertFrom-VisualStudioCodeInstall" {
 
     Context "When YAML structure is missing" {
         It "Should create structure" {
-            Mock Read-DevSetupEnvFile { @{ } }
+            Mock Read-DevSetupEnvFile { 
+                @{ 
+                    devsetup = @{ 
+                        configuration = @{} 
+                        dependencies = @{} 
+                        commands = @() 
+                    } 
+                } 
+            }
             $result = ConvertFrom-VisualStudioCodeInstall -Config "$TestDrive\config.devsetup"
             $result | Should -Be $true
             Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It -ParameterFilter { $EnvFilePath -eq "$TestDrive\config.devsetup" }

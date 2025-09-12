@@ -126,6 +126,36 @@ Describe "Export-DevSetupEnv" {
         }
     }
 
+    Context "When Path does not have .devsetup extension" {
+        It "Should add .devsetup extension" {
+            Mock Test-Path { $true }
+            $customPath = Join-Path (Join-Path $TestDrive "Custom") "MyEnv"
+            $expectedPath = Join-Path (Join-Path $TestDrive "Custom") "MyEnv.devsetup"
+            Mock Write-NewConfig { $expectedPath }
+            $result = Export-DevSetupEnv -Path $customPath
+            $result | Should -Be $expectedPath
+            Assert-MockCalled Write-NewConfig -Exactly 1 -Scope It -ParameterFilter { $OutFile -eq $expectedPath }
+        }
+    }
+
+    Context "When OutFile cannot be determined in Path parameter set" {
+        It "Should return null and write error" {
+            # Create a scenario where OutFile ends up null after all processing
+            # We'll simulate the Path parameter being valid but resulting in null OutFile
+            Mock Test-Path { $true }
+            Mock Write-NewConfig { }
+            
+            # Let's manually call the function with an edge case that could result in null OutFile
+            # by making Join-Path return null/empty
+            Mock Join-Path { $null } -ParameterFilter { $ChildPath -like "*.devsetup" }
+            
+            $customPath = Join-Path (Join-Path $TestDrive "Custom") "MyEnv"
+            $result = Export-DevSetupEnv -Path $customPath
+            $result | Should -Be $null
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to determine output file path" -and $Verbosity -eq "Error" }
+        }
+    }
+
     Context "When Write-NewConfig fails" {
         It "Should return null and write error" {
             Mock Write-NewConfig { $null }
@@ -136,8 +166,8 @@ Describe "Export-DevSetupEnv" {
     }
 
     Context "When OutFile is not determined" {
-        It "Should return null and write error" {
-            # This scenario is hard to trigger, but if $OutFile is null
+        It "Should return null and write error when DevSetupEnvPath is null" {
+            # This scenario targets the earlier check (line 88-89)
             Mock Get-DevSetupEnvPath { $null }
             $result = Export-DevSetupEnv -Name "no-path"
             $result | Should -Be $null

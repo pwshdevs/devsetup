@@ -23,7 +23,7 @@ Function Update-DevSetupEnvFile {
     }
     if ($PSCmdlet.ShouldProcess($EnvFilePath, "Update Environment File")) {
         try {
-            Set-Content -Path $EnvFilePath -Value $YamlContent -Encoding ([System.Text.Encoding]::UTF8) -Force
+            Set-Content -Path $EnvFilePath -Value $YamlContent -Encoding UTF8 -Force
             Write-StatusMessage "Environment file updated successfully: $EnvFilePath" -Verbosity Debug
         } catch {
             Write-StatusMessage "Failed to update environment file: $_" -Verbosity Error

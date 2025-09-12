@@ -49,7 +49,15 @@ Describe "Add-VsCodeToPackageManager" {
 
     Context "When on Windows and YAML structure is missing" {
         It "Should create structure and add vscode" {
-            Mock Read-DevSetupEnvFile { @{ } }
+            Mock Read-DevSetupEnvFile { 
+                @{ 
+                    devsetup = @{ 
+                        configuration = @{} 
+                        dependencies = @{} 
+                        commands = @() 
+                    } 
+                } 
+            }
             $result = Add-VsCodeToPackageManager -Config "$TestDrive\config.devsetup"
             $result | Should -Be $true
             Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It -ParameterFilter { $EnvFilePath -eq "$TestDrive\config.devsetup" }

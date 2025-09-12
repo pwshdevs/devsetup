@@ -53,7 +53,7 @@ Describe "Update-DevSetupEnvFile" {
             New-Item -ItemType File -Path $envFile
             Update-DevSetupEnvFile -EnvFilePath $envFile -DevSetupEnvData @{ key = "value" }
             Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter { $Verbosity -eq "Error" }
-            Assert-MockCalled Set-Content -Exactly 1 -Scope It
+            Assert-MockCalled Set-Content -Exactly 1 -Scope It -ParameterFilter { $Path -eq $envFile -and $Value -eq "mocked yaml content" }
         }
     }
 
@@ -63,7 +63,7 @@ Describe "Update-DevSetupEnvFile" {
             New-Item -ItemType File -Path $envFile
             Update-DevSetupEnvFile -EnvFilePath $envFile -DevSetupEnvData @{ key = "value" }
             Assert-MockCalled ConvertTo-Yaml -Exactly 1 -Scope It
-            Assert-MockCalled Set-Content -Exactly 1 -Scope It -ParameterFilter { $Path -eq $envFile -and $Encoding -eq ([System.Text.Encoding]::UTF8) -and $Value -eq "mocked yaml content" }
+            Assert-MockCalled Set-Content -Exactly 1 -Scope It -ParameterFilter { $Path -eq $envFile -and $Value -eq "mocked yaml content" }
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Environment file updated successfully" -and $Verbosity -eq "Debug" }
         }
     }
@@ -75,7 +75,7 @@ Describe "Update-DevSetupEnvFile" {
             $data = [PSCustomObject]@{ key = "value" }
             Update-DevSetupEnvFile -EnvFilePath $envFile -DevSetupEnvData $data
             Assert-MockCalled ConvertTo-Yaml -Exactly 1 -Scope It
-            Assert-MockCalled Set-Content -Exactly 1 -Scope It -ParameterFilter { $Path -eq $envFile -and $Encoding -eq ([System.Text.Encoding]::UTF8) -and $Value -eq "mocked yaml content" }
+            Assert-MockCalled Set-Content -Exactly 1 -Scope It -ParameterFilter { $Path -eq $envFile -and $Value -eq "mocked yaml content" }
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Environment file updated successfully" -and $Verbosity -eq "Debug" }
         }
     }
@@ -92,7 +92,7 @@ Describe "Update-DevSetupEnvFile" {
             New-Item -ItemType File -Path $envFile
             Update-DevSetupEnvFile -EnvFilePath $envFile -DevSetupEnvData @{}
             Assert-MockCalled ConvertTo-Yaml -Exactly 1 -Scope It
-            Assert-MockCalled Set-Content -Exactly 1 -Scope It
+            Assert-MockCalled Set-Content -Exactly 1 -Scope It -ParameterFilter { $Path -eq $envFile -and $Value -eq "mocked yaml content" }
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Environment file updated successfully" -and $Verbosity -eq "Debug" }
         }
     }

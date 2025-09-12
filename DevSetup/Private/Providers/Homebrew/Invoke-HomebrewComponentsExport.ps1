@@ -10,9 +10,7 @@ Function Invoke-HomebrewComponentsExport {
 
     $YamlData = Read-DevSetupEnvFile -Config $Config
 
-    # Ensure scoopPackages and scoopBuckets sections exist
-    if (-not $YamlData.devsetup) { $YamlData.devsetup = @{} }
-    if (-not $YamlData.devsetup.dependencies) { $YamlData.devsetup.dependencies = @{} }
+    # Ensure homebrew section exists (specific to this provider)
     if (-not $YamlData.devsetup.dependencies.homebrew) { $YamlData.devsetup.dependencies.homebrew = @() }
 
     if(-not (Find-Homebrew)) {

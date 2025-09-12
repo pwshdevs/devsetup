@@ -148,9 +148,7 @@ Function Invoke-PowershellModulesExport {
         # Read existing YAML configuration
         $YamlData = Read-DevSetupEnvFile -Config $Config
 
-        # Ensure powershellModules section exists
-        if (-not $YamlData.devsetup) { $YamlData.devsetup = @{} }
-        if (-not $YamlData.devsetup.dependencies) { $YamlData.devsetup.dependencies = @{} }
+        # Ensure powershell-specific sections exist
         if (-not $YamlData.devsetup.dependencies.powershell) { $YamlData.devsetup.dependencies.powershell = @{} }
         if (-not $YamlData.devsetup.dependencies.powershell.modules) { $YamlData.devsetup.dependencies.powershell.modules = @() }
 
@@ -167,6 +165,7 @@ Function Invoke-PowershellModulesExport {
                 $YamlData.devsetup.dependencies.powershell.modules += @{
                     name = $module.name
                     minimumVersion = $module.version
+                    version = ""
                     scope = $module.scope
                 }
             } else {
@@ -191,6 +190,7 @@ Function Invoke-PowershellModulesExport {
                             name = $module.name
                             minimumVersion = $module.version
                             scope = $module.scope
+                            version = ""
                         }
                     } else {
                         # Update existing hashtable
@@ -211,6 +211,7 @@ Function Invoke-PowershellModulesExport {
                             name = $module.name
                             minimumVersion = $module.version
                             scope = $module.scope
+                            version = ""
                         }
                     } else {
                         # Add version to existing hashtable

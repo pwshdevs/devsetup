@@ -122,10 +122,7 @@ Function Install-GitRepository {
                 # Change to the repository directory and pull updates
                 Push-Location $DestinationPath
                 try {
-                    $command = {
-                        & $gitExecutable pull
-                    }
-                    Invoke-Command -ScriptBlock $command *> $null
+                    Invoke-Command -ScriptBlock { & $gitExecutable pull }
                     if ($LASTEXITCODE -ne 0) {
                         Write-StatusMessage "Failed to update repository at $DestinationPath" -Verbosity Error
                         return $false
@@ -159,10 +156,7 @@ Function Install-GitRepository {
         $gitArgs += $DestinationPath
         
         # Execute git clone command
-        $command = {
-            & $gitExecutable @gitArgs
-        }
-        Invoke-Command -ScriptBlock $command *> $null
+        Invoke-Command -ScriptBlock { & $gitExecutable @gitArgs }
         if ($LASTEXITCODE -ne 0) {
             Write-StatusMessage "Failed to clone repository from $RepositoryUrl to $DestinationPath" -Verbosity Error
             return $false

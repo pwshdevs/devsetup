@@ -136,7 +136,15 @@ Describe "ConvertFrom-VisualStudioInstall" {
 
     Context "When Read-DevSetupEnvFile returns empty data" {
         It "Should create commands structure" {
-            Mock Read-DevSetupEnvFile { return @{} }
+            Mock Read-DevSetupEnvFile { 
+                return @{ 
+                    devsetup = @{ 
+                        configuration = @{} 
+                        dependencies = @{} 
+                        commands = @() 
+                    } 
+                } 
+            }
             $configFile = "$TestDrive\config.yaml"
             $result = ConvertFrom-VisualStudioInstall -Config $configFile
             $result | Should -Be $true

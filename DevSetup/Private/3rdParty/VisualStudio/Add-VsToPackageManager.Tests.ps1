@@ -121,7 +121,15 @@ Describe "Add-VsToPackageManager" {
 
     Context "When Read-DevSetupEnvFile returns empty data" {
         It "Should create structure and add package" {
-            Mock Read-DevSetupEnvFile { return @{} }
+            Mock Read-DevSetupEnvFile { 
+                return @{ 
+                    devsetup = @{ 
+                        configuration = @{} 
+                        dependencies = @{} 
+                        commands = @() 
+                    } 
+                } 
+            }
             $instance = @{ DisplayName = "Visual Studio Community 2022" }
             $configFile = "$TestDrive\config.yaml"
             $result = Add-VsToPackageManager -Instance $instance -Config $configFile

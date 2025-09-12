@@ -120,7 +120,15 @@ Describe "Invoke-ChocolateyPackageExport" {
 
     Context "When YAML structure is missing sections" {
         It "Should create missing sections and add packages" {
-            Mock Read-DevSetupEnvFile { @{ } }
+            Mock Read-DevSetupEnvFile { 
+                @{ 
+                    devsetup = @{ 
+                        configuration = @{} 
+                        dependencies = @{} 
+                        commands = @() 
+                    } 
+                } 
+            }
             $result = Invoke-ChocolateyPackageExport -Config "$TestDrive\test.yaml"
             $result | Should -Be $true
             Assert-MockCalled Write-StatusMessage -Exactly 3 -Scope It -ParameterFilter { $Message -match "Found package:" -and $Verbosity -eq "Debug" }

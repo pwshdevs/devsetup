@@ -153,9 +153,7 @@ Function Invoke-ChocolateyPackageExport {
         return $false
     }
 
-    # Ensure chocolateyPackages section exists
-    if (-not $YamlData.devsetup) { $YamlData.devsetup = @{} }
-    if (-not $YamlData.devsetup.dependencies) { $YamlData.devsetup.dependencies = @{} }
+    # Ensure chocolatey-specific sections exist
     if (-not $YamlData.devsetup.dependencies.chocolatey) { $YamlData.devsetup.dependencies.chocolatey = @{} }
     if (-not $YamlData.devsetup.dependencies.chocolatey.packages) { $YamlData.devsetup.dependencies.chocolatey.packages = @() }
 

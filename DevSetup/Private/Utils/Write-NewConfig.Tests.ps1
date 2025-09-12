@@ -1,5 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot "Write-NewConfig.ps1")
+    . (Join-Path $PSScriptRoot "New-DevSetupEnvFile.ps1")
     . (Join-Path $PSScriptRoot "Test-RunningAsAdmin.ps1")
     . (Join-Path $PSScriptRoot "Test-OperatingSystem.ps1")
     . (Join-Path $PSScriptRoot "Get-HostArchitecture.ps1")

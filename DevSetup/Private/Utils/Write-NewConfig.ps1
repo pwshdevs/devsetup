@@ -23,40 +23,13 @@ Function Write-NewConfig {
         }
         # Handle versioning and preserve existing config
         $currentVersion = "1.0.0"  # Default version for new files
-        $baseConfig = [PSCustomObject][ordered]@{
-            devsetup = [PSCustomObject][ordered]@{
-                dependencies = [PSCustomObject][ordered]@{
-                    chocolatey = @{
-                        packages = @()
-                    }
-                    powershell = @{
-                        modules = @()
-                        scope = "CurrentUser"
-                    }
-                    scoop = @{
-                        packages = @()
-                        buckets = @()
-                    }
-                }
-                commands = @()
-                configuration = [ordered]@{
-                    description = "Auto-generated development environment configuration"
-                    version = $currentVersion
-                    createdDate = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-                    createdBy = $username
-                    os = [PSCustomObject][ordered]@{
-                        name = $friendlyPlatform
-                        version = $friendlyOsVersion
-                        architecture = $osArchitecture
-                    }
-                    powershell = [PSCustomObject][ordered]@{
-                        version = $PSVersionTable.PSVersion.ToString()
-                        edition = $PSVersionTable.PSEdition
-                    }
-                }
-            }
-        }
-        
+        $baseConfig = New-DevSetupEnvFile
+        $baseConfig.devsetup.configuration.version = $currentVersion
+        $baseConfig.devsetup.configuration.createdBy = $username
+        $baseConfig.devsetup.configuration.os.name = $friendlyPlatform
+        $baseConfig.devsetup.configuration.os.version = $friendlyOsVersion
+        $baseConfig.devsetup.configuration.os.architecture = $osArchitecture
+
         if (Test-Path $OutFile) {
             try {
                 Write-StatusMessage "- Using existing configuration..." -ForegroundColor Gray
@@ -99,10 +72,10 @@ Function Write-NewConfig {
                             # Keep original creation date, but we could add a lastModified field
                             $baseConfig.devsetup.configuration.createdDate = $existingConfig.devsetup.configuration.createdDate
                         }
-                        if($existingConfig.devsetup.configuration.lastModifiedDate) {
-                            $baseConfig.devsetup.configuration.lastModifiedDate = $existingConfig.devsetup.configuration.lastModifiedDate
+                        if($existingConfig.devsetup.configuration.lastModified) {
+                            $baseConfig.devsetup.configuration.lastModified = $existingConfig.devsetup.configuration.lastModified
                         } else {
-                            $baseConfig.devsetup.configuration['lastModifiedDate'] = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+                            $baseConfig.devsetup.configuration.lastModified = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
                         }
                     }
                 }

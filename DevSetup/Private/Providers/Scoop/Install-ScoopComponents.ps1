@@ -106,7 +106,8 @@ Function Install-ScoopComponents {
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory=$true)]
-        [PSCustomObject]$YamlData
+        [PSCustomObject]$YamlData,
+        [switch]$DryRun
     )
     
     try {

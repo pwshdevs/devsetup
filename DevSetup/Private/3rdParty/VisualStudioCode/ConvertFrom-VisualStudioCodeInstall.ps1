@@ -12,8 +12,7 @@ Function ConvertFrom-VisualStudioCodeInstall {
         # Read existing configuration
         $YamlData = Read-DevSetupEnvFile -Config $Config
         
-        # Ensure chocolateyPackages section exists
-        if (-not $YamlData.devsetup) { $YamlData.devsetup = @{} }
+        # Ensure commands section exists
         if (-not $YamlData.devsetup.commands) { $YamlData.devsetup.commands = @() }
 
         $vsCode = Find-VsCode

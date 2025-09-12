@@ -5,3 +5,5 @@ $config.CodeCoverage.Enabled = $true
 $config.TestResult.Enabled = $true
 #$config.Output.Verbosity = "GithubActions"
 Invoke-Pester -Configuration $config
+
+# & 'C:\Users\TestUser\.dotnet\tools\reportgenerator.exe' -reports:"coverage.xml" -targetdir:"." -reporttypes:MarkdownSummaryGithub
