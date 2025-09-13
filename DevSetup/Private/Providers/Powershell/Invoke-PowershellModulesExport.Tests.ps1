@@ -9,16 +9,27 @@ BeforeAll {
     . (Join-Path $PSScriptRoot "Get-PowershellModuleScopeMap.ps1")
     
     Mock Test-RunningAsAdmin { $true }
-    Mock Get-InstalledModule { @(
-        @{ Name = "ModuleA"; Version = [version]"1.0.0"; InstalledLocation = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\ModuleA" },
-        @{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\ModuleB" }
-    ) }
+    Mock Get-InstalledModule { 
+        $userPath = Join-Path $TestDrive "Users" "TestUser" "Documents" "WindowsPowerShell" "Modules"
+        @(
+            @{ Name = "ModuleA"; Version = [version]"1.0.0"; InstalledLocation = (Join-Path $userPath "ModuleA") },
+            @{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = (Join-Path $userPath "ModuleB") }
+        )
+    }
     Mock Get-DevSetupManifest { @{ RequiredModules = @("ModuleA") } }
-    Mock Get-PowershellModuleScopeMap { @(
-        @{ Path = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules"; Scope = "CurrentUser" },
-        @{ Path = "$env:ProgramFiles\WindowsPowerShell\Modules"; Scope = "AllUsers" }
-    ) }
-    Mock Get-Module { param($Name) @{ Name = $Name; ModuleBase = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\$Name"; Version = [version]"1.0.0" } }
+    Mock Get-PowershellModuleScopeMap { 
+        $userPath = Join-Path $TestDrive "Users" "TestUser" "Documents" "WindowsPowerShell" "Modules"
+        $systemPath = Join-Path $TestDrive "Program Files" "WindowsPowerShell" "Modules"
+        @(
+            @{ Path = $userPath; Scope = "CurrentUser" },
+            @{ Path = $systemPath; Scope = "AllUsers" }
+        )
+    }
+    Mock Get-Module { 
+        param($Name) 
+        $userPath = Join-Path $TestDrive "Users" "TestUser" "Documents" "WindowsPowerShell" "Modules"
+        @{ Name = $Name; ModuleBase = (Join-Path $userPath $Name); Version = [version]"1.0.0" } 
+    }
     Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @(); scope = "CurrentUser" } } } } }
     Mock Update-DevSetupEnvFile { }
     Mock Write-Host { }
@@ -96,9 +107,10 @@ Describe "Invoke-PowershellModulesExport" {
 
     Context "When core dependency modules are present" {
         It "Should skip core dependency modules" {
+            $userPath = Join-Path $TestDrive "Users" "TestUser" "Documents" "WindowsPowerShell" "Modules"
             Mock Get-InstalledModule { @(
-                @{ Name = "ModuleA"; Version = [version]"1.0.0"; InstalledLocation = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\ModuleA" },
-                @{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\ModuleB" }
+                @{ Name = "ModuleA"; Version = [version]"1.0.0"; InstalledLocation = (Join-Path $userPath "ModuleA") },
+                @{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = (Join-Path $userPath "ModuleB") }
             ) }
             Mock Get-DevSetupManifest { @{ RequiredModules = @("ModuleA") } }
             Invoke-PowershellModulesExport -Config "test.yaml"
@@ -109,9 +121,10 @@ Describe "Invoke-PowershellModulesExport" {
 
     Context "When core dependency modules are hashtable format" {
         It "Should skip hashtable format core dependency modules" {
+            $userPath = Join-Path $TestDrive "Users" "TestUser" "Documents" "WindowsPowerShell" "Modules"
             Mock Get-InstalledModule { @(
-                @{ Name = "ModuleA"; Version = [version]"1.0.0"; InstalledLocation = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\ModuleA" },
-                @{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\ModuleB" }
+                @{ Name = "ModuleA"; Version = [version]"1.0.0"; InstalledLocation = (Join-Path $userPath "ModuleA") },
+                @{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = (Join-Path $userPath "ModuleB") }
             ) }
             Mock Get-DevSetupManifest { @{ RequiredModules = @(@{ ModuleName = "ModuleA"; ModuleVersion = "1.0.0" }) } }
             Invoke-PowershellModulesExport -Config "test.yaml"
@@ -129,8 +142,9 @@ Describe "Invoke-PowershellModulesExport" {
 
     Context "When module version changes" {
         It "Should update the module version in the config" {
+            $userPath = Join-Path $TestDrive "Users" "TestUser" "Documents" "WindowsPowerShell" "Modules"
             Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @(@{ name = "ModuleB"; minimumVersion = "1.0.0"; scope = "CurrentUser" }); scope = "CurrentUser" } } } } }
-            Mock Get-InstalledModule { @(@{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\ModuleB" }) }
+            Mock Get-InstalledModule { @(@{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = (Join-Path $userPath "ModuleB") }) }
             Invoke-PowershellModulesExport -Config "test.yaml"
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Updating module: ModuleB" }
         }
@@ -138,8 +152,9 @@ Describe "Invoke-PowershellModulesExport" {
 
     Context "When module exists but has no version" {
         It "Should add minimumVersion to the module" {
+            $userPath = Join-Path $TestDrive "Users" "TestUser" "Documents" "WindowsPowerShell" "Modules"
             Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @(@{ name = "ModuleB"; scope = "CurrentUser" }); scope = "CurrentUser" } } } } }
-            Mock Get-InstalledModule { @(@{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\ModuleB" }) }
+            Mock Get-InstalledModule { @(@{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = (Join-Path $userPath "ModuleB") }) }
             Invoke-PowershellModulesExport -Config "test.yaml"
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Updating module version: ModuleB" }
         }
@@ -147,6 +162,7 @@ Describe "Invoke-PowershellModulesExport" {
 
     Context "When module is unchanged" {
         It "Should skip updating the module" {
+            $userPath = Join-Path $TestDrive "Users" "TestUser" "Documents" "WindowsPowerShell" "Modules"
             Mock Read-DevSetupEnvFile { 
                 @{ 
                     devsetup = @{ 
@@ -163,7 +179,7 @@ Describe "Invoke-PowershellModulesExport" {
                     } 
                 } 
             }
-            Mock Get-InstalledModule { @(@{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\ModuleB" }) }
+            Mock Get-InstalledModule { @(@{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = (Join-Path $userPath "ModuleB") }) }
             Mock Get-DevSetupManifest { @{ RequiredModules = @() } }  # No core dependencies to exclude ModuleB
             Invoke-PowershellModulesExport -Config "test.yaml"
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Skipping module.*No Change.*ModuleB" }
@@ -172,8 +188,9 @@ Describe "Invoke-PowershellModulesExport" {
 
     Context "When module exists with version property instead of minimumVersion" {
         It "Should use version property for comparison and detect change" {
+            $userPath = Join-Path $TestDrive "Users" "TestUser" "Documents" "WindowsPowerShell" "Modules"
             Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @(@{ name = "ModuleB"; version = "1.0.0"; scope = "CurrentUser" }); scope = "CurrentUser" } } } } }
-            Mock Get-InstalledModule { @(@{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\ModuleB" }) }
+            Mock Get-InstalledModule { @(@{ Name = "ModuleB"; Version = [version]"2.0.0"; InstalledLocation = (Join-Path $userPath "ModuleB") }) }
             Invoke-PowershellModulesExport -Config "test.yaml"
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Updating module: ModuleB \(1\.0\.0 -> 2\.0\.0\)" }
         }
@@ -181,15 +198,39 @@ Describe "Invoke-PowershellModulesExport" {
 
     Context "When module has unknown scope" {
         It "Should skip module with unknown installation location" {
-            Mock Get-InstalledModule { @(@{ Name = "UnknownModule"; Version = [version]"1.0.0"; InstalledLocation = "C:\Some\Unknown\Path\UnknownModule" }) }
+            $userPath = Join-Path $TestDrive "Users" "TestUser" "Documents" "WindowsPowerShell" "Modules"
+            $systemPath = Join-Path $TestDrive "Program Files" "WindowsPowerShell" "Modules"
+            $unknownPath = Join-Path $TestDrive "Some" "Unknown" "Path" "UnknownModule"
+            
+            Mock Get-InstalledModule { @(@{ Name = "UnknownModule"; Version = [version]"1.0.0"; InstalledLocation = $unknownPath }) }
             Mock Get-PowershellModuleScopeMap { @(
-                @{ Path = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules"; Scope = "CurrentUser" },
-                @{ Path = "$env:ProgramFiles\WindowsPowerShell\Modules"; Scope = "AllUsers" }
+                @{ Path = $userPath; Scope = "CurrentUser" },
+                @{ Path = $systemPath; Scope = "AllUsers" }
             ) }
             Mock Get-DevSetupManifest { @{ RequiredModules = @() } }
             Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @(); scope = "UnknownScope" } } } } }
             Invoke-PowershellModulesExport -Config "test.yaml"
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Skipping module with unknown scope: UnknownModule" -and $Verbosity -eq "Verbose" }
+        }
+    }
+
+    Context "When module scope differs from default scope" {
+        It "Should override default scope with detected scope from installation path" {
+            $systemPath = Join-Path $TestDrive "Program Files" "WindowsPowerShell" "Modules"
+            $userPath = Join-Path $TestDrive "Users" "TestUser" "Documents" "WindowsPowerShell" "Modules"
+            $systemModulePath = Join-Path $systemPath "SystemModule"
+            
+            Mock Get-InstalledModule { @(
+                @{ Name = "SystemModule"; Version = [version]"1.0.0"; InstalledLocation = $systemModulePath }
+            ) }
+            Mock Get-PowershellModuleScopeMap { @(
+                @{ Path = $userPath; Scope = "CurrentUser" },
+                @{ Path = $systemPath; Scope = "AllUsers" }
+            ) }
+            Mock Get-DevSetupManifest { @{ RequiredModules = @() } }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ dependencies = @{ powershell = @{ modules = @(); scope = "CurrentUser" } } } } }
+            Invoke-PowershellModulesExport -Config "test.yaml"
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Found module: SystemModule.*scope: AllUsers" }
         }
     }
 

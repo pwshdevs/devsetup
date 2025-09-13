@@ -161,7 +161,7 @@ Function Invoke-PowershellModulesExport {
         $moduleScope = $YamlData.devsetup.dependencies.powershell.scope
         $InstallPaths | ForEach-Object {
             if ($module.InstalledLocation -like "$($_.Path)$([System.IO.Path]::DirectorySeparatorChar)*") {
-                $script:moduleScope = $_.Scope
+                $moduleScope = $_.Scope
             }
         }
 
