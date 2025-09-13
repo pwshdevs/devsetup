@@ -86,80 +86,65 @@ Function Invoke-PowershellModulesInstall {
         [switch]$DryRun = $false
     )
     
+    $modules = $YamlData.devsetup.dependencies.powershell.modules
+    
+    # Get global scope setting from YAML, default to CurrentUser
+    $globalScope = 'AllUsers'
+    if ($YamlData.devsetup.dependencies.powershell.scope) { 
+        $globalScope = $YamlData.devsetup.dependencies.powershell.scope 
+    }
+    
     try {
-        Write-StatusMessage "- Installing PowerShell modules from configuration:" -ForegroundColor Cyan
-        # Check if PowerShell modules dependencies exist
-        if (-not $YamlData -or -not $YamlData.devsetup -or -not $YamlData.devsetup.dependencies -or -not $YamlData.devsetup.dependencies.powershell -or -not $YamlData.devsetup.dependencies.powershell.modules) {
-            Write-StatusMessage "PowerShell modules not found in YAML configuration. Skipping installation." -Verbosity Debug
-            Write-StatusMessage "- PowerShell modules installation completed! Processed 0 modules.`n" -ForegroundColor Green
-            return $false
-        }
-        
-        $modules = $YamlData.devsetup.dependencies.powershell.modules
-        
-        # Get global scope setting from YAML, default to CurrentUser
-        $globalScope = 'AllUsers'
-        if ($YamlData.devsetup.dependencies.powershell.scope) { 
-            $globalScope = $YamlData.devsetup.dependencies.powershell.scope 
-        }
-        
         # Check if running as administrator when global scope is AllUsers
         if ($globalScope -eq 'AllUsers' -and (-not (Test-RunningAsAdmin))) {
             throw "PowerShell module installation to AllUsers scope requires administrator privileges. Please run as administrator or set powershellModuleScope to CurrentUser."
         }
-        
-
-        $moduleCount = 0
-        
-        foreach ($module in $modules) {
-            if (-not $module) { continue }
-            
-            $moduleCount++
-            
-            # Normalize module to object format
-            if ($module -is [string]) {
-                $moduleObj = @{ name = $module }
-            } else {
-                $moduleObj = $module
-            }
-            
-            # Validate module name
-            if ([string]::IsNullOrEmpty($moduleObj.name)) {
-                Write-StatusMessage "Module entry #$moduleCount has no name specified, skipping" -Verbosity Warning
-                continue
-            }
-            
-            # Determine scope for this module (module-specific overrides global)
-            $moduleScope = if ($moduleObj.scope) { $moduleObj.scope } else { $globalScope }
-            
-            # Set defaults and build parameters
-            $installParams = @{
-                ModuleName = $moduleObj.name
-                Force = if ($moduleObj.force -is [bool]) { $moduleObj.force } else { $true }
-                AllowClobber = if ($moduleObj.allowClobber -is [bool]) { $moduleObj.allowClobber } else { $true }
-                Scope = $moduleScope
-                WhatIf = $DryRun
-            }
-            
-            if ($moduleObj.minimumVersion) {
-                $installParams.Version = $moduleObj.minimumVersion
-                Write-StatusMessage "- Installing PowerShell module: $($moduleObj.name) (version: $($moduleObj.minimumVersion), scope: $moduleScope)" -ForegroundColor Gray -Width 112 -NoNewLine -Indent 2
-            } else {
-                Write-StatusMessage "- Installing PowerShell module: $($moduleObj.name) (latest version) to $moduleScope scope" -ForegroundColor Gray -Width 112 -NoNewLine -Indent 2
-            }
-            
-            if ((Install-PowerShellModule @installParams)) {
-                Write-StatusMessage "[OK]" -ForegroundColor Green
-            } else {
-                Write-StatusMessage "[FAILED]" -ForegroundColor Red
-            }
-        }
-        Write-StatusMessage "- PowerShell modules installation completed! Processed $moduleCount modules.`n" -ForegroundColor Green
-        return $true
-    }
-    catch {
-        Write-StatusMessage "Error installing PowerShell modules: $_" -Verbosity Error
+    } catch {
+        Write-StatusMessage "Failed to validate administrator privileges: $_" -Verbosity Error
         Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
+
+    Write-StatusMessage "- Installing PowerShell modules from configuration:" -ForegroundColor Cyan
+
+    $moduleCount = 0
+    
+    foreach ($module in $modules) {
+        if (-not $module) { continue }
+        
+        # Determine scope for this module (module-specific overrides global)
+        $moduleScope = if ($module.scope) { $module.scope } else { $globalScope }
+        
+        # Set defaults and build parameters
+        $installParams = @{
+            ModuleName = $module.name
+            Force = if ($module.force -is [bool]) { $module.force } else { $true }
+            AllowClobber = if ($module.allowClobber -is [bool]) { $module.allowClobber } else { $true }
+            Scope = $moduleScope
+            WhatIf = $DryRun
+        }
+        
+        if ($module.minimumVersion) {
+            $installParams.Version = $module.minimumVersion
+            Write-StatusMessage "- Installing PowerShell module: $($module.name) (version: $($module.minimumVersion), scope: $moduleScope)" -ForegroundColor Gray -Width 112 -NoNewLine -Indent 2
+        } else {
+            Write-StatusMessage "- Installing PowerShell module: $($module.name) (latest version) to $moduleScope scope" -ForegroundColor Gray -Width 112 -NoNewLine -Indent 2
+        }
+        
+        try {
+            # Attempt to install the module
+            if (-not (Install-PowerShellModule @installParams)) {
+                Write-StatusMessage "[FAILED]" -ForegroundColor Red
+            } else {
+                Write-StatusMessage "[OK]" -ForegroundColor Green
+                $moduleCount++
+            }
+        } catch {
+            Write-StatusMessage "[FAILED]" -ForegroundColor Red
+            Write-StatusMessage "Error installing PowerShell module $($module.name): $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        }
+    }
+    Write-StatusMessage "- PowerShell modules installation completed! Processed $moduleCount modules.`n" -ForegroundColor Green
+    return $true
 }

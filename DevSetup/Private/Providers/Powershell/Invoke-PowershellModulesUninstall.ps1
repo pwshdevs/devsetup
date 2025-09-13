@@ -85,76 +85,60 @@ Function Invoke-PowershellModulesUninstall {
         [switch]$DryRun
     )
     
+    $modules = $YamlData.devsetup.dependencies.powershell.modules
+    
+    # Get global scope setting from YAML, default to CurrentUser
+    $globalScope = if ($YamlData.devsetup.dependencies.powershell.scope) { 
+        $YamlData.devsetup.dependencies.powershell.scope 
+    } else { 
+        'CurrentUser' 
+    }
+    
     try {
-        # Check if PowerShell modules dependencies exist
-        if (-not $YamlData -or -not $YamlData.devsetup -or -not $YamlData.devsetup.dependencies -or -not $YamlData.devsetup.dependencies.powershell -or -not $YamlData.devsetup.dependencies.powershell.modules) {
-            Write-StatusMessage "PowerShell modules not found in YAML configuration. Skipping uninstallation." -Verbosity Warning
-            return $false
-        }
-        
-        $modules = $YamlData.devsetup.dependencies.powershell.modules
-        
-        # Get global scope setting from YAML, default to CurrentUser
-        $globalScope = if ($YamlData.devsetup.dependencies.powershell.scope) { 
-            $YamlData.devsetup.dependencies.powershell.scope 
-        } else { 
-            'CurrentUser' 
-        }
-        
         # Check if running as administrator when global scope is AllUsers
         if ($globalScope -eq 'AllUsers' -and (-not (Test-RunningAsAdmin))) {
-            throw "PowerShell module uninstallation to AllUsers scope requires administrator privileges. Please run as administrator or set powershellModuleScope to CurrentUser."
+            Write-StatusMessage "PowerShell module uninstallation to AllUsers scope requires administrator privileges. Please run as administrator or set powershellModuleScope to CurrentUser." -Verbosity Error
+            return $false
         }
-
-        Write-StatusMessage "- Uninstalling PowerShell modules from configuration:" -ForegroundColor Cyan
-
-        $moduleCount = 0
-        
-        foreach ($module in $modules) {
-            if (-not $module) { continue }
-            
-            $moduleCount++
-            
-            # Normalize module to object format
-            if ($module -is [string]) {
-                $moduleObj = @{ name = $module }
-            } else {
-                $moduleObj = $module
-            }
-            
-            # Validate module name
-            if ([string]::IsNullOrEmpty($moduleObj.name)) {
-                Write-StatusMessage "Module entry #$moduleCount has no name specified, skipping" -Verbosity Warning
-                continue
-            }
-            
-            # Determine scope for this module (module-specific overrides global)
-            $moduleScope = if ($moduleObj.scope) { $moduleObj.scope } else { $globalScope }
-            
-            # Set defaults and build parameters
-            $installParams = @{
-                ModuleName = $moduleObj.name
-                WhatIf = $DryRun
-            }
-            
-            if ($moduleObj.minimumVersion) {
-                Write-StatusMessage "- Uninstalling PowerShell module: $($moduleObj.name) (version: $($moduleObj.minimumVersion), scope: $moduleScope)" -ForegroundColor Gray -Width 100 -NoNewLine -Indent 2
-            } else {
-                Write-StatusMessage "- Uninstalling PowerShell module: $($moduleObj.name) (latest version) to $moduleScope scope" -ForegroundColor Gray -Width 100 -NoNewLine -Indent 2
-            }
-
-            if ((Uninstall-PowerShellModule @installParams)) {
-                Write-StatusMessage "[OK]" -ForegroundColor Green
-            } else {
-                Write-StatusMessage "[FAILED]" -ForegroundColor Red
-            }
-        }
-        Write-StatusMessage "- PowerShell modules uninstallation completed! Processed $moduleCount modules.`n" -ForegroundColor Green
-        return $true
-    }
-    catch {
-        Write-StatusMessage "Error uninstalling PowerShell modules: $_" -Verbosity Error
+    } catch {
+        Write-StatusMessage "Failed to validate administrator privileges: $_" -Verbosity Error
         Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
+
+    Write-StatusMessage "- Uninstalling PowerShell modules from configuration:" -ForegroundColor Cyan
+
+    $moduleCount = 0
+    
+    foreach ($module in $modules) {
+        # Determine scope for this module (module-specific overrides global)
+        $moduleScope = if ($module.scope) { $module.scope } else { $globalScope }
+
+        # Set defaults and build parameters
+        $installParams = @{
+            ModuleName = $module.name
+            WhatIf = $DryRun
+        }
+
+        if ($module.minimumVersion) {
+            Write-StatusMessage "- Uninstalling PowerShell module: $($module.name) (version: $($module.minimumVersion), scope: $moduleScope)" -ForegroundColor Gray -Width 100 -NoNewLine -Indent 2
+        } else {
+            Write-StatusMessage "- Uninstalling PowerShell module: $($module.name) (latest version) to $moduleScope scope" -ForegroundColor Gray -Width 100 -NoNewLine -Indent 2
+        }
+
+        try {
+            if ((Uninstall-PowerShellModule @installParams)) {
+                Write-StatusMessage "[OK]" -ForegroundColor Green
+                $moduleCount++
+            } else {
+                Write-StatusMessage "[FAILED]" -ForegroundColor Red
+            }
+        } catch {
+            Write-StatusMessage "[FAILED]" -ForegroundColor Red
+            Write-StatusMessage "Error uninstalling module $($module.name): $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        }
+    }
+    Write-StatusMessage "- PowerShell modules uninstallation completed! Processed $moduleCount modules.`n" -ForegroundColor Green
+    return $true
 }

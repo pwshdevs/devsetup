@@ -120,7 +120,7 @@ Function Uninstall-DevSetupEnv {
             Invoke-ChocolateyPackageUninstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
 
             # Uninstall Scoop package dependencies
-            Invoke-ScoopComponentUninstall -YamlData $YamlData | Out-Null
+            Invoke-ScoopComponentUninstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
         } else {
             # Uninstall Homebrew package dependencies
             Invoke-HomebrewComponentsUninstall -YamlData $YamlData -DryRun:$DryRun | Out-Null

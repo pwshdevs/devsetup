@@ -90,21 +90,18 @@ Function Test-PowershellModuleInstalled {
         [string]$Scope
     )
 
-    if((Test-OperatingSystem -Windows)) {
-        $SearchPath = (Get-EnvironmentVariable USERPROFILE)
-    } else {
-        $SearchPath = (Get-EnvironmentVariable HOME)
+    try {
+        $InstallPaths = Get-PowershellModuleScopeMap
+    } catch {
+        Write-StatusMessage "Failed to get PowerShell module scope map: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return [InstalledState]::NotInstalled
     }
 
-    $InstallPaths = @(
-        (Get-EnvironmentVariable PSModulePath) -split ([System.IO.Path]::PathSeparator) | ForEach-Object { 
-            if($_ -match [regex]::Escape("$SearchPath")) { 
-                @{ Path = $_; Scope = "CurrentUser" } 
-            } else {
-                @{ Path = $_; Scope = "AllUsers" }
-            } 
-        }
-    )
+    if(-not $InstallPaths -or $InstallPaths.Count -eq 0) {
+        Write-StatusMessage "No PowerShell module install paths found." -Verbosity Warning
+        return [InstalledState]::NotInstalled
+    }
 
     [InstalledState]$installedState = [InstalledState]::NotInstalled
 
