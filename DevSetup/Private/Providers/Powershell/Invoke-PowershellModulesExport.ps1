@@ -158,12 +158,11 @@ Function Invoke-PowershellModulesExport {
             continue
         }
         
-        $moduleScope = $YamlData.devsetup.dependencies.powershell.scope
-        $InstallPaths | ForEach-Object {
+        $moduleScope = ($InstallPaths | ForEach-Object {
             if ($module.InstalledLocation -like "$($_.Path)$([System.IO.Path]::DirectorySeparatorChar)*") {
-                $moduleScope = $_.Scope
+                $_.Scope
             }
-        }
+        })
 
         if ($moduleScope -eq "CurrentUser" -or $moduleScope -eq "AllUsers") {
             Write-StatusMessage "Found module: $($module.Name) (version: $($module.Version), scope: $moduleScope)" -Verbosity Debug
