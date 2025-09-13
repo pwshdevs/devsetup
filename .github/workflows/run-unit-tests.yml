@@ -94,7 +94,10 @@ jobs:
           reports: 'coverage.xml'
           targetdir: 'coveragereport'
           reporttypes: 'MarkdownSummaryGithub'
-          title: 'Pester Test Coverage Report'
+          title: 'Pester Test Coverage Report (Windows)'
+      - name: Publish coverage in build summary # Only applicable if 'MarkdownSummaryGithub' or one of the other Markdown report types is generated
+        run: cat coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY # Adjust path and filename if necessary
+        shell: bash          
 
   pester-test-macos:
     name: Pester test (On macOS)
@@ -133,4 +136,7 @@ jobs:
           reports: 'coverage.xml'
           targetdir: 'coveragereport'
           reporttypes: 'MarkdownSummaryGithub'
-          title: 'Pester Test Coverage Report'                               
+          title: 'Pester Test Coverage Report (macOS)'   
+      - name: Publish coverage in build summary # Only applicable if 'MarkdownSummaryGithub' or one of the other Markdown report types is generated
+        run: cat coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY # Adjust path and filename if necessary
+        shell: bash                                      
