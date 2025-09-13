@@ -71,181 +71,179 @@ Function Invoke-PowershellModulesExport {
         [Parameter(Mandatory = $true)]
         [ValidateNotNullOrEmpty()]
         [string]$Config,
-        [Parameter(Mandatory = $false)]
-        [ValidateNotNullOrEmpty()]
-        [string]$OutFile,
         [switch]$DryRun
     )
 
     try {
         # Check if running as administrator
         if (-not (Test-RunningAsAdmin)) {
-            throw "This operation requires administrator privileges. Please run as administrator."
-        }
-
-        # Get installed PowerShell modules
-        Write-StatusMessage "- Getting list of installed PowerShell modules..." -ForegroundColor Gray
-        $installedModules = Get-InstalledModule -ErrorAction SilentlyContinue
-
-        if (-not $installedModules) {
-            Write-StatusMessage "No PowerShell modules found or PowerShellGet is not available." -Verbosity Warning
-            return $true
-        }
-
-        $powershellModules = @()
-        
-        # Get core dependency modules to skip from DevSetup manifest
-        $manifest = Get-DevSetupManifest
-        $coreModulesToSkip = @()
-        if ($manifest -and $manifest.RequiredModules) {
-            $coreModulesToSkip = $manifest.RequiredModules | ForEach-Object {
-                if ($_ -is [string]) {
-                    $_
-                } elseif ($_ -is [hashtable] -and $_.ModuleName) {
-                    $_.ModuleName
-                } elseif ($_ -is [hashtable] -and $_.name) {
-                    $_.name
-                }
-            }
-        }
-        
-        foreach ($module in $installedModules) {
-            # Skip core dependency modules
-            if ($module.Name -in $coreModulesToSkip) {
-                Write-StatusMessage "Skipping core dependency module: $($module.Name)" -Verbosity Verbose
-                continue
-            }
-            
-            # Get module scope information
-            $moduleInfo = Get-Module -Name $module.Name -ListAvailable | Sort-Object Version -Descending | Select-Object -First 1
-            
-            # Check if module is in CurrentUser or AllUsers scope
-            $modulePath = $moduleInfo.ModuleBase
-            $scope = "Unknown"
-            
-            if ($modulePath -like "*\WindowsPowerShell\Modules\*" -or $modulePath -like "*\PowerShell\Modules\*") {
-                if ($modulePath -like "*$env:USERPROFILE*") {
-                    $scope = "CurrentUser"
-                } else {
-                    $scope = "AllUsers"
-                }
-            }
-            
-            if ($scope -eq "CurrentUser" -or $scope -eq "AllUsers") {
-                Write-StatusMessage "Found module: $($module.Name) (version: $($module.Version), scope: $scope)" -Verbosity Debug
-                $powershellModules += @{
-                    name = $module.Name
-                    version = $module.Version.ToString()
-                    scope = $scope
-                }
-            } else {
-                Write-StatusMessage "Skipping module with unknown scope: $($module.Name)" -Verbosity Verbose
-            }
-        }
-
-        Write-StatusMessage "  - Found $($powershellModules.Count) PowerShell modules in CurrentUser or AllUsers scope (excluding core dependencies)" -Verbosity Debug
-
-        # Read existing YAML configuration
-        $YamlData = Read-DevSetupEnvFile -Config $Config
-
-        # Ensure powershell-specific sections exist
-        if (-not $YamlData.devsetup.dependencies.powershell) { $YamlData.devsetup.dependencies.powershell = @{} }
-        if (-not $YamlData.devsetup.dependencies.powershell.modules) { $YamlData.devsetup.dependencies.powershell.modules = @() }
-
-        # Add modules to YAML data
-        foreach ($module in $powershellModules) {
-            # Check if module already exists
-            $existingModule = $YamlData.devsetup.dependencies.powershell.modules | Where-Object {
-                ($_ -is [string] -and $_ -eq $module.name) -or
-                ($_.name -eq $module.name)
-            }
-
-            if (-not $existingModule) {
-                Write-StatusMessage "  - Adding module: $($module.name) ($($module.version), $($module.scope))" -ForegroundColor Gray
-                $YamlData.devsetup.dependencies.powershell.modules += @{
-                    name = $module.name
-                    minimumVersion = $module.version
-                    version = ""
-                    scope = $module.scope
-                }
-            } else {
-                # Module exists, check if version has changed
-                $existingVersion = $null
-                if ((-not ($existingModule -is [string])) -and $existingModule.minimumVersion) {
-                    $existingVersion = $existingModule.minimumVersion
-                } elseif ((-not ($existingModule -is [string])) -and $existingModule.version) {
-                    $existingVersion = $existingModule.version
-                }
-
-                if ($existingVersion -and $existingVersion -ne $module.version) {
-                    Write-StatusMessage "    - Updating module: $($module.name) ($existingVersion -> $($module.version))" -ForegroundColor Gray
-
-                    # Find index and update
-                    $index = $YamlData.devsetup.dependencies.powershell.modules.IndexOf($existingModule)
-
-                    # Preserve existing module structure but update version
-                    if ($existingModule -is [string]) {
-                        # Convert string to hashtable with version
-                        $YamlData.devsetup.dependencies.powershell.modules[$index] = @{
-                            name = $module.name
-                            minimumVersion = $module.version
-                            scope = $module.scope
-                            version = ""
-                        }
-                    } else {
-                        # Update existing hashtable
-                        $YamlData.devsetup.dependencies.powershell.modules[$index].minimumVersion = $module.version
-                        if (-not $existingModule.scope) {
-                            $YamlData.devsetup.dependencies.powershell.modules[$index].scope = $module.scope
-                        }
-                    }
-                } elseif (-not $existingVersion) {
-                    Write-StatusMessage "  - Updating module version: $($module.name)" -ForegroundColor Gray
-
-                    # Find index and add version
-                    $index = $YamlData.devsetup.dependencies.powershell.modules.IndexOf($existingModule)
-
-                    if ($existingModule -is [string]) {
-                        # Convert string to hashtable with version
-                        $YamlData.devsetup.dependencies.powershell.modules[$index] = @{
-                            name = $module.name
-                            minimumVersion = $module.version
-                            scope = $module.scope
-                            version = ""
-                        }
-                    } else {
-                        # Add version to existing hashtable
-                        $YamlData.devsetup.dependencies.powershell.modules[$index].minimumVersion = $module.version
-                        if (-not $existingModule.scope) {
-                            $YamlData.devsetup.dependencies.powershell.modules[$index].scope = $module.scope
-                        }
-                    }
-                } else {
-                    Write-StatusMessage "  - Skipping module (No Change): $($module.name) ($($module.version))" -ForegroundColor Gray
-                }
-            }
-        }
-
-        # Handle output based on parameters
-        # Determine output file
-        $outputFile = if ($OutFile) { $OutFile } else { $Config }
-        
-        try {
-            Write-StatusMessage "`nSaving configuration to: $outputFile" -Verbosity Debug
-            $YamlData | Update-DevSetupEnvFile -EnvFilePath $Config -WhatIf:$DryRun
-            Write-StatusMessage "Configuration saved successfully!" -Verbosity Debug
-        }
-        catch {
-            Write-StatusMessage "Failed to save configuration to $outputFile`: $_" -Verbosity Error
+            Write-StatusMessage "This operation requires administrator privileges. Please run as administrator." -Verbosity Error
             return $false
         }
-
-        Write-StatusMessage "PowerShell modules conversion completed!" -ForegroundColor Green
-        return $true
-    }
-    catch {
-        Write-StatusMessage "Error converting PowerShell modules: $_" -Verbosity Error
+    } catch {
+        Write-StatusMessage "Failed to validate administrator privileges: $_" -Verbosity Error
         Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
+
+    # Get installed PowerShell modules
+    Write-StatusMessage "- Getting list of installed PowerShell modules..." -ForegroundColor Gray
+    try {
+        $installedModules = Get-InstalledModule -ErrorAction SilentlyContinue
+    } catch {
+        Write-StatusMessage "Failed to retrieve installed PowerShell modules: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    if (-not $installedModules) {
+        Write-StatusMessage "No PowerShell modules found or PowerShellGet is not available." -Verbosity Warning
+        return $true
+    }
+
+    $powershellModules = @()
+        
+    # Get core dependency modules to skip from DevSetup manifest
+    try {
+        $manifest = Get-DevSetupManifest
+    } catch {
+        Write-StatusMessage "Failed to read DevSetup manifest: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    # Valid formats for core modules in manifest:
+    # @('ModuleName1', 'ModuleName2')
+    # or
+    # @(@{ ModuleName = 'ModuleName1'; ModuleVersion = '1.0.0' }, @{ name = 'ModuleName2'; RequiredVersion = '2.0.0' })
+    # In the second version, ModuleVersion and RequiredVersion are mutually exclusive
+    # and only one should be used per module entry.
+
+    $coreModulesToSkip = @()
+    if ($manifest -and $manifest.RequiredModules) {
+        $coreModulesToSkip = $manifest.RequiredModules | ForEach-Object {
+            if ($_ -is [string]) {
+                $_
+            } elseif ($_ -is [hashtable] -and $_.ModuleName) {
+                $_.ModuleName
+            }
+        }
+    }
+        
+    try {
+        $InstallPaths = Get-PowershellModuleScopeMap
+    } catch {
+        Write-StatusMessage "Failed to get PowerShell module scope map: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    if(-not $InstallPaths -or $InstallPaths.Count -eq 0) {
+        Write-StatusMessage "No PowerShell module install paths found." -Verbosity Warning
+        return $true
+    }
+
+    try {
+        $YamlData = Read-DevSetupEnvFile -Config $Config
+    } catch {
+        Write-StatusMessage "Failed to read configuration file $Config`: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    foreach ($module in $installedModules) {
+        # Skip core dependency modules
+        if ($module.Name -in $coreModulesToSkip) {
+            Write-StatusMessage "Skipping core dependency module: $($module.Name)" -Verbosity Verbose
+            continue
+        }
+        
+        $moduleScope = ($InstallPaths | ForEach-Object {
+            if ($module.InstalledLocation -like "$($_.Path)$([System.IO.Path]::DirectorySeparatorChar)*") {
+                $_.Scope
+            }
+        })
+
+        if ($moduleScope -eq "CurrentUser" -or $moduleScope -eq "AllUsers") {
+            Write-StatusMessage "Found module: $($module.Name) (version: $($module.Version), scope: $moduleScope)" -Verbosity Debug
+            $powershellModules += @{
+                name = $module.Name
+                version = $module.Version.ToString()
+                scope = $moduleScope
+            }
+        } else {
+            Write-StatusMessage "Skipping module with unknown scope: $($module.Name)" -Verbosity Verbose
+        }
+    }
+
+    Write-StatusMessage "  - Found $($powershellModules.Count) PowerShell modules in CurrentUser or AllUsers scope (excluding core dependencies)" -Verbosity Debug
+
+    # Add modules to YAML data
+    foreach ($module in $powershellModules) {
+        # Check if module already exists
+        $existingModule = $YamlData.devsetup.dependencies.powershell.modules | Where-Object {
+            ($_.name -eq $module.name)
+        }
+
+        if (-not $existingModule) {
+            Write-StatusMessage "- Adding module: $($module.name) ($($module.version), $($module.scope))" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewline
+            $YamlData.devsetup.dependencies.powershell.modules += @{
+                name = $module.name
+                minimumVersion = $module.version
+                version = ""
+                scope = $module.scope
+            }
+            Write-StatusMessage "[OK]" -ForegroundColor Green
+        } else {
+            # Module exists, check if version has changed
+            $existingVersion = $null
+            if (-not ([string]::IsNullOrEmpty($existingModule.minimumVersion))) {
+                $existingVersion = $existingModule.minimumVersion
+            } elseif (-not ([string]::IsNullOrEmpty($existingModule.version))) {
+                $existingVersion = $existingModule.version
+            }
+
+            if ($existingVersion -and $existingVersion -ne $module.version) {
+                Write-StatusMessage "- Updating module: $($module.name) ($existingVersion -> $($module.version))" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewline
+
+                # Find index and update
+                $index = $YamlData.devsetup.dependencies.powershell.modules.IndexOf($existingModule)
+                $YamlData.devsetup.dependencies.powershell.modules[$index] = @{
+                    name = $module.name
+                    minimumVersion = $module.version
+                    scope = $module.scope
+                    version = ""
+                }
+                Write-StatusMessage "[OK]" -ForegroundColor Green
+            } elseif (-not $existingVersion) {
+                Write-StatusMessage "- Updating module version: $($module.name)" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewline
+
+                $index = $YamlData.devsetup.dependencies.powershell.modules.IndexOf($existingModule)
+                $YamlData.devsetup.dependencies.powershell.modules[$index] = @{
+                    name = $module.name
+                    minimumVersion = $module.version
+                    scope = $module.scope
+                    version = ""
+                }
+                Write-StatusMessage "[OK]" -ForegroundColor Green
+            } else {
+                Write-StatusMessage "- Skipping module (No Change): $($module.name) ($($module.version))" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewline
+                Write-StatusMessage "[OK]" -ForegroundColor Green
+            }
+        }
+    }
+    
+    try {
+        Write-StatusMessage "`nSaving configuration to: $Config" -Verbosity Debug
+        $YamlData | Update-DevSetupEnvFile -EnvFilePath $Config -WhatIf:$DryRun
+        Write-StatusMessage "Configuration saved successfully!" -Verbosity Debug
+    }
+    catch {
+        Write-StatusMessage "Failed to save configuration to $Config`: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    Write-StatusMessage "PowerShell modules conversion completed!" -ForegroundColor Green
+    return $true
 }
