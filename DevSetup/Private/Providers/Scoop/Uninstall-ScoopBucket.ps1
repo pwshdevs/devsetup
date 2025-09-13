@@ -63,44 +63,76 @@
 #>
 
 Function Uninstall-ScoopBucket {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     Param(
         [Parameter(Mandatory=$true)]
         [string]$Name
     )
 
-    if(-Not (Test-ScoopInstalled)) {
+    try {
+        if(-Not (Test-ScoopInstalled)) {
+            return $false
+        }
+    } catch {
+        Write-StatusMessage "Scoop is not installed. $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 
-    $scoopCommand = Find-Scoop
-    if (-not $scoopCommand) {
+    try {
+        $scoopCommand = Find-Scoop
+        if (-not $scoopCommand) {
+            return $false
+        }
+    } catch {
+        Write-StatusMessage "Failed to find Scoop command: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 
     try {
         $bucketState = Test-ScoopComponentInstalled -Bucket -Name $Name
-        if (-not ($bucketState.HasFlag([InstalledState]::Pass))) {
-            # If a source is provided, add it to the command arguments
-            Write-Debug "Removing Scoop bucket: $Name without source"
+    } catch {
+        Write-StatusMessage "Could not verify if Scoop bucket '$Name' is installed: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
 
-            # Execute the command to add the bucket
-            Invoke-Expression "& $scoopCommand bucket rm $Name" *> $null
+    if (-not ($bucketState.HasFlag([InstalledState]::Pass))) {
+        # If a source is provided, add it to the command arguments
+        Write-StatusMessage "Removing Scoop bucket: $Name without source" -Verbosity Debug
+
+        # Execute the command to add the bucket
+        try {
+            if ($PSCmdlet.ShouldProcess($Name, "Uninstall Scoop bucket")) {
+                Invoke-Command -ScriptBlock { & $scoopCommand bucket rm $Name } *> $null   
+            } else {
+                Write-StatusMessage "Skipping uninstalling Scoop bucket '$Name' due to ShouldProcess" -Verbosity Debug
+                return $true
+            }
             if ($LASTEXITCODE -ne 0) {
                 return $false
             }
+        } catch {
+            Write-StatusMessage "Failed to uninstall Scoop bucket '$Name': $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false
+        }
 
-            if (-not (Write-ScoopCache)) {
+        try {
+            if (-not (Write-ScoopCache -WhatIf:$PSCmdlet.WhatIf)) {
                 return $false
-            }            
-            
-            Write-Debug "Scoop bucket '$Name' removed successfully."
-            return $true
-        } else {
-            Write-Debug "Scoop bucket '$Name' is already uninstalled."
-            return $true
-        }        
-    } catch {
-        return $false
+            }    
+        } catch {
+            Write-StatusMessage "Error writing Scoop cache: $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false        
+        }
+
+        Write-StatusMessage "Scoop bucket '$Name' removed successfully."
+        return $true
+    } else {
+        Write-StatusMessage "Scoop bucket '$Name' is already uninstalled."
+        return $true
     }
 }

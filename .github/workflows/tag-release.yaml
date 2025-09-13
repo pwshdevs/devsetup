@@ -3,7 +3,7 @@ name: Create Tagged Release
 on:
   push:
     branches:
-      - main # Trigger on pushes to the main branch
+      - main
 
 jobs:
   create_tagged_release:

@@ -83,7 +83,13 @@ Function Export-DevSetupEnv {
             Write-StatusMessage "EnvName sanitized from '$Name' to '$SanitizedEnvName' (removed non-alphanumeric characters)" -ForegroundColor Yellow
         }
 
-        $BasePath = Join-Path -Path (Get-DevSetupEnvPath) -ChildPath $Provider
+        $DevSetupEnvPath = (Get-DevSetupEnvPath)
+        if($null -eq $DevSetupEnvPath) {
+            Write-StatusMessage "Failed to determine DevSetup environment path" -Verbosity Error
+            return $null
+        }
+
+        $BasePath = Join-Path -Path $DevSetupEnvPath -ChildPath $Provider
         if(-not (Test-Path -Path $BasePath)) {
             New-Item -Path $BasePath -ItemType Directory -Force | Out-Null
         }

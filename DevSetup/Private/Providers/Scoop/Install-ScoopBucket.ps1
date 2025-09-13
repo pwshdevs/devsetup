@@ -67,50 +67,70 @@
     Bucket Management, Repository Addition
 #>
 Function Install-ScoopBucket {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     Param(
         [Parameter(Mandatory=$true)]
         [string]$Name,
         [string]$Source
     )
 
-    if(-Not (Test-ScoopInstalled)) {
+    try {
+        if(-Not (Test-ScoopInstalled)) {
+            return $false
+        }
+    } catch {
+        Write-StatusMessage "Scoop is not installed. $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 
-    $scoopCommand = Find-Scoop
-    if (-Not ($scoopCommand)) {
+    try {
+        $scoopCommand = Find-Scoop
+        if (-Not ($scoopCommand)) {
+            return $false
+        }
+    } catch {
+        Write-StatusMessage "Failed to find Scoop command: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 
     try {
         [InstalledState]$bucketState = Test-ScoopComponentInstalled -Bucket -Name $Name
-        if ($bucketState -ne [InstalledState]::Pass) {
-            $installArgs = @("bucket", "add", $Name)
-            
-            # If a source is provided, add it to the command arguments
-            if ($Source) {
-                $installArgs += $Source
-            }
+    } catch {
+        Write-StatusMessage "Failed to check if Scoop bucket '$Name' is installed: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
 
-            # Execute the command to add the bucket
-            $command = {
-                & $scoopCommand @installArgs *> $null
-            }
-            Invoke-Command -ScriptBlock $command | Out-Null
-            if ($LASTEXITCODE -ne 0) {
-                return $false
-            }
+    if ($bucketState -ne [InstalledState]::Pass) {
+        $installArgs = @("bucket", "add", $Name)
+        
+        # If a source is provided, add it to the command arguments
+        if ($Source) {
+            $installArgs += $Source
+        }
 
+        if ($PSCmdlet.ShouldProcess($Name, "Add Scoop Bucket")) {
+            Invoke-Command -ScriptBlock { & $scoopCommand @installArgs } *> $null
+        }
+        
+        if ($LASTEXITCODE -ne 0) {
+            return $false
+        }
+
+        try {
             if (-not (Write-ScoopCache)) {
                 return $false
-            }            
-            
-            return $true
-        } else {
-            return $true
-        }        
-    } catch {
-        return $false
+            }    
+        } catch {
+            Write-StatusMessage "Failed to update Scoop cache after adding bucket '$Name': $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false        
+        }
+
+        return $true
+    } else {
+        return $true
     }
 }

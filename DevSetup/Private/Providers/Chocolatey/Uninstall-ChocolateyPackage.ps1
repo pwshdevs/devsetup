@@ -64,7 +64,7 @@
 #>
 
 Function Uninstall-ChocolateyPackage {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     Param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -77,21 +77,24 @@ Function Uninstall-ChocolateyPackage {
             throw "Chocolatey package uninstallation requires administrator privileges. Please run as administrator."
         }
 
-        Write-Debug "Uninstalling Chocolatey package: $PackageName"
+        Write-StatusMessage "Uninstalling Chocolatey package: $PackageName" -Verbosity Debug
         
         # Uninstall the package
-        Invoke-Expression "& choco uninstall -y $PackageName --remove-dependencies --all-versions --ignore-package-exit-codes" | Out-Null
+        if ($PSCmdlet.ShouldProcess($PackageName, "Uninstall Chocolatey package")) {
+            Invoke-Command -ScriptBlock { "& choco uninstall -y $PackageName --remove-dependencies --all-versions --ignore-package-exit-codes" | Out-Null }
+        }
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Debug "Chocolatey package '$PackageName' uninstalled successfully."
+            Write-StatusMessage "Chocolatey package '$PackageName' uninstalled successfully." -Verbosity Debug
             return $true
         } else {
-            Write-Error "Failed to uninstall Chocolatey package '$PackageName'."
+            Write-StatusMessage "Failed to uninstall Chocolatey package '$PackageName'." -Verbosity Error
             return $false
         }
     }
     catch {
-        Write-Error "Error uninstalling Chocolatey package: $_"
+        Write-StatusMessage "Error uninstalling Chocolatey package: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 }

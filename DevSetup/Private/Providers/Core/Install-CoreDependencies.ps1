@@ -77,6 +77,8 @@ Function Install-CoreDependencies {
             Write-StatusMessage "Failed to install NuGet PackageProvider" -Verbosity Error
             return $false
         }
+    } else {
+        Write-StatusMessage "Skipping NuGet installation on non-Windows platform" -Verbosity Debug
     }
 
     # Get required modules from DevSetup manifest
@@ -119,7 +121,32 @@ Function Install-CoreDependencies {
             Write-StatusMessage "[OK]" -ForegroundColor Green
         }
 
-        $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH", "User") + ";" + [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
+        # Refresh PATH to include newly installed Git, but preserve existing session paths
+        $userPath = Get-EnvironmentVariable -Name "PATH" -Scope "User"
+        $machinePath = Get-EnvironmentVariable -Name "PATH" -Scope "Machine"
+        $currentPath = $env:PATH
+        
+        # Only add paths that aren't already in the current PATH
+        $pathsToAdd = @()
+        if ($userPath) {
+            $userPath.Split(';') | ForEach-Object { 
+                if ($_ -and $currentPath -notlike "*$_*") { 
+                    $pathsToAdd += $_ 
+                } 
+            }
+        }
+        if ($machinePath) {
+            $machinePath.Split(';') | ForEach-Object { 
+                if ($_ -and $currentPath -notlike "*$_*") { 
+                    $pathsToAdd += $_ 
+                } 
+            }
+        }
+        
+        # Append new paths to existing PATH instead of replacing it
+        if ($pathsToAdd.Count -gt 0) {
+            $env:PATH = $currentPath + ";" + ($pathsToAdd -join ";")
+        }
 
         # Install Scoop PackageProvider
         if (-not (Install-Scoop)) {
@@ -127,9 +154,12 @@ Function Install-CoreDependencies {
             return $false
         } 
     } else {
+        Write-StatusMessage "Skipping Windows-only installations on non-Windows platform" -Verbosity Debug
         if (-not (Install-Homebrew)) {
             Write-StatusMessage "Failed to install Homebrew" -Verbosity Error
             return $false
+        } else {
+            Write-StatusMessage "Homebrew installation succeeded" -Verbosity Debug
         }
     }
 

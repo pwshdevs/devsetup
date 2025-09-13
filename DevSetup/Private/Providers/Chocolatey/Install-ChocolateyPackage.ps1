@@ -74,7 +74,7 @@
 #>
 
 Function Install-ChocolateyPackage {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     Param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -129,11 +129,9 @@ Function Install-ChocolateyPackage {
 
         $chocoCommand = Get-Command choco -ErrorAction SilentlyContinue
 
-        $command = {
-            & $chocoCommand @installParams
+        if ($PSCmdlet.ShouldProcess($PackageName, "Install Chocolatey package")) {
+            Invoke-Command -ScriptBlock { & $chocoCommand @installParams | Out-Null }
         }
-
-        Invoke-Command -ScriptBlock $command | Out-Null
         
         if ($LASTEXITCODE -eq 0) {
             Write-Debug "INSTALL:Successfully installed: $PackageName"

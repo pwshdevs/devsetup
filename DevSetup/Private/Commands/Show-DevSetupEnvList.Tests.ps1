@@ -198,6 +198,63 @@ Describe "Show-DevSetupEnvList" {
         }
     }
 
+    Context "When current platform cannot be detected" {
+        It "Should default to windows platform" {
+            Mock Format-PrettyTable { }
+            Mock Test-OperatingSystem { param($Windows, $Linux, $MacOS) $false }  # All OS checks return false
+            Show-DevSetupEnvList -Platform "current"
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Filtering for platform: windows" }
+            Assert-MockCalled Format-PrettyTable -Exactly 1 -Scope It -ParameterFilter { $Rows.Count -eq 1 }
+        }
+    }
+
+    Context "When using the Installed parameter" {
+        It "Should add installed only message to status output" {
+            Mock Format-PrettyTable { }
+            Show-DevSetupEnvList -Platform "all" -Installed
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match ", installed only" }
+            Assert-MockCalled Format-PrettyTable -Exactly 1 -Scope It
+        }
+    }
+
+    Context "When environment has no platform specified" {
+        It "Should display 'Not specified' for platform" {
+            Mock Format-PrettyTable { param($Rows) 
+                # Check that at least one row has "Not specified" as platform
+                $hasNotSpecified = $Rows | Where-Object { $_.Platform -eq "Not specified" }
+                if (-not $hasNotSpecified) { 
+                    throw "Expected at least one environment with 'Not specified' platform" 
+                }
+            }
+            Mock ConvertFrom-Json { 
+                @(
+                    @{ name = "EnvNoPlat"; version = "1.0"; provider = "local"; file = "envnoplat.yaml" }  # No platform property
+                )
+            }
+            Show-DevSetupEnvList -Platform "all"
+            Assert-MockCalled Format-PrettyTable -Exactly 1 -Scope It
+        }
+    }
+
+    Context "When environment has no version specified" {
+        It "Should display 'Unknown' for version" {
+            Mock Format-PrettyTable { param($Rows) 
+                # Check that at least one row has "Unknown" as version
+                $hasUnknown = $Rows | Where-Object { $_.Version -eq "Unknown" }
+                if (-not $hasUnknown) { 
+                    throw "Expected at least one environment with 'Unknown' version" 
+                }
+            }
+            Mock ConvertFrom-Json { 
+                @(
+                    @{ name = "EnvNoVer"; platform = "windows"; provider = "local"; file = "envnover.yaml" }  # No version property
+                )
+            }
+            Show-DevSetupEnvList -Platform "all"
+            Assert-MockCalled Format-PrettyTable -Exactly 1 -Scope It
+        }
+    }
+
     Context "When environments are found" {
         It "Should display the environments table and count" {
             Mock Format-PrettyTable { }

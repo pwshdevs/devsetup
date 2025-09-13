@@ -10,7 +10,15 @@ Describe "Read-HomebrewCache" {
             Mock Get-HomebrewCacheFile { $mockCachePath }
             Mock Test-Path { $true }
             Mock Get-Content { '{"package1": "version1", "package2": "version2"}' }
-            Mock ConvertFrom-Json { @{ package1 = "version1"; package2 = "version2" } }
+            
+            # Mock ConvertFrom-Json to return PSCustomObject as it would in real usage
+            Mock ConvertFrom-Json { 
+                $obj = [PSCustomObject]@{ 
+                    package1 = "version1"
+                    package2 = "version2" 
+                }
+                return $obj
+            }
 
             $result = Read-HomebrewCache
             $result | Should -BeOfType [hashtable]
@@ -47,7 +55,10 @@ Describe "Read-HomebrewCache" {
             Mock Get-HomebrewCacheFile { $mockCachePath }
             Mock Test-Path { $true }
             Mock Get-Content { '{"git": "2.30.1"}' }
-            Mock ConvertFrom-Json { @{ git = "2.30.1" } }
+            Mock ConvertFrom-Json { 
+                $obj = [PSCustomObject]@{ git = "2.30.1" }
+                return $obj
+            }
 
             $result = Read-HomebrewCache
             $result["git"] | Should -Be "2.30.1"
@@ -58,7 +69,10 @@ Describe "Read-HomebrewCache" {
             Mock Get-HomebrewCacheFile { $mockCachePath }
             Mock Test-Path { $true }
             Mock Get-Content { '{"git": "2.30.1"}' }
-            Mock ConvertFrom-Json { @{ git = "2.30.1" } }
+            Mock ConvertFrom-Json { 
+                $obj = [PSCustomObject]@{ git = "2.30.1" }
+                return $obj
+            }
 
             $result = Read-HomebrewCache
             $result["git"] | Should -Be "2.30.1"
@@ -69,9 +83,37 @@ Describe "Read-HomebrewCache" {
             Mock Get-HomebrewCacheFile { $mockCachePath }
             Mock Test-Path { $true }
             Mock Get-Content { '{"git": "2.30.1"}' }
-            Mock ConvertFrom-Json { @{ git = "2.30.1" } }
+            Mock ConvertFrom-Json { 
+                $obj = [PSCustomObject]@{ git = "2.30.1" }
+                return $obj
+            }
 
             $result = Read-HomebrewCache
+            $result["git"] | Should -Be "2.30.1"
+        }
+
+        It "should convert PSCustomObject to Hashtable correctly" {
+            $mockCachePath = Join-Path $TestDrive "homebrew.cache"
+            Mock Get-HomebrewCacheFile { $mockCachePath }
+            Mock Test-Path { $true }
+            Mock Get-Content { '{"node": "16.0.0", "npm": "7.10.0", "git": "2.30.1"}' }
+            Mock ConvertFrom-Json { 
+                $obj = [PSCustomObject]@{ 
+                    node = "16.0.0"
+                    npm = "7.10.0"
+                    git = "2.30.1"
+                }
+                return $obj
+            }
+
+            $result = Read-HomebrewCache
+            $result | Should -BeOfType [hashtable]
+            $result.Count | Should -Be 3
+            $result.ContainsKey("node") | Should -Be $true
+            $result.ContainsKey("npm") | Should -Be $true  
+            $result.ContainsKey("git") | Should -Be $true
+            $result["node"] | Should -Be "16.0.0"
+            $result["npm"] | Should -Be "7.10.0"
             $result["git"] | Should -Be "2.30.1"
         }
     }

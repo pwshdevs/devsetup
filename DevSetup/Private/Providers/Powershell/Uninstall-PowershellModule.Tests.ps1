@@ -1,12 +1,11 @@
 BeforeAll {
-    . $PSScriptRoot\Uninstall-PowershellModule.ps1
-    . $PSScriptRoot\Test-PowershellModuleInstalled.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Enums\InstalledState.ps1    
+    . (Join-Path $PSScriptRoot "Uninstall-PowershellModule.ps1")
+    . (Join-Path $PSScriptRoot "Test-PowershellModuleInstalled.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Enums\InstalledState.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
     Mock Test-RunningAsAdmin { return $true }
-    Mock Write-Warning { }
-    Mock Write-Error { }
-    Mock Write-Debug { }
+    Mock Write-StatusMessage { }
 }
 
 Describe "Uninstall-PowershellModule" {
@@ -23,7 +22,7 @@ Describe "Uninstall-PowershellModule" {
         It "Should return false and warn" {
             $callCount = 0
             Mock Test-PowershellModuleInstalled -MockWith {
-                param($ModuleName, $Scope)
+                param()
                 $callCount++
                 if ($callCount -eq 1) { return [InstalledState]::Installed }
                 if ($callCount -eq 2) { return [InstalledState]::Pass }
@@ -39,7 +38,7 @@ Describe "Uninstall-PowershellModule" {
         It "Should remove and uninstall the module, returning true" {
             $script:callCount = 0
             Mock Test-PowershellModuleInstalled -MockWith {
-                param($ModuleName, $Scope)
+                param()
                 $script:callCount++
                 if ($script:callCount -eq 1) { return [InstalledState]::Installed }
                 if ($script:callCount -eq 2) { return [InstalledState]::Installed }
@@ -49,11 +48,11 @@ Describe "Uninstall-PowershellModule" {
             $script:removeCalled = $false
             $script:uninstallCalled = $false
             Mock Remove-Module -MockWith {
-                param([string]$Name, [switch]$Force, [string]$ErrorAction)
+                param()
                 $script:removeCalled = $true
             }
             Mock Uninstall-Module -MockWith {
-                param([string]$Name, [switch]$Force, [string]$ErrorAction)
+                param()
                 $script:uninstallCalled = $true
             }
             $result = Uninstall-PowershellModule -ModuleName "posh-git"
@@ -67,17 +66,17 @@ Describe "Uninstall-PowershellModule" {
         It "Should return false and write error" {
             $script:callCount = 0
             Mock Test-PowershellModuleInstalled -MockWith {
-                param($ModuleName, $Scope)
+                param()
                 $script:callCount++
                 if ($script:callCount -eq 1) { return [InstalledState]::Installed }
                 if ($script:callCount -eq 2) { return [InstalledState]::Installed }
                 return [InstalledState]::NotInstalled
             }
             Mock Remove-Module -MockWith {
-                param([string]$Name, [switch]$Force, [string]$ErrorAction)
+                param()
             }
             Mock Uninstall-Module -MockWith {
-                param([string]$Name, [switch]$Force, [string]$ErrorAction)
+                param()
                 throw "Uninstall failed"
             }
             $result = Uninstall-PowershellModule -ModuleName "PSReadLine"
@@ -89,7 +88,7 @@ Describe "Uninstall-PowershellModule" {
         It "Should return false" {
             $script:callCount = 0
             Mock Test-PowershellModuleInstalled -MockWith {
-                param($ModuleName, $Scope)
+                param()
                 $script:callCount++
                 if ($script:callCount -eq 1) { return [InstalledState]::Installed }
                 if ($script:callCount -eq 2) { return [InstalledState]::Installed }
@@ -97,10 +96,10 @@ Describe "Uninstall-PowershellModule" {
                 return [InstalledState]::NotInstalled
             }
             Mock Remove-Module -MockWith {
-                param([string]$Name, [switch]$Force, [string]$ErrorAction)
+                param()
             }
             Mock Uninstall-Module -MockWith {
-                param([string]$Name, [switch]$Force, [string]$ErrorAction)
+                param()
             }
             $result = Uninstall-PowershellModule -ModuleName "PowerShellGet"
             $result | Should -Be $false

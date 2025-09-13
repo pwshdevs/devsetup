@@ -13,19 +13,21 @@ Function Test-OperatingSystem {
     )
 
     if((Get-PwshVersion).Major -lt 6) {
-        $IsPS5Windows = $true
-        $IsPS5Linux = $false
-        $IsPS5MacOS = $false
+        if ($Windows) {
+            return $true
+        } else {
+            return $false
+        }
     }
 
     if($Windows) {
-        return ($IsPS5Windows -or $IsWindows)
+        return $IsWindows
     }
     if($Linux) {
-        return ($IsPS5Linux -or $IsLinux)
+        return $IsLinux
     }
     if($MacOS) {
-        return ($IsPS5MacOS -or $IsMacOS)
+        return $IsMacOS
     }
     return $false
 }

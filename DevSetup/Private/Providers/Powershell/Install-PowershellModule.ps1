@@ -77,7 +77,7 @@
 #>
 
 Function Install-PowershellModule {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     Param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -130,15 +130,18 @@ Function Install-PowershellModule {
 
         if($testResult.HasFlag([InstalledState]::Installed)) {
             try {
-                Uninstall-PowershellModule -ModuleName $ModuleName
+                Uninstall-PowershellModule -ModuleName $ModuleName -WhatIf:$WhatIf
             } catch {
                 # Uninstall might have failed, we keep going anyways
-                Write-Debug "Failed to uninstall existing module '$ModuleName': $_"
+                Write-StatusMessage "Failed to uninstall existing module '$ModuleName': $_" -Verbosity Error
+                Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
             }
         }
 
         # Install the PowerShell module
-        Install-Module @installParams
+        if ($PSCmdlet.ShouldProcess($ModuleName, "Install-Module")) {
+            Install-Module @installParams
+        }
         return $true
     }
     catch {

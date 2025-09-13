@@ -63,7 +63,10 @@
 #>
 Function Install-Scoop {
     [CmdletBinding()]
-    Param ()
+    Param (
+        [Parameter(Mandatory = $false)]
+        [switch]$DryRun
+    )
 
     Write-StatusMessage "- Installing Scoop package manager" -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline
     if(-not (Test-ScoopInstalled)) {

@@ -90,19 +90,6 @@ Function Test-PowershellModuleInstalled {
         [string]$Scope
     )
 
-    # CurrentUser ps5.1
-    # $env:USERPROFILE\Documents\WindowsPowerShell\Modules
-    # CurrentUser ps7
-    # $env:USERPROFILE\Documents\PowerShell\Modules
-    # CurrentUser ps7 (linux/macos)
-    # $env:HOME/.local/share/powershell/Modules
-
-    # AllUsers ps5.1
-    # $env:ProgramFiles\WindowsPowerShell\Modules
-    # AllUsers ps7
-    # $env:ProgramFiles\PowerShell\Modules
-    # AllUsers ps7 (linux/macos)
-    # $env:HOME/.local/share/powershell/Modules
     if((Test-OperatingSystem -Windows)) {
         $SearchPath = (Get-EnvironmentVariable USERPROFILE)
     } else {
@@ -123,8 +110,8 @@ Function Test-PowershellModuleInstalled {
 
     try {
         $module = Get-Module -Name $ModuleName -ListAvailable -ErrorAction Stop | 
-                  Sort-Object Version -Descending | 
-                  Select-Object -First 1
+                Sort-Object Version -Descending | 
+                Select-Object -First 1
         
         if ($module) {
             $installedState = [InstalledState]::Installed
