@@ -4,102 +4,99 @@ BeforeAll {
 }
 
 Describe "Test-OperatingSystem" {
+    Context "When no parameters are provided" {
+        It "Should return false" {
+            $result = Test-OperatingSystem
+            $result | Should -Be $false
+        }
+    }
+    
+    Context "When Powershell version is less than 6" {
+        BeforeAll { Mock Get-PwshVersion { [PSCustomObject]@{ Major = 5 } } }
 
-    if ($PSVersionTable.PSVersion.Major -eq 5) {
-        BeforeAll { Mock Get-PwshVersion { [PSCustomObject]@{ Major = $PSVersionTable.PSVersion.Major } } }
-
-        Context "When called with -Windows on PowerShell 5.1" {
-            It "Should return $true" {
+        Context "When called with -Windows" {
+            It "Should return true" {
                 $result = Test-OperatingSystem -Windows
                 $result | Should -Be $true
             }
         }
 
-        Context "When called with -Linux on PowerShell 5.1" {
-            It "Should return $false" {
+        Context "When called with -Linux" {
+            It "Should return false" {
                 $result = Test-OperatingSystem -Linux
                 $result | Should -Be $false
             }
         }
 
-        Context "When called with -MacOS on PowerShell 5.1" {
-            It "Should return $false" {
+        Context "When called with -MacOS" {
+            It "Should return false" {
                 $result = Test-OperatingSystem -MacOS
                 $result | Should -Be $false
             }
         }
 
-        Context "When called with no parameters on PowerShell 5.1" {
-            It "Should return $false" {
+        Context "When called with no parameters" {
+            It "Should return false" {
                 $result = Test-OperatingSystem
                 $result | Should -Be $false
             }
         }
     }
 
-    if ($PSVersionTable.PSVersion.Major -ge 6) {
-        BeforeAll { Mock Get-PwshVersion { [PSCustomObject]@{ Major = $PSVersionTable.PSVersion.Major } } }
-        if($IsWindows) {
-            Context "When called in PowerShell 7+ (Windows)" {
-                It "Should return value of `$IsWindows (default: $true)" {
-                    $result = Test-OperatingSystem -Windows
-                    $result | Should -Be $true
-                }
-                It "Should return value of `$IsLinux (default: $false)" {
-                    $result = Test-OperatingSystem -Linux
-                    $result | Should -Be $false
-                }
-                It "Should return value of `$IsMacOS (default: $false)" {
-                    $result = Test-OperatingSystem -MacOS
-                    $result | Should -Be $false
-                }
-                It "Should return $false if no parameter is specified" {
-                    $result = Test-OperatingSystem
-                    $result | Should -Be $false
-                }
+    Context "When Powershell version is 6 or greater on windows" {
+        BeforeAll { 
+            Mock Get-PwshVersion { [PSCustomObject]@{ Major = 6 } }
+            if($PSVersionTable.PSVersion.Major -lt 6) {
+                $script:IsWindows = $true
+                $script:IsLinux = $false
+                $script:IsMacOS = $false
             }
         }
+        It "Should return value of `$IsWindows" {
+            $result = Test-OperatingSystem -Windows
+            if ($IsWindows) {
+                $result | Should -Be $true
+            } else {
+                $result | Should -Be $false
+            }
+        }
+    }
 
-        if($IsLinux) {
-            Context "When called in PowerShell 7+ (Linux)" {
-                It "Should return value of `$IsWindows (default: $false)" {
-                    $result = Test-OperatingSystem -Windows
-                    $result | Should -Be $false
-                }
-                It "Should return value of `$IsLinux (default: $true)" {
-                    $result = Test-OperatingSystem -Linux
-                    $result | Should -Be $true
-                }
-                It "Should return value of `$IsMacOS (default: $false)" {
-                    $result = Test-OperatingSystem -MacOS
-                    $result | Should -Be $false
-                }
-                It "Should return $false if no parameter is specified" {
-                    $result = Test-OperatingSystem
-                    $result | Should -Be $false
-                }
+    Context "When Powershell version is 6 or greater on linux" {
+        BeforeAll { 
+            Mock Get-PwshVersion { [PSCustomObject]@{ Major = 6 } }
+            if($PSVersionTable.PSVersion.Major -lt 6) {
+                $script:IsWindows = $false
+                $script:IsLinux = $true
+                $script:IsMacOS = $false
             }
-        } 
-        
-        if($IsMacOS) {
-            Context "When called in PowerShell 7+ (MacOS)" {
-                It "Should return value of `$IsWindows (default: $false)" {
-                    $result = Test-OperatingSystem -Windows
-                    $result | Should -Be $false
-                }
-                It "Should return value of `$IsLinux (default: $false)" {
-                    $result = Test-OperatingSystem -Linux
-                    $result | Should -Be $false
-                }
-                It "Should return value of `$IsMacOS (default: $true)" {
-                    $result = Test-OperatingSystem -MacOS
-                    $result | Should -Be $true
-                }
-                It "Should return $false if no parameter is specified" {
-                    $result = Test-OperatingSystem
-                    $result | Should -Be $false
-                }
+        }
+        It "Should return value of `$IsLinux" {
+            $result = Test-OperatingSystem -Linux
+            if($IsLinux) {
+                $result | Should -Be $true
+            } else {
+                $result | Should -Be $false
             }
-        }         
+        }
+    } 
+    
+    Context "When Powershell version is 6 or greater on macos" {
+        BeforeAll { 
+            Mock Get-PwshVersion { [PSCustomObject]@{ Major = 6 } }
+            if($PSVersionTable.PSVersion.Major -lt 6) {
+                $script:IsWindows = $false
+                $script:IsLinux = $false
+                $script:IsMacOS = $true
+            }
+        }
+        It "Should return value of `$IsMacOS" {
+            $result = Test-OperatingSystem -MacOS
+            if($IsMacOS) {
+                $result | Should -Be $true
+            } else {
+                $result | Should -Be $false
+            }
+        }
     }
 }

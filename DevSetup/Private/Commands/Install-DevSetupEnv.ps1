@@ -38,8 +38,8 @@
     - Processes dependencies in a specific order: PowerShell modules, Chocolatey packages, then Scoop components
     - Commands are executed after all package installations are complete
     - Individual installation failures do not stop the overall process
-    - Uses Read-ConfigurationFile to parse YAML configuration
-    - Leverages Install-PowershellModules, Install-ChocolateyPackages, and Install-ScoopComponents functions
+    - Uses Read-DevSetupEnvFile to parse YAML configuration
+    - Leverages Install-PowershellModules, Invoke-ChocolateyPackageInstall, and Invoke-ScoopComponentInstall functions
     - Custom commands are executed using Invoke-CommandFromEnv function
     - Provides detailed console output with color-coded status messages
     - Skips command entries that are missing the required command property
@@ -70,7 +70,7 @@ Function Install-DevSetupEnv {
     $YamlFile = $null
 
     if($PSBoundParameters.ContainsKey('Name')) {
-        $Provider = "local"
+        $Provider = $null
 
         if($Name -like "*:*") {
             $parts = $Name.Split(":")
@@ -78,7 +78,19 @@ Function Install-DevSetupEnv {
             $Provider = $parts[0]
         }
 
-        $YamlFile = Join-Path -Path (Join-Path -Path (Get-DevSetupEnvPath) -ChildPath $Provider) -ChildPath "$Name.devsetup"
+        if ([string]::IsNullOrWhiteSpace($Provider)) {
+            $Provider = "local"
+        }
+
+        try {
+            $envPath = Get-DevSetupEnvPath
+        } catch {
+            Write-StatusMessage "Failed to get environment path. $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return
+        }
+
+        $YamlFile = Join-Path -Path (Join-Path -Path $envPath -ChildPath $Provider) -ChildPath "$Name.devsetup"
     } elseif($PSBoundParameters.ContainsKey('Path')) {
         if(-not (Test-Path -Path $Path)) {
             Write-StatusMessage "Invalid Path provided" -Verbosity Error
@@ -86,14 +98,30 @@ Function Install-DevSetupEnv {
         }
         $YamlFile = $Path
     } elseif($PSBoundParameters.ContainsKey('Url')) {
+        try {
+            $envPath = Get-DevSetupLocalEnvPath
+        } catch {
+            Write-StatusMessage "Failed to get environment path. $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return
+        } 
+
         $FileName = Split-Path $Url -Leaf
+        if(-not $FileName.EndsWith(".devsetup")) {
+            Write-StatusMessage "URL must point to a .devsetup file" -Verbosity Error
+            return
+        }
+
         Write-StatusMessage "Downloading DevSetup environment from:" -ForegroundColor Cyan
         Write-StatusMessage "- $Url" -Indent 2 -ForegroundColor Gray
-        $YamlFile = Join-Path -Path (Get-DevSetupLocalEnvPath) -ChildPath $FileName
+
+        $YamlFile = Join-Path -Path $envPath -ChildPath $FileName
+
         Write-StatusMessage "Saving Devsetup environment file to:" -ForegroundColor Cyan
         Write-StatusMessage "- $YamlFile" -Indent 2 -ForegroundColor Gray
+
         if((Test-Path -Path $YamlFile)) {
-            Write-Warning "File $YamlFile already exists"
+            Write-StatusMessage "File $YamlFile already exists" -Verbosity Warning
             do {
                 if(($sAnswer = Read-Host "Overwrite existing file and continue? [Y/N]") -eq '') { $sAnswer = 'N' }
             } until ($sAnswer.ToUpper()[0] -match '[yYnN]')
@@ -118,7 +146,13 @@ Function Install-DevSetupEnv {
     Write-StatusMessage "- $YamlFile`n" -Indent 2 -ForegroundColor Gray
 
     # Read the configuration from the YAML file
-    $YamlData = Read-ConfigurationFile -Config $YamlFile
+    try {
+        $YamlData = Read-DevSetupEnvFile -Config $YamlFile
+    } catch {
+        Write-StatusMessage "Failed to read or parse environment file: $YamlFile. $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return
+    }
 
     # Check if YAML data was successfully parsed
     if ($null -eq $YamlData) {
@@ -127,17 +161,41 @@ Function Install-DevSetupEnv {
     }
 
     # Install PowerShell module dependencies
-    Install-PowershellModules -YamlData $YamlData | Out-Null
+    try {
+        Invoke-PowerShellModulesInstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
+    } catch {
+        Write-StatusMessage "An error occurred during PowerShell module installation: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return
+    }
 
     if ((Test-OperatingSystem -Windows)) {
         # Install Chocolatey package dependencies
-        Install-ChocolateyPackages -YamlData $YamlData | Out-Null
+        try {
+            Invoke-ChocolateyPackageInstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
+        } catch {
+            Write-StatusMessage "An error occurred during Chocolatey package installation: $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return
+        }
 
         # Install Scoop package dependencies
-        Install-ScoopComponents -YamlData $YamlData | Out-Null
+        try {
+            Invoke-ScoopComponentInstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
+        } catch {
+            Write-StatusMessage "An error occurred during Scoop component installation: $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return
+        }
     } else {
         # Install Homebrew package dependencies
-        Invoke-HomebrewComponentsInstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
+        try {
+            Invoke-HomebrewComponentsInstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
+        } catch {
+            Write-StatusMessage "An error occurred during Homebrew component installation: $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return
+        }
     }
     # Execute any commands defined in the configuration
     if ($YamlData.devsetup.commands -and $YamlData.devsetup.commands.Count -gt 0) {
@@ -146,7 +204,48 @@ Function Install-DevSetupEnv {
         foreach ($commandEntry in $YamlData.devsetup.commands) {
             if ($commandEntry.command) {
                 Write-StatusMessage "- Executing command for: $($commandEntry.packageName)" -Indent 2 -ForegroundColor Gray
-                Invoke-Expression -Command $commandEntry.command *> $null
+                if ($commandEntry.params) {
+                    Write-StatusMessage "Running command: $Command with parameters: " -Verbosity Debug
+                    $CommandParams = @{}
+                    if ($commandEntry.params -is [hashtable]) {
+                        foreach ($param in $commandEntry.params.GetEnumerator()) {
+                            $CommandParams[$param.Key] = $param.Value
+                            Write-StatusMessage " - Parameter: $($param.Key) = $($param.Value)" -Verbosity Debug
+                        }
+                    } elseif ($commandEntry.params -is [PSCustomObject]) {
+                        foreach ($param in $commandEntry.params.PSObject.Properties) {
+                            $CommandParams[$param.Name] = $param.Value
+                            Write-StatusMessage " - Parameter: $($param.Name) = $($param.Value)" -Verbosity Debug
+                        }
+                    }
+                    $CommandParams.LogFile = $PSDefaultParameterValues['Write-EZLog:LogFile']
+                    $Command = $commandEntry.command
+                    try {
+                        $result = Invoke-Command -ScriptBlock { & $Command @CommandParams }
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-StatusMessage "Command failed with exit code $LASTEXITCODE : $result" -Verbosity Error
+                        } else {
+                            Write-StatusMessage "Command completed successfully." -Verbosity Verbose
+                            Write-StatusMessage "- Command $($commandEntry.packageName) completed successfully." -ForegroundColor Gray -Indent 2
+                        }
+                    } catch {
+                            Write-StatusMessage "Command execution failed: $_" -Verbosity Error
+                            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+                    }
+                } else {
+                    try {
+                        Invoke-Command -ScriptBlock { & $commandEntry.command *> $null }
+                        if ($LASTEXITCODE -ne 0) {
+                            Write-StatusMessage "Command failed with exit code $LASTEXITCODE" -Verbosity Error
+                        } else {
+                            Write-StatusMessage "Command completed successfully." -Verbosity Verbose
+                            Write-StatusMessage "- Command $($commandEntry.packageName) completed successfully." -ForegroundColor Gray -Indent 2
+                        }
+                    } catch {
+                        Write-StatusMessage "Command execution failed: $_" -Verbosity Error
+                        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+                    }
+                }
             } else {
                 Write-StatusMessage "Skipping command entry with missing command property" -Verbosity Warning
             }

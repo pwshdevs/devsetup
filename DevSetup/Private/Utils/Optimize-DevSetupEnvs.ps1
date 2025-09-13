@@ -29,7 +29,7 @@
                 Write-Debug "Processing: $($devsetupEnvFile.Name)"
                 
                 # Read the YAML configuration
-                $config = Read-ConfigurationFile -Config $devsetupEnvFile.FullName
+                $config = Read-DevSetupEnvFile -Config $devsetupEnvFile.FullName
                 
                 # Extract environment name (filename without extension)
                 $envName = [System.IO.Path]::GetFileNameWithoutExtension($devsetupEnvFile.Name)

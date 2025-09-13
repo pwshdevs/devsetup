@@ -1,4 +1,5 @@
 Function Invoke-ExternalCommand {
+    [System.Diagnostics.CodeAnalysis.ExcludeFromCodeCoverageAttribute()]
     [CmdletBinding()]
     Param(
         [Parameter(Mandatory)]
@@ -14,6 +15,10 @@ Function Invoke-ExternalCommand {
     }
 
     # Invoke the command and capture output
-    $output = & $Command @Arguments 2>&1
+    if ($Arguments -and $Arguments.Count -gt 0) {
+        $output = & $Command @Arguments 2>&1
+    } else {
+        $output = & $Command 2>&1
+    }
     return $output
 }

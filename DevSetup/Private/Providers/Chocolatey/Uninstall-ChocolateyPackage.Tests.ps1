@@ -1,10 +1,10 @@
 BeforeAll {
     . $PSScriptRoot\Uninstall-ChocolateyPackage.ps1
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1    
+    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
     Mock Test-RunningAsAdmin { $true }
-    Mock Write-Debug { }
-    Mock Write-Error { }
-    Mock Invoke-Expression { }
+    Mock Write-StatusMessage { }
+    Mock Invoke-Command { }
 }
 
 Describe "Uninstall-ChocolateyPackage" {
@@ -14,7 +14,7 @@ Describe "Uninstall-ChocolateyPackage" {
             Mock Test-RunningAsAdmin { $false }
             $result = Uninstall-ChocolateyPackage -PackageName "git"
             $result | Should -Be $false
-            Assert-MockCalled Write-Error -Scope It -ParameterFilter { $Message -match "administrator privileges" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "administrator privileges" -and $Verbosity -eq "Error"}
         }
     }
 
@@ -24,7 +24,7 @@ Describe "Uninstall-ChocolateyPackage" {
             $global:LASTEXITCODE = 0
             $result = Uninstall-ChocolateyPackage -PackageName "git"
             $result | Should -Be $true
-            Assert-MockCalled Write-Debug -Scope It -ParameterFilter { $Message -match "uninstalled successfully" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "uninstalled successfully" -and $Verbosity -eq "Debug"}
         }
     }
 
@@ -34,17 +34,17 @@ Describe "Uninstall-ChocolateyPackage" {
             $global:LASTEXITCODE = 1
             $result = Uninstall-ChocolateyPackage -PackageName "git"
             $result | Should -Be $false
-            Assert-MockCalled Write-Error -Scope It -ParameterFilter { $Message -match "Failed to uninstall" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Failed to uninstall" -and $Verbosity -eq "Error" }
         }
     }
 
     Context "When an exception occurs during uninstall" {
         It "Should write error and return false" {
             Mock Test-RunningAsAdmin { $true }
-            Mock Invoke-Expression { throw "Unexpected error" }
+            Mock Invoke-Command { throw "Unexpected error" }
             $result = Uninstall-ChocolateyPackage -PackageName "git"
             $result | Should -Be $false
-            Assert-MockCalled Write-Error -Scope It -ParameterFilter { $Message -match "Error uninstalling Chocolatey package" }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Error uninstalling Chocolatey package" -and $Verbosity -eq "Error" }
         }
     }
 }

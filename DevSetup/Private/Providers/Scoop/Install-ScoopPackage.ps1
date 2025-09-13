@@ -74,7 +74,7 @@
     Package Management, Package Installation
 #>
 Function Install-ScoopPackage {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     Param(
         [Parameter(Mandatory=$true)]
         [string]$PackageName,
@@ -95,69 +95,107 @@ Function Install-ScoopPackage {
         if(-Not (Test-ScoopInstalled)) {
             return $false
         }
+    } catch {
+        Write-StatusMessage "Scoop is not installed. $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
 
+    try {
         $scoopCommand = Find-Scoop
         if (-not $scoopCommand) {
             return $false
         }
-
-        $Params = @{
-            Package = $true
-            Name    = $PackageName
-        }
-
-        if($PSBoundParameters.ContainsKey('Version') -and $Version) {
-            $Params.Version = $Version
-        }
-
-        if($Global) {
-            $Params.Global = $Global
-        }
-
-        [InstalledState]$packageState = Test-ScoopComponentInstalled @Params
-        if ($packageState -eq [InstalledState]::Pass) {
-            Write-Debug "Scoop package '$PackageName' is already installed with the specified version and global scope."
-            return $true
-        } 
-
-        if($packageState.HasFlag([InstalledState]::Installed)) {
-            Write-Debug "Scoop package '$PackageName' is installed but does not meet the global scope and/or version requirements. Reinstalling..."
-            Uninstall-ScoopPackage -PackageName $PackageName | Out-null
-        }
-
-        $fullPackageName = $PackageName
-        if ($PSBoundParameters.ContainsKey('Bucket')) {
-            $fullPackageName = "$Bucket/$PackageName"
-        }
-        
-        # Add version if specified
-        if ($PSBoundParameters.ContainsKey('Version')) {
-            $fullPackageName += "@$Version"
-        }
-        
-        # Build arguments array for installation
-        $installArgs = @("install", $fullPackageName)
-        
-        # Add global flag if specified
-        if ($Global) {
-            $installArgs += "--global"
-        }
-        
-        # Execute the install command with proper argument parsing
-        $command = {
-            & $scoopCommand @installArgs *> $null
-        }
-
-        Invoke-Command -ScriptBlock $command | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            return $false
-        }
-
-        if (-not (Write-ScoopCache)) {
-            return $false
-        }        
-        return Test-ScoopComponentInstalled @Params
     } catch {
+        Write-StatusMessage "Failed to find Scoop command: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
+
+    $Params = @{
+        Package = $true
+        Name    = $PackageName
+    }
+
+    if($PSBoundParameters.ContainsKey('Version') -and $Version) {
+        $Params.Version = $Version
+    }
+
+    if($Global) {
+        $Params.Global = $Global
+    }
+
+    try {
+        [InstalledState]$packageState = Test-ScoopComponentInstalled @Params
+    } catch {
+        Write-StatusMessage "Failed to check if Scoop package '$PackageName' is installed: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    if ($packageState -eq [InstalledState]::Pass) {
+        Write-StatusMessage "Scoop package '$PackageName' is already installed with the specified version and global scope." -Verbosity Debug
+        return $true
+    } 
+
+    if($packageState.HasFlag([InstalledState]::Installed)) {
+        Write-StatusMessage "Scoop package '$PackageName' is installed but does not meet the global scope and/or version requirements. Reinstalling..." -Verbosity Debug
+        try {
+            Uninstall-ScoopPackage -PackageName $PackageName -WhatIf:$PSCmdlet.WhatIf | Out-null
+        } catch {
+            Write-StatusMessage "Failed to uninstall existing Scoop package '$PackageName': $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false
+        }
+    }
+
+    $fullPackageName = $PackageName
+    if ($PSBoundParameters.ContainsKey('Bucket')) {
+        $fullPackageName = "$Bucket/$PackageName"
+    }
+    
+    # Add version if specified
+    if ($PSBoundParameters.ContainsKey('Version')) {
+        $fullPackageName += "@$Version"
+    }
+    
+    # Build arguments array for installation
+    $installArgs = @("install", $fullPackageName)
+    
+    # Add global flag if specified
+    if ($Global) {
+        $installArgs += "--global"
+    }
+    
+    # Execute the install command with proper argument parsing
+    if ($PSCmdlet.ShouldProcess($PackageName, "Install Scoop Package")) {
+        try {
+            Invoke-Command -ScriptBlock { & $scoopCommand @installArgs } *> $null
+        } catch {
+            Write-StatusMessage "Failed to install Scoop package '$PackageName': $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false
+        }
+    } else {
+        Write-StatusMessage "Skipping installation of Scoop package '$PackageName' due to ShouldProcess" -Verbosity Debug
+        return $true
+    }
+    
+    if ($LASTEXITCODE -ne 0) {
+        return $false
+    }
+
+    if (-not (Write-ScoopCache)) {
+        return $false
+    }  
+    
+    $packageStatus = $false
+    try {
+        $packageStatus = Test-ScoopComponentInstalled @Params
+    } catch {
+        Write-StatusMessage "Failed to verify installation of Scoop package '$PackageName': $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+    return $packageStatus
 }

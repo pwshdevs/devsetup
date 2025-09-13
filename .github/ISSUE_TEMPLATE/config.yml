@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 Discussion Forum
+    url: https://github.com/pwshdevs/devsetup/discussions
+    about: Ask questions, share ideas, and discuss DevSetup with the community
+  - name: 📖 Documentation
+    url: https://www.pwshdevs.com/docs/devsetup
+    about: Read the official documentation and getting started guide
+  - name: 🔍 Search Issues
+    url: https://github.com/pwshdevs/devsetup/issues?q=is%3Aissue
+    about: Search existing issues before creating a new one
