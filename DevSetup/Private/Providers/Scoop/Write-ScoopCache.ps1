@@ -71,7 +71,7 @@ Function Write-ScoopCache {
     }
 
     try {
-        Invoke-Expression "& $scoopCommand export" | Set-Content -Path $CacheFilePath -Force | Out-Null
+        Invoke-Command -ScriptBlock { & $scoopCommand export | Set-Content -Path $CacheFilePath -Force }
         Write-Debug "Scoop cache written successfully: $CacheFilePath"
         return $true
     } catch {
