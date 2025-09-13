@@ -12,7 +12,7 @@ BeforeAll {
     . (Join-Path $PSScriptRoot "Write-StatusMessage.ps1")
     . (Join-Path $PSScriptRoot "Optimize-DevSetupEnvs.ps1")    
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Chocolatey\Invoke-ChocolateyPackageExport.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Scoop\Export-InstalledScoopPackages.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Scoop\Invoke-ScoopComponentExport.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Homebrew\Invoke-HomebrewComponentsExport.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Powershell\Invoke-PowershellModulesExport.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\3rdParty\ConvertFrom-3rdPartyInstall.ps1")
@@ -44,7 +44,7 @@ Describe "Write-NewConfig" {
             Mock Write-StatusMessage { }
             Mock Test-OperatingSystem { $true }  # Windows
             Mock Invoke-ChocolateyPackageExport { $true }
-            Mock Export-InstalledScoopPackages { $true }
+            Mock Invoke-ScoopComponentExport { $true }
             Mock Invoke-PowershellModulesExport { $true }
             Mock ConvertFrom-3rdPartyInstall { }
             Mock Optimize-DevSetupEnvs { }
@@ -54,7 +54,7 @@ Describe "Write-NewConfig" {
             Assert-MockCalled Test-Path -Exactly 1 -Scope It
             Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Invoke-ChocolateyPackageExport -Exactly 1 -Scope It
-            Assert-MockCalled Export-InstalledScoopPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentExport -Exactly 1 -Scope It
             Assert-MockCalled Invoke-PowershellModulesExport -Exactly 1 -Scope It
             $result | Should -Be $true
         }
@@ -74,7 +74,7 @@ Describe "Write-NewConfig" {
             Mock Write-StatusMessage { }
             Mock Test-OperatingSystem { $true }  # Windows
             Mock Invoke-ChocolateyPackageExport { $true }
-            Mock Export-InstalledScoopPackages { $true }
+            Mock Invoke-ScoopComponentExport { $true }
             Mock Invoke-PowershellModulesExport { $true }
             Mock ConvertFrom-3rdPartyInstall { }
             Mock Optimize-DevSetupEnvs { }
@@ -84,7 +84,7 @@ Describe "Write-NewConfig" {
             Assert-MockCalled Read-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Invoke-ChocolateyPackageExport -Exactly 1 -Scope It
-            Assert-MockCalled Export-InstalledScoopPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentExport -Exactly 1 -Scope It
             Assert-MockCalled Invoke-PowershellModulesExport -Exactly 1 -Scope It
         }
     }
@@ -103,7 +103,7 @@ Describe "Write-NewConfig" {
             Mock Write-StatusMessage { }
             Mock Test-OperatingSystem { $true }  # Windows
             Mock Invoke-ChocolateyPackageExport { $false }
-            Mock Export-InstalledScoopPackages { $true }
+            Mock Invoke-ScoopComponentExport { $true }
             Mock Invoke-PowershellModulesExport { $true }
             Mock ConvertFrom-3rdPartyInstall { }
             Mock Optimize-DevSetupEnvs { }
@@ -113,7 +113,7 @@ Describe "Write-NewConfig" {
             Assert-MockCalled Read-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Invoke-ChocolateyPackageExport -Exactly 1 -Scope It
-            Assert-MockCalled Export-InstalledScoopPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentExport -Exactly 1 -Scope It
             Assert-MockCalled Invoke-PowershellModulesExport -Exactly 1 -Scope It
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to convert Chocolatey packages, but continuing..." }
         }
@@ -133,7 +133,7 @@ Describe "Write-NewConfig" {
             Mock Write-StatusMessage { }
             Mock Test-OperatingSystem { $true }  # Windows
             Mock Invoke-ChocolateyPackageExport { $true }
-            Mock Export-InstalledScoopPackages { $false }
+            Mock Invoke-ScoopComponentExport { $false }
             Mock Invoke-PowershellModulesExport { $true }
             Mock ConvertFrom-3rdPartyInstall { }
             Mock Optimize-DevSetupEnvs { }
@@ -143,7 +143,7 @@ Describe "Write-NewConfig" {
             Assert-MockCalled Read-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Invoke-ChocolateyPackageExport -Exactly 1 -Scope It
-            Assert-MockCalled Export-InstalledScoopPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentExport -Exactly 1 -Scope It
             Assert-MockCalled Invoke-PowershellModulesExport -Exactly 1 -Scope It
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to convert Scoop packages, but continuing..." }
         }
@@ -163,7 +163,7 @@ Describe "Write-NewConfig" {
             Mock Write-StatusMessage { }
             Mock Test-OperatingSystem { $true }  # Windows
             Mock Invoke-ChocolateyPackageExport { $true }
-            Mock Export-InstalledScoopPackages { $true }
+            Mock Invoke-ScoopComponentExport { $true }
             Mock Invoke-PowershellModulesExport { $false }
             Mock ConvertFrom-3rdPartyInstall { }
             Mock Optimize-DevSetupEnvs { }
@@ -173,7 +173,7 @@ Describe "Write-NewConfig" {
             Assert-MockCalled Read-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Invoke-ChocolateyPackageExport -Exactly 1 -Scope It
-            Assert-MockCalled Export-InstalledScoopPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentExport -Exactly 1 -Scope It
             Assert-MockCalled Invoke-PowershellModulesExport -Exactly 1 -Scope It
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to convert PowerShell modules, but continuing..." }
         }
@@ -193,7 +193,7 @@ Describe "Write-NewConfig" {
             Mock Write-StatusMessage { }
             Mock Test-OperatingSystem { $true }  # Windows
             Mock Invoke-ChocolateyPackageExport { $true }
-            Mock Export-InstalledScoopPackages { $true }
+            Mock Invoke-ScoopComponentExport { $true }
             Mock Invoke-PowershellModulesExport { $true }
             Mock ConvertFrom-3rdPartyInstall { }
             Mock Optimize-DevSetupEnvs { }
@@ -203,7 +203,7 @@ Describe "Write-NewConfig" {
             Assert-MockCalled Read-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Invoke-ChocolateyPackageExport -Exactly 1 -Scope It
-            Assert-MockCalled Export-InstalledScoopPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentExport -Exactly 1 -Scope It
             Assert-MockCalled Invoke-PowershellModulesExport -Exactly 1 -Scope It
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "- Version" -and $Verbosity -eq "Warning"}
         }
@@ -223,7 +223,7 @@ Describe "Write-NewConfig" {
             Mock Write-StatusMessage { }
             Mock Test-OperatingSystem { $true }  # Windows
             Mock Invoke-ChocolateyPackageExport { $true }
-            Mock Export-InstalledScoopPackages { $true }
+            Mock Invoke-ScoopComponentExport { $true }
             Mock Invoke-PowershellModulesExport { $true }
             Mock ConvertFrom-3rdPartyInstall { }
             Mock Optimize-DevSetupEnvs { }
@@ -233,7 +233,7 @@ Describe "Write-NewConfig" {
             Assert-MockCalled Read-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It
             Assert-MockCalled Invoke-ChocolateyPackageExport -Exactly 1 -Scope It
-            Assert-MockCalled Export-InstalledScoopPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentExport -Exactly 1 -Scope It
             Assert-MockCalled Invoke-PowershellModulesExport -Exactly 1 -Scope It
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "- Version" }
         }
@@ -253,7 +253,7 @@ Describe "Write-NewConfig" {
             Mock Write-StatusMessage { }
             Mock Test-OperatingSystem { $true }  # Windows
             Mock Invoke-ChocolateyPackageExport { $true }
-            Mock Export-InstalledScoopPackages { $true }
+            Mock Invoke-ScoopComponentExport { $true }
             Mock Invoke-PowershellModulesExport { $true }
             Mock ConvertFrom-3rdPartyInstall { }
             Mock Optimize-DevSetupEnvs { }
@@ -311,14 +311,14 @@ Describe "Write-NewConfig" {
             }
             Mock Invoke-PowershellModulesExport { return $true }
             Mock Invoke-ChocolateyPackageExport { return $false }
-            Mock Export-InstalledScoopPackages { return $false }
+            Mock Invoke-ScoopComponentExport { return $false }
             Mock ConvertFrom-3rdPartyInstall { return $true }
             Mock Optimize-DevSetupEnvs { }
 
             $result = Write-NewConfig -OutFile "test.yaml" -DryRun:$true
             Assert-MockCalled Test-OperatingSystem -Exactly 2 -Scope It
             Assert-MockCalled Invoke-ChocolateyPackageExport -Exactly 0 -Scope It
-            Assert-MockCalled Export-InstalledScoopPackages -Exactly 0 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentExport -Exactly 0 -Scope It
             Assert-MockCalled Invoke-HomebrewComponentsExport -Exactly 1 -Scope It -ParameterFilter { $WhatIf -eq $true }
             Assert-MockCalled Invoke-PowershellModulesExport -Exactly 1 -Scope It
             $result | Should -Be $true
@@ -338,7 +338,7 @@ Describe "Write-NewConfig" {
             Mock Write-StatusMessage { }
             Mock Test-OperatingSystem { $true }  # Windows
             Mock Invoke-ChocolateyPackageExport { $true }
-            Mock Export-InstalledScoopPackages { $true }
+            Mock Invoke-ScoopComponentExport { $true }
             Mock Invoke-PowershellModulesExport { $true }
             Mock ConvertFrom-3rdPartyInstall { }
             Mock Optimize-DevSetupEnvs { }
@@ -346,7 +346,7 @@ Describe "Write-NewConfig" {
             $result = Write-NewConfig -OutFile "test.yaml"
             $result | Should -Be $true
             Assert-MockCalled Invoke-ChocolateyPackageExport -Exactly 1 -Scope It
-            Assert-MockCalled Export-InstalledScoopPackages -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentExport -Exactly 1 -Scope It
         }
 
         It "should work on Linux" {

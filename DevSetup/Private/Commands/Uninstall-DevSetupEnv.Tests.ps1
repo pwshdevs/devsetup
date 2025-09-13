@@ -5,7 +5,7 @@ BeforeAll {
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Get-DevSetupEnvPath.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Scoop\Uninstall-ScoopComponents.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Scoop\Invoke-ScoopComponentUninstall.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Chocolatey\Invoke-ChocolateyPackageUninstall.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Powershell\Invoke-PowershellModulesUninstall.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\DevSetup\Private\Providers\Homebrew\Invoke-HomebrewComponentsUninstall.ps1")
@@ -14,7 +14,7 @@ BeforeAll {
     Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
     Mock Invoke-PowershellModulesUninstall { Param($YamlData, $DryRun) $true }
     Mock Invoke-ChocolateyPackageUninstall { Param($YamlData, $DryRun) $true }
-    Mock Uninstall-ScoopComponents { Param($YamlData, $DryRun) $true }
+    Mock Invoke-ScoopComponentUninstall { Param($YamlData, $DryRun) $true }
     Mock Test-OperatingSystem { Param($Windows, $Linux, $MacOS) { return $true } }
     Mock Write-Host { }
     Mock Write-Error { }
@@ -54,7 +54,7 @@ Describe "Uninstall-DevSetupEnv" {
             Assert-MockCalled Test-OperatingSystem -Exactly 1 -Scope It -ParameterFilter { $Windows -eq $true }
             Assert-MockCalled Invoke-PowershellModulesUninstall -Exactly 1 -Scope It
             Assert-MockCalled Invoke-ChocolateyPackageUninstall -Exactly 1 -Scope It
-            Assert-MockCalled Uninstall-ScoopComponents -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentUninstall -Exactly 1 -Scope It
             Assert-MockCalled Invoke-HomebrewComponentsUninstall -Exactly 0 -Scope It
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Uninstalling DevSetup environment from:" }
         }
@@ -70,7 +70,7 @@ Describe "Uninstall-DevSetupEnv" {
             Assert-MockCalled Test-OperatingSystem -Exactly 1 -Scope It -ParameterFilter { $Windows -eq $true }
             Assert-MockCalled Invoke-PowershellModulesUninstall -Exactly 1 -Scope It
             Assert-MockCalled Invoke-ChocolateyPackageUninstall -Exactly 0 -Scope It
-            Assert-MockCalled Uninstall-ScoopComponents -Exactly 0 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentUninstall -Exactly 0 -Scope It
             Assert-MockCalled Invoke-HomebrewComponentsUninstall -Exactly 1 -Scope It
             Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Uninstalling DevSetup environment from:" }
         }
@@ -82,7 +82,7 @@ Describe "Uninstall-DevSetupEnv" {
             $script:callCount = 0
             Mock Invoke-PowershellModulesUninstall { $script:callCount++; $false }
             Mock Invoke-ChocolateyPackageUninstall { $script:callCount++; $true }
-            Mock Uninstall-ScoopComponents { $script:callCount++; $true }
+            Mock Invoke-ScoopComponentUninstall { $script:callCount++; $true }
             Mock Invoke-HomebrewComponentsUninstall { $script:callCount++; $true }
             Mock Test-Path { $true }
             Mock Read-DevSetupEnvFile { @{ devsetup = @{ } } }
@@ -91,7 +91,7 @@ Describe "Uninstall-DevSetupEnv" {
             Assert-MockCalled Test-OperatingSystem -Exactly 1 -Scope It -ParameterFilter { $Windows -eq $true }
             Assert-MockCalled Invoke-PowershellModulesUninstall -Exactly 1 -Scope It
             Assert-MockCalled Invoke-ChocolateyPackageUninstall -Exactly 1 -Scope It
-            Assert-MockCalled Uninstall-ScoopComponents -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentUninstall -Exactly 1 -Scope It
             Assert-MockCalled Invoke-HomebrewComponentsUninstall -Exactly 0 -Scope It
             $result | Should -Be $null
             $script:callCount | Should -Be 3
@@ -118,7 +118,7 @@ Describe "Uninstall-DevSetupEnv" {
             Assert-MockCalled Test-Path -Exactly 2 -Scope It -ParameterFilter { $Path -eq "$TestDrive\valid.yaml" }
             Assert-MockCalled Invoke-PowershellModulesUninstall -Exactly 1 -Scope It
             Assert-MockCalled Invoke-ChocolateyPackageUninstall -Exactly 1 -Scope It
-            Assert-MockCalled Uninstall-ScoopComponents -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentUninstall -Exactly 1 -Scope It
         }
     }
 
@@ -164,9 +164,9 @@ Describe "Uninstall-DevSetupEnv" {
             $result | Should -Be $null
             Assert-MockCalled Invoke-PowershellModulesUninstall -Exactly 1 -Scope It -ParameterFilter { $DryRun -eq $true }
             #Assert-MockCalled Invoke-ChocolateyPackageUninstall -Exactly 1 -Scope It -ParameterFilter { $WhatIf -eq $true }
-            #Assert-MockCalled Uninstall-ScoopComponents -Exactly 1 -Scope It -ParameterFilter { $WhatIf -eq $true }
+            #Assert-MockCalled Invoke-ScoopComponentUninstall -Exactly 1 -Scope It -ParameterFilter { $WhatIf -eq $true }
             Assert-MockCalled Invoke-ChocolateyPackageUninstall -Exactly 1 -Scope It
-            Assert-MockCalled Uninstall-ScoopComponents -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentUninstall -Exactly 1 -Scope It
             Assert-MockCalled Invoke-HomebrewComponentsUninstall -Exactly 0 -Scope It
         }
     }
@@ -180,7 +180,7 @@ Describe "Uninstall-DevSetupEnv" {
             $result | Should -Be $null
             Assert-MockCalled Invoke-PowershellModulesUninstall -Exactly 1 -Scope It -ParameterFilter { $DryRun -eq $true }
             Assert-MockCalled Invoke-ChocolateyPackageUninstall -Exactly 0 -Scope It
-            Assert-MockCalled Uninstall-ScoopComponents -Exactly 0 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentUninstall -Exactly 0 -Scope It
             Assert-MockCalled Invoke-HomebrewComponentsUninstall -Exactly 1 -Scope It -ParameterFilter { $DryRun -eq $true }
         }
     }

@@ -39,7 +39,7 @@
     - Commands are executed after all package installations are complete
     - Individual installation failures do not stop the overall process
     - Uses Read-DevSetupEnvFile to parse YAML configuration
-    - Leverages Install-PowershellModules, Invoke-ChocolateyPackageInstall, and Install-ScoopComponents functions
+    - Leverages Install-PowershellModules, Invoke-ChocolateyPackageInstall, and Invoke-ScoopComponentInstall functions
     - Custom commands are executed using Invoke-CommandFromEnv function
     - Provides detailed console output with color-coded status messages
     - Skips command entries that are missing the required command property
@@ -181,7 +181,7 @@ Function Install-DevSetupEnv {
 
         # Install Scoop package dependencies
         try {
-            Install-ScoopComponents -YamlData $YamlData -DryRun:$DryRun | Out-Null
+            Invoke-ScoopComponentInstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
         } catch {
             Write-StatusMessage "An error occurred during Scoop component installation: $_" -Verbosity Error
             Write-StatusMessage $_.ScriptStackTrace -Verbosity Error

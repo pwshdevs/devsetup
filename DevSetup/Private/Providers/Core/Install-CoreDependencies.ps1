@@ -122,8 +122,8 @@ Function Install-CoreDependencies {
         }
 
         # Refresh PATH to include newly installed Git, but preserve existing session paths
-        $userPath = [System.Environment]::GetEnvironmentVariable("PATH", "User")
-        $machinePath = [System.Environment]::GetEnvironmentVariable("PATH", "Machine")
+        $userPath = Get-EnvironmentVariable -Name "PATH" -Scope "User"
+        $machinePath = Get-EnvironmentVariable -Name "PATH" -Scope "Machine"
         $currentPath = $env:PATH
         
         # Only add paths that aren't already in the current PATH

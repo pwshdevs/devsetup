@@ -2,6 +2,7 @@ BeforeAll {
     . (Join-Path $PSScriptRoot "Install-CoreDependencies.ps1")
     . (Join-Path $PSScriptRoot "Install-Nuget.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Get-DevSetupManifest.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Get-EnvironmentVariable.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Providers\Powershell\Install-PowershellModule.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Providers\Chocolatey\Install-Chocolatey.ps1")
     . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Providers\Chocolatey\Install-ChocolateyPackage.ps1")
@@ -183,9 +184,30 @@ Describe "Install-CoreDependencies" {
         }
 
         It "Should execute PATH refresh logic when User/Machine paths have new entries" {
-            # Set up a scenario where current PATH is minimal
+            # Create test directories using TestDrive for cross-platform compatibility
+            $testUserPath = Join-Path $TestDrive "user\bin"
+            $testMachinePath = Join-Path $TestDrive "machine\bin"
+            $testSystemPath = Join-Path $TestDrive "system"
+            New-Item -Path $testUserPath -ItemType Directory -Force
+            New-Item -Path $testMachinePath -ItemType Directory -Force
+            New-Item -Path $testSystemPath -ItemType Directory -Force
+            
+            # Mock Get-EnvironmentVariable to return test paths based on scope
+            Mock Get-EnvironmentVariable { 
+                param($Name, $Scope)
+                if ($Name -eq "PATH") {
+                    switch ($Scope) {
+                        "User" { return $testUserPath }
+                        "Machine" { return $testMachinePath }
+                        default { return $null }
+                    }
+                }
+                return $null
+            }
+            
+            # Set up a scenario where current PATH is minimal (using TestDrive path)
             $originalPath = $env:PATH
-            $env:PATH = "C:\Windows\system32"
+            $env:PATH = $testSystemPath
             
             try {
                 $result = Install-CoreDependencies
@@ -193,7 +215,11 @@ Describe "Install-CoreDependencies" {
                 
                 # The PATH should be longer than the original minimal path
                 # This indirectly tests that the PATH refresh logic was executed
-                $env:PATH.Length | Should -BeGreaterThan "C:\Windows\system32".Length
+                $env:PATH.Length | Should -BeGreaterThan $testSystemPath.Length
+                
+                # The PATH should now include the test user and machine paths
+                $env:PATH | Should -Match ([regex]::Escape($testUserPath))
+                $env:PATH | Should -Match ([regex]::Escape($testMachinePath))
             }
             finally {
                 # Restore original PATH

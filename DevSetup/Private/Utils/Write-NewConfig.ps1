@@ -107,7 +107,7 @@ Function Write-NewConfig {
 
             # Convert from installed Scoop packages
             Write-StatusMessage "`nScanning installed Scoop packages..." -ForegroundColor Cyan
-            if (-not (Export-InstalledScoopPackages -Config $OutFile)) {
+            if (-not (Invoke-ScoopComponentExport -Config $OutFile -DryRun:$DryRun)) {
                 Write-StatusMessage "Failed to convert Scoop packages, but continuing..." -Verbosity Warning
             }
         } else {

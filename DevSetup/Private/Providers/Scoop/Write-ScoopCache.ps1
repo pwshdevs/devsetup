@@ -57,24 +57,61 @@
 #>
 
 Function Write-ScoopCache {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     Param()
 
-    $CacheFilePath = Get-ScoopCacheFile
-    if(-Not (Test-ScoopInstalled)) {
+    try {
+        $CacheFilePath = Get-ScoopCacheFile
+    } catch {
+        Write-StatusMessage "Failed to get Scoop cache file path: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 
-    $scoopCommand = Find-Scoop
+    try {
+        if(-Not (Test-ScoopInstalled)) {
+            return $false
+        }
+    } catch {
+        Write-StatusMessage "Failed to test if Scoop is installed: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    try {
+        $scoopCommand = Find-Scoop
+    } catch {
+        Write-StatusMessage "Failed to find Scoop command: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
     if (-not $scoopCommand) {
         return $false
     }
 
     try {
-        Invoke-Command -ScriptBlock { & $scoopCommand export | Set-Content -Path $CacheFilePath -Force }
-        Write-Debug "Scoop cache written successfully: $CacheFilePath"
-        return $true
+        $exportData = Invoke-Command -ScriptBlock { & $scoopCommand export } 2>$null 3>$null 4>$null 5>$null 6>$null
+        if ($LASTEXITCODE -ne 0 -or -not $exportData) {
+            Write-StatusMessage "Failed to export Scoop package data" -Verbosity Error
+            return $false
+        }
     } catch {
         return $false
     }
+
+    try {
+        if ($PSCmdlet.ShouldProcess($CacheFilePath, "Write")) {
+            Set-Content -Path $CacheFilePath -Value $exportData -Encoding UTF8 -Force
+        } else {
+            Write-StatusMessage "Skipping writing Scoop cache file due to ShouldProcess" -Verbosity Debug
+            return $true
+        }
+    } catch {
+        Write-StatusMessage "Failed to write Scoop cache file: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity  Error
+        return $false
+    }
+    Write-StatusMessage "Scoop cache written successfully: $CacheFilePath" -Verbosity Debug
+    return $true
 }

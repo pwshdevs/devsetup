@@ -41,7 +41,7 @@
     - Processes uninstallation in specific order:
       1. PowerShell modules via Uninstall-PowershellModules
       2. Chocolatey packages via Invoke-ChocolateyPackageUninstall
-      3. Scoop packages via Uninstall-ScoopComponents
+      3. Scoop packages via Invoke-ScoopComponentUninstall
     - Each uninstaller function handles its own error reporting and validation
     - Does not remove the YAML configuration file itself after uninstallation
     - Provides descriptive error messages for missing or invalid configuration files
@@ -120,7 +120,7 @@ Function Uninstall-DevSetupEnv {
             Invoke-ChocolateyPackageUninstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
 
             # Uninstall Scoop package dependencies
-            Uninstall-ScoopComponents -YamlData $YamlData | Out-Null
+            Invoke-ScoopComponentUninstall -YamlData $YamlData | Out-Null
         } else {
             # Uninstall Homebrew package dependencies
             Invoke-HomebrewComponentsUninstall -YamlData $YamlData -DryRun:$DryRun | Out-Null
