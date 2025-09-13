@@ -1,6 +1,6 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot "Wait-ForVisualStudioConfigFile.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\Devsetup\Private\Utils\Write-StatusMessage.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Write-StatusMessage.ps1")
     Mock Write-StatusMessage { }
     Mock Start-Sleep { }
 }

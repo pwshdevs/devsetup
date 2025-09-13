@@ -1,9 +1,10 @@
 BeforeAll {
+    Function Get-VSSetupInstance {}
     . (Join-Path $PSScriptRoot "ConvertFrom-VisualStudioInstall.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\Devsetup\Private\Utils\Write-StatusMessage.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\Devsetup\Private\Utils\Read-DevSetupEnvFile.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\Devsetup\Private\Utils\Update-DevSetupEnvFile.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\Devsetup\Private\Utils\Test-RunningAsAdmin.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Write-StatusMessage.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Read-DevSetupEnvFile.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Update-DevSetupEnvFile.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Test-RunningAsAdmin.ps1")
     . (Join-Path $PSScriptRoot "Add-VsToPackageManager.ps1")
     . (Join-Path $PSScriptRoot "Invoke-VsConfigExport.ps1")
     Mock Write-StatusMessage { }

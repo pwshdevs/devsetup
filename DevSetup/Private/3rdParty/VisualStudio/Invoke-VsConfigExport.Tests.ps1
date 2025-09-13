@@ -1,7 +1,7 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot "Invoke-VsConfigExport.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\Devsetup\Private\Utils\Write-StatusMessage.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\Devsetup\Private\Utils\Get-EnvironmentVariable.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Write-StatusMessage.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Get-EnvironmentVariable.ps1")
     . (Join-Path $PSScriptRoot "Wait-ForVisualStudioConfigFile.ps1")
     Mock Write-StatusMessage { }
     Mock Get-EnvironmentVariable { "$TestDrive\UserProfile" }

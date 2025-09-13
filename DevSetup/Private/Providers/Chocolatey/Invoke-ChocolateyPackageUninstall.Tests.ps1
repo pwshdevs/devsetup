@@ -2,8 +2,8 @@ BeforeAll {
     . (Join-Path $PSScriptRoot "Invoke-ChocolateyPackageUninstall.ps1")
     . (Join-Path $PSScriptRoot "Uninstall-ChocolateyPackage.ps1")
     . (Join-Path $PSScriptRoot "Write-ChocolateyCache.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\Devsetup\Private\Utils\Write-StatusMessage.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\Devsetup\Private\Utils\Test-RunningAsAdmin.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Write-StatusMessage.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Test-RunningAsAdmin.ps1")
     Mock Write-StatusMessage { }
     Mock Test-RunningAsAdmin { return $true }
     Mock Write-ChocolateyCache { return $true }

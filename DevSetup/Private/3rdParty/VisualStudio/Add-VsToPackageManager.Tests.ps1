@@ -1,8 +1,8 @@
 BeforeAll {
     . (Join-Path $PSScriptRoot "Add-VsToPackageManager.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\Devsetup\Private\Utils\Write-StatusMessage.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\Devsetup\Private\Utils\Read-DevSetupEnvFile.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\Devsetup\Private\Utils\Update-DevSetupEnvFile.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Write-StatusMessage.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Read-DevSetupEnvFile.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Update-DevSetupEnvFile.ps1")
     Mock Write-StatusMessage { }
     Mock Read-DevSetupEnvFile { 
         return @{
