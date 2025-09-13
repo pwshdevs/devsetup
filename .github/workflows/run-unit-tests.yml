@@ -44,6 +44,7 @@ jobs:
           reports: 'coverage.xml'
           targetdir: 'coveragereport'
           reporttypes: 'MarkdownSummaryGithub'
+          title: 'Pester Test Coverage Report *On Linux*'
 
       - name: Add comment to PR # Only applicable if 'MarkdownSummaryGithub' or one of the other Markdown report types is generated
         if: github.event_name == 'pull_request'
@@ -93,6 +94,7 @@ jobs:
           reports: 'coverage.xml'
           targetdir: 'coveragereport'
           reporttypes: 'MarkdownSummaryGithub'
+          title: 'Pester Test Coverage Report *On Windows*'
 
       - name: Add comment to PR # Only applicable if 'MarkdownSummaryGithub' or one of the other Markdown report types is generated
         if: github.event_name == 'pull_request'
@@ -143,6 +145,7 @@ jobs:
           reports: 'coverage.xml'
           targetdir: 'coveragereport'
           reporttypes: 'MarkdownSummaryGithub'
+          title: 'Pester Test Coverage Report *On macOS*'
 
       - name: Add comment to PR # Only applicable if 'MarkdownSummaryGithub' or one of the other Markdown report types is generated
         if: github.event_name == 'pull_request'
