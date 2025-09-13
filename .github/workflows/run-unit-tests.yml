@@ -44,25 +44,18 @@ jobs:
           reports: 'coverage.xml'
           targetdir: 'coveragereport'
           reporttypes: 'MarkdownSummaryGithub'
-          title: 'Pester Test Coverage Report *On Linux*'
+          title: 'Pester Test Coverage Report'
 
+      - name: Add comment to PR # Only applicable if 'MarkdownSummaryGithub' or one of the other Markdown report types is generated
+        if: github.event_name == 'pull_request'
+        run: gh pr comment $PR_NUMBER --edit-last --create-if-none --body-file coveragereport/SummaryGithub.md # Adjust path and filename if necessary
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+          
       - name: Publish coverage in build summary # Only applicable if 'MarkdownSummaryGithub' or one of the other Markdown report types is generated
-        id: publish-coverage
-        run: |
-          cat coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
-          cat coveragereport/SummaryGithub.md >> $GITHUB_OUTPUT
-        shell: bash          
-
-      - name: Add comment to Pull Request
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `${{ steps.publish-coverage.outputs }}`
-            });
+        run: cat coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY # Adjust path and filename if necessary
+        shell: bash
 
   pester-test-windows:
     name: Pester test (On Windows)
@@ -101,26 +94,7 @@ jobs:
           reports: 'coverage.xml'
           targetdir: 'coveragereport'
           reporttypes: 'MarkdownSummaryGithub'
-          title: 'Pester Test Coverage Report *On Windows*'
-
-      - name: Publish coverage in build summary # Only applicable if 'MarkdownSummaryGithub' or one of the other Markdown report types is generated
-        id: publish-coverage
-        run: |
-          cat coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
-          cat coveragereport/SummaryGithub.md >> $GITHUB_OUTPUT
-        shell: bash          
-
-      - name: Add comment to Pull Request
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `${{ steps.publish-coverage.outputs }}`
-            });        
-
+          title: 'Pester Test Coverage Report'
 
   pester-test-macos:
     name: Pester test (On macOS)
@@ -159,22 +133,4 @@ jobs:
           reports: 'coverage.xml'
           targetdir: 'coveragereport'
           reporttypes: 'MarkdownSummaryGithub'
-          title: 'Pester Test Coverage Report *On macOS*'
-
-      - name: Publish coverage in build summary # Only applicable if 'MarkdownSummaryGithub' or one of the other Markdown report types is generated
-        id: publish-coverage
-        run: |
-          cat coveragereport/SummaryGithub.md >> $GITHUB_STEP_SUMMARY
-          cat coveragereport/SummaryGithub.md >> $GITHUB_OUTPUT
-        shell: bash          
-
-      - name: Add comment to Pull Request
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `${{ steps.publish-coverage.outputs }}`
-            });                                 
+          title: 'Pester Test Coverage Report'                               
