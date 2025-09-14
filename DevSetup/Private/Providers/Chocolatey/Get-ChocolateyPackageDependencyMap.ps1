@@ -59,25 +59,51 @@ Function Get-ChocolateyPackageDependencyMap {
     [OutputType([array])]
     Param()
 
-    write-Debug "Retrieving Chocolatey package dependencies..."
+    Write-StatusMessage "Retrieving Chocolatey package dependencies..." -Verbosity Debug
     $packageDependencies = @()
 
-    $chocolateyInstallPath = Join-Path (Get-EnvironmentVariable ChocolateyInstall) lib
-    if (-not (Test-Path $chocolateyInstallPath)) {
-        Write-Debug "Chocolatey installation path not found: $chocolateyInstallPath"
-        return $packageDependencies
+    try {
+        $ChocolateyInstallEnvPath = Get-EnvironmentVariable ChocolateyInstall
+    } catch {
+        Write-StatusMessage "Error retrieving ChocolateyInstall environment variable: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $null
     }
 
-    Get-ChildItem $chocolateyInstallPath -Recurse "*.nuspec" | ForEach-Object {
-        $dependencies = ([xml](Get-Content $_.FullName)).package.metadata.dependencies.dependency | ForEach-Object {
-            if (-not ($_.id -like "chocolatey*")) {
-                $_.id
+    try {
+        $chocolateyInstallPath = Join-Path $ChocolateyInstallEnvPath lib
+    } catch {
+        Write-StatusMessage "Error constructing Chocolatey lib path: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $null
+    }
+
+    try {
+        if (-not (Test-Path $chocolateyInstallPath)) {
+            Write-StatusMessage "Chocolatey installation path not found: $chocolateyInstallPath" -Verbosity Debug
+            return $null
+        }
+    } catch {
+        Write-StatusMessage "Error testing Chocolatey lib path: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $null
+    }
+
+    try {
+        $packageDependencies = Get-ChildItem $chocolateyInstallPath -Recurse "*.nuspec" | ForEach-Object {
+            ([xml](Get-Content $_.FullName)).package.metadata.dependencies.dependency | ForEach-Object {
+                if (-not ($_.id -like "chocolatey*")) {
+                    $_.id
+                }
             }
         }
-
-        if ($dependencies) {
-            $packageDependencies = $packageDependencies + $dependencies;
+        if(-not $packageDependencies) {
+            return $null
         }
+    } catch {
+            Write-StatusMessage "Error processing nuspec files: $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $null
     }
     return [array]$packageDependencies
 }

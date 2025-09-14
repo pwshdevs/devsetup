@@ -2,232 +2,512 @@ BeforeAll {
     . (Join-Path $PSScriptRoot "Invoke-ChocolateyPackageInstall.ps1")
     . (Join-Path $PSScriptRoot "Install-ChocolateyPackage.ps1")
     . (Join-Path $PSScriptRoot "Write-ChocolateyCache.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1")
-    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Write-StatusMessage.ps1")
+    . (Join-Path $PSScriptRoot "..\..\Utils\Test-RunningAsAdmin.ps1")
+    
     Mock Write-StatusMessage { }
-    Mock Test-RunningAsAdmin { $true }
-    Mock Write-ChocolateyCache { $true }
-    Mock Install-ChocolateyPackage { $true }
 }
 
 Describe "Invoke-ChocolateyPackageInstall" {
 
     Context "When not running as administrator" {
-        It "Should return false and write error" {
-            Mock Test-RunningAsAdmin { $false }
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @("git") } } } }
+        It "Should return false and write error message" {
+            Mock Test-RunningAsAdmin { return $false }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "git" }
+                            )
+                        }
+                    }
+                }
+            }
+            
             $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
             $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "requires administrator privileges" -and $Verbosity -eq "Error" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "requires administrator privileges" -and $Verbosity -eq "Error"
+            }
         }
     }
 
-    Context "When Test-RunningAsAdmin throws exception" {
-        It "Should return false and write error" {
+    Context "When Test-RunningAsAdmin throws an exception" {
+        It "Should handle exception and return false" {
             Mock Test-RunningAsAdmin { throw "Admin check failed" }
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @("git") } } } }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "git" }
+                            )
+                        }
+                    }
+                }
+            }
+            
             $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
             $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Error checking administrator privileges" -and $Verbosity -eq "Error" }
-        }
-    }
-
-    Context "When YamlData is null" {
-        It "Should should throw" {
-            { Invoke-ChocolateyPackageInstall -YamlData $null } | Should -Throw
-        }
-    }
-
-    Context "When devsetup section is missing" {
-        It "Should return false and write warning" {
-            $yamlData = @{ }
-            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
-            $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Chocolatey packages not found" -and $Verbosity -eq "Warning" }
-        }
-    }
-
-    Context "When dependencies section is missing" {
-        It "Should return false and write warning" {
-            $yamlData = @{ devsetup = @{ } }
-            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
-            $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Chocolatey packages not found" -and $Verbosity -eq "Warning" }
-        }
-    }
-
-    Context "When chocolatey section is missing" {
-        It "Should return false and write warning" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ } } }
-            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
-            $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Chocolatey packages not found" -and $Verbosity -eq "Warning" }
-        }
-    }
-
-    Context "When packages section is missing" {
-        It "Should return false and write warning" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ } } } }
-            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
-            $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Chocolatey packages not found" -and $Verbosity -eq "Warning" }
-        }
-    }
-
-    Context "When packages array is empty" {
-        It "Should return false" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @() } } } }
-            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
-            $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Chocolatey packages not found in YAML configuration. Skipping installation." }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Error checking administrator privileges" -and $Verbosity -eq "Error"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter {
+                $Verbosity -eq "Error"
+            }
         }
     }
 
     Context "When Write-ChocolateyCache fails" {
-        It "Should return false and write error" {
-            Mock Write-ChocolateyCache { $false }
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @("git") } } } }
+        It "Should return false when Write-ChocolateyCache returns false" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $false }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "git" }
+                            )
+                        }
+                    }
+                }
+            }
+            
             $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
             $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to write Chocolatey cache" -and $Verbosity -eq "Error" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Failed to write Chocolatey cache" -and $Verbosity -eq "Error"
+            }
         }
-    }
-
-    Context "When Write-ChocolateyCache throws exception" {
-        It "Should return false and write error" {
+        
+        It "Should handle Write-ChocolateyCache exception and return false" {
+            Mock Test-RunningAsAdmin { return $true }
             Mock Write-ChocolateyCache { throw "Cache write failed" }
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @("git") } } } }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "git" }
+                            )
+                        }
+                    }
+                }
+            }
+            
             $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
             $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Error writing Chocolatey cache" -and $Verbosity -eq "Error" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Error writing Chocolatey cache" -and $Verbosity -eq "Error"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter {
+                $Verbosity -eq "Error"
+            }
         }
     }
 
-    Context "When package is object with name only" {
-        It "Should install with latest version" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @(@{ name = "git" }) } } } }
+    Context "When installing single package with version" {
+        It "Should install package with version and return true" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Install-ChocolateyPackage { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "git"; version = "2.42.0" }
+                            )
+                        }
+                    }
+                }
+            }
+            
             $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
             $result | Should -Be $true
-            Assert-MockCalled Install-ChocolateyPackage -Exactly 1 -Scope It -ParameterFilter { $PackageName -eq "git" -and -not $Version }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Installing Chocolatey packages from configuration:" -and $ForegroundColor -eq "Cyan"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Installing Chocolatey package: git \(version: 2\.42\.0\)" -and $ForegroundColor -eq "Gray"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -eq "[OK]" -and $ForegroundColor -eq "Green"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Chocolatey packages installation completed! Processed 1 packages" -and $ForegroundColor -eq "Green"
+            }
+            Assert-MockCalled Install-ChocolateyPackage -Times 1 -Scope It -ParameterFilter {
+                $PackageName -eq "git" -and $Version -eq "2.42.0" -and $WhatIf -eq $false
+            }
         }
     }
 
-    Context "When package is object with version" {
-        It "Should install with specified version" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @(@{ name = "git"; version = "2.42.0" }) } } } }
+    Context "When installing single package without version" {
+        It "Should install package with latest version and return true" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Install-ChocolateyPackage { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "nodejs" }
+                            )
+                        }
+                    }
+                }
+            }
+            
             $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
             $result | Should -Be $true
-            Assert-MockCalled Install-ChocolateyPackage -Exactly 1 -Scope It -ParameterFilter { $PackageName -eq "git" -and $Version -eq "2.42.0" }
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "version: 2.42.0" -and $ForegroundColor -eq "Gray" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Installing Chocolatey package: nodejs \(version: latest\)" -and $ForegroundColor -eq "Gray"
+            }
+            Assert-MockCalled Install-ChocolateyPackage -Times 1 -Scope It -ParameterFilter {
+                $PackageName -eq "nodejs" -and $Version -eq $null
+            }
         }
     }
 
-    Context "When package is object with params" {
-        It "Should install with params" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @(@{ name = "git"; params = "/silent" }) } } } }
+    Context "When installing package with custom parameters" {
+        It "Should install package with params and return true" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Install-ChocolateyPackage { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "googlechrome"; params = "/nogoogle" }
+                            )
+                        }
+                    }
+                }
+            }
+            
             $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
             $result | Should -Be $true
-            Assert-MockCalled Install-ChocolateyPackage -Exactly 1 -Scope It -ParameterFilter { $PackageName -eq "git" -and $Param -eq "/silent" }
+            Assert-MockCalled Install-ChocolateyPackage -Times 1 -Scope It -ParameterFilter {
+                $PackageName -eq "googlechrome" -and $Param -eq "/nogoogle"
+            }
         }
-    }
-
-    Context "When package is object with name, version, and params" {
-        It "Should install with all parameters" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @(@{ name = "git"; version = "2.42.0"; params = "/silent" }) } } } }
+        
+        It "Should install package with version and params" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Install-ChocolateyPackage { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "vscode"; version = "1.75.0"; params = "/silent" }
+                            )
+                        }
+                    }
+                }
+            }
+            
             $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
             $result | Should -Be $true
-            Assert-MockCalled Install-ChocolateyPackage -Exactly 1 -Scope It -ParameterFilter { $PackageName -eq "git" -and $Version -eq "2.42.0" -and $Param -eq "/silent" }
+            Assert-MockCalled Install-ChocolateyPackage -Times 1 -Scope It -ParameterFilter {
+                $PackageName -eq "vscode" -and $Version -eq "1.75.0" -and $Param -eq "/silent"
+            }
         }
     }
 
-    Context "When package object has no name" {
-        It "Should skip and write warning" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @(@{ version = "1.0.0" }, "git") } } } }
+    Context "When installing multiple packages" {
+        It "Should install all packages and return true" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Install-ChocolateyPackage { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "git"; version = "2.42.0" },
+                                @{ name = "nodejs"; version = "18.17.0" },
+                                @{ name = "vscode"; params = "/silent" }
+                            )
+                        }
+                    }
+                }
+            }
+            
             $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
             $result | Should -Be $true
-            Assert-MockCalled Install-ChocolateyPackage -Exactly 0 -Scope It
-            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter { $Message -match "no name specified" -and $Verbosity -eq "Warning" }
+            Assert-MockCalled Write-StatusMessage -Exactly 3 -Scope It -ParameterFilter {
+                $Message -eq "[OK]" -and $ForegroundColor -eq "Green"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 3 packages" -and $ForegroundColor -eq "Green"
+            }
+            Assert-MockCalled Install-ChocolateyPackage -Times 3 -Scope It
         }
     }
 
-    Context "When package name is empty string" {
-        It "Should skip and write warning" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @(@{ name = "" }, "git") } } } }
-            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
-            $result | Should -Be $true
-            Assert-MockCalled Install-ChocolateyPackage -Exactly 0 -Scope It
-            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter { $Message -match "no name specified" -and $Verbosity -eq "Warning" }
-        }
-    }
-
-    Context "When Install-ChocolateyPackage succeeds" {
-        It "Should write OK message" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @("git") } } } }
-            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
-            $result | Should -Be $true
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "[OK]" -and $ForegroundColor -eq "Green" }
-        }
-    }
-
-    Context "When Install-ChocolateyPackage fails" {
-        It "Should write FAILED message and continue" {
-            Mock Install-ChocolateyPackage { $false }
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @( @{ name = "git" }, @{ name = "nodejs" } ) } } } }
-            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
-            $result | Should -Be $true
-            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter { $Message -match "[FAILED]" -and $ForegroundColor -eq "Red" }
-        }
-    }
-
-    Context "When Install-ChocolateyPackage throws exception" {
-        It "Should write FAILED message and error, then continue" {
-            Mock Install-ChocolateyPackage { throw "Install failed" }
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @( @{ name = "git" }, @{ name = "nodejs" } ) } } } }
-            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
-            $result | Should -Be $true
-            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter { $Message -match "[FAILED]" -and $ForegroundColor -eq "Red" }
-            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter { $Message -match "Error installing package" -and $Verbosity -eq "Error" }
-        }
-    }
-
-    Context "When DryRun is specified" {
-        It "Should pass WhatIf to Install-ChocolateyPackage" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @(@{ name = "git" }) } } } }
-            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData -DryRun
-            $result | Should -Be $true
-            Assert-MockCalled Install-ChocolateyPackage -Exactly 1 -Scope It -ParameterFilter { $WhatIf -eq $true }
-        }
-    }
-
-    Context "When multiple packages with mixed formats" {
-        It "Should process all correctly" {
+    Context "When individual package installation fails" {
+        It "Should mark package as failed but continue processing others" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Install-ChocolateyPackage { 
+                param($PackageName)
+                if ($PackageName -eq "failing-package") { return $false }
+                return $true
+            }
+            
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{
                         chocolatey = @{
                             packages = @(
                                 @{ name = "git" },
-                                @{ name = "nodejs"; version = "18.17.0" },
-                                @{ name = "vscode"; params = "/silent" },
-                                @{ name = "python"; version = "3.11.0"; params = "/quiet" }
+                                @{ name = "failing-package" },
+                                @{ name = "nodejs" }
                             )
                         }
                     }
                 }
             }
+            
             $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
             $result | Should -Be $true
-            Assert-MockCalled Install-ChocolateyPackage -Exactly 4 -Scope It
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Processed 4 packages" -and $ForegroundColor -eq "Green" }
+            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter {
+                $Message -eq "[OK]" -and $ForegroundColor -eq "Green"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -eq "[FAILED]" -and $ForegroundColor -eq "Red"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 2 packages" -and $ForegroundColor -eq "Green"
+            }
         }
     }
 
-    Context "When successful installation" {
-        It "Should return true and write completion message" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ packages = @("git") } } } }
+    Context "When Install-ChocolateyPackage throws an exception" {
+        It "Should handle exception and continue processing" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Install-ChocolateyPackage { 
+                param($PackageName)
+                if ($PackageName -eq "exception-package") { 
+                    throw "Package install failed" 
+                }
+                return $true
+            }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "git" },
+                                @{ name = "exception-package" },
+                                @{ name = "nodejs" }
+                            )
+                        }
+                    }
+                }
+            }
+            
             $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
             $result | Should -Be $true
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "installation completed" -and $ForegroundColor -eq "Green" }
+            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter {
+                $Message -eq "[OK]" -and $ForegroundColor -eq "Green"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -eq "[FAILED]" -and $ForegroundColor -eq "Red"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Error installing package exception-package" -and $Verbosity -eq "Error"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 2 packages" -and $ForegroundColor -eq "Green"
+            }
+        }
+    }
+
+    Context "When using DryRun parameter" {
+        It "Should pass WhatIf to Install-ChocolateyPackage" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Install-ChocolateyPackage { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "git" }
+                            )
+                        }
+                    }
+                }
+            }
+            
+            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData -DryRun
+            
+            $result | Should -Be $true
+            Assert-MockCalled Install-ChocolateyPackage -Times 1 -Scope It -ParameterFilter {
+                $PackageName -eq "git" -and $WhatIf -eq $true
+            }
+        }
+    }
+
+    Context "When validating parameter validation" {
+        It "Should throw when YamlData is null" {
+            { Invoke-ChocolateyPackageInstall -YamlData $null } | Should -Throw
+        }
+        
+        It "Should handle empty YamlData gracefully" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            
+            $result = Invoke-ChocolateyPackageInstall -YamlData @{}
+            
+            $result | Should -Be $true
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 0 packages" -and $ForegroundColor -eq "Green"
+            }
+        }
+    }
+
+    Context "When YAML structure is missing or incomplete" {
+        It "Should handle missing devsetup section gracefully" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            
+            $yamlData = @{
+                other = @{
+                    data = "value"
+                }
+            }
+            
+            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
+            $result | Should -Be $true
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Chocolatey packages installation completed! Processed 0 packages" -and $ForegroundColor -eq "Green"
+            }
+        }
+        
+        It "Should handle missing dependencies section gracefully" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    other = "data"
+                }
+            }
+            
+            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
+            $result | Should -Be $true
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 0 packages" -and $ForegroundColor -eq "Green"
+            }
+        }
+        
+        It "Should handle missing chocolatey section gracefully" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        npm = @{
+                            packages = @("lodash")
+                        }
+                    }
+                }
+            }
+            
+            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
+            $result | Should -Be $true
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 0 packages" -and $ForegroundColor -eq "Green"
+            }
+        }
+        
+        It "Should handle missing packages array gracefully" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            other = "data"
+                        }
+                    }
+                }
+            }
+            
+            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
+            $result | Should -Be $true
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 0 packages" -and $ForegroundColor -eq "Green"
+            }
+        }
+    }
+
+    Context "When processing packages with formatting validation" {
+        It "Should display proper formatting with indent and width settings" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Install-ChocolateyPackage { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "git"; version = "2.42.0" }
+                            )
+                        }
+                    }
+                }
+            }
+            
+            $result = Invoke-ChocolateyPackageInstall -YamlData $yamlData
+            
+            $result | Should -Be $true
+            Assert-MockCalled Write-StatusMessage -Times 1 -Scope It -ParameterFilter {
+                $Message -match "Installing Chocolatey package: git \(version: 2\.42\.0\)" -and 
+                $ForegroundColor -eq "Gray" -and 
+                $Indent -eq 2 -and 
+                $Width -eq 112 -and 
+                $NoNewline -eq $true
+            }
         }
     }
 }

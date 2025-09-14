@@ -94,12 +94,6 @@ Function Invoke-ChocolateyPackageUninstall {
         Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
-        
-    # Check if chocolatey dependencies exist
-    if (-not $YamlData -or -not $YamlData.devsetup -or -not $YamlData.devsetup.dependencies -or -not $YamlData.devsetup.dependencies.chocolatey -or -not $YamlData.devsetup.dependencies.chocolatey.packages) {
-        Write-StatusMessage "Chocolatey packages not found in YAML configuration. Skipping uninstallation." -Verbosity Warning
-        return $false
-    }
 
     try {
         if (-not (Write-ChocolateyCache)) {
@@ -118,37 +112,22 @@ Function Invoke-ChocolateyPackageUninstall {
     $packageCount = 0
     
     foreach ($package in $chocolateyPackages) {
-        if (-not $package) { continue }
-        
-        $packageCount++
-        
-        # Normalize package to object format
-        if ($package -is [string]) {
-            $packageObj = @{ name = $package }
-        } else {
-            $packageObj = $package
-        }
-        
-        # Validate package name
-        if ([string]::IsNullOrEmpty($packageObj.name)) {
-            Write-StatusMessage "Package entry #$packageCount has no name specified, skipping" -Verbosity Warning
-            continue
-        }
         
         # Build install parameters
         $installParams = @{ 
-            PackageName = $packageObj.name
+            PackageName = $package.name
             WhatIf = $DryRun
         }
-        if ($packageObj.version) {
-            Write-StatusMessage "- Uninstalling Chocolatey package: $($packageObj.name) (version: $($packageObj.version))" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewline
+        if ($package.version) {
+            Write-StatusMessage "- Uninstalling Chocolatey package: $($package.name) (version: $($package.version))" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewline
         } else {
-            Write-StatusMessage "- Uninstalling Chocolatey package: $($packageObj.name) (version: latest)" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewline
+            Write-StatusMessage "- Uninstalling Chocolatey package: $($package.name) (version: latest)" -ForegroundColor Gray -Indent 2 -Width 100 -NoNewline
         }
 
         try {
             if((Uninstall-ChocolateyPackage @installParams)) {
                 Write-StatusMessage "[OK]" -ForegroundColor Green
+                $packageCount++
             } else {
                 Write-StatusMessage "[FAILED]" -ForegroundColor Red
             }

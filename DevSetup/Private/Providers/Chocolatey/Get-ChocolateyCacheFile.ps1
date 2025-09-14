@@ -52,14 +52,26 @@ Function Get-ChocolateyCacheFile {
     Param()
 
     # Get the DevSetup cache path
-    $cachePath = Get-DevSetupCachePath
-    if([string]::IsNullOrEmpty($cachePath)) {
-        Write-Error "Failed to retrieve DevSetup cache path."
+    try {
+        $cachePath = Get-DevSetupCachePath
+    } catch {
+        Write-StatusMessage "Error retrieving DevSetup cache path: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $null
+    }
+    if([string]::IsNullOrWhiteSpace($cachePath)) {
+        Write-StatusMessage "Failed to retrieve DevSetup cache path." -Verbosity Error
         return $null
     }
 
     # Construct the full path to the cache file
-    $cacheFilePath = Join-Path -Path $cachePath -ChildPath "chocolatey.cache"
+    try {
+        $cacheFilePath = Join-Path -Path $cachePath -ChildPath "chocolatey.cache"
+    } catch {
+        Write-StatusMessage "Error constructing Chocolatey cache file path: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $null
+    }
 
     return $cacheFilePath
 }

@@ -76,25 +76,57 @@ Function Uninstall-ChocolateyPackage {
         if (-not (Test-RunningAsAdmin)) {
             throw "Chocolatey package uninstallation requires administrator privileges. Please run as administrator."
         }
+    } catch {
+        Write-StatusMessage "Error checking administrator privileges: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
 
-        Write-StatusMessage "Uninstalling Chocolatey package: $PackageName" -Verbosity Debug
-        
-        # Uninstall the package
-        if ($PSCmdlet.ShouldProcess($PackageName, "Uninstall Chocolatey package")) {
-            Invoke-Command -ScriptBlock { "& choco uninstall -y $PackageName --remove-dependencies --all-versions --ignore-package-exit-codes" | Out-Null }
-        }
-        
-        if ($LASTEXITCODE -eq 0) {
-            Write-StatusMessage "Chocolatey package '$PackageName' uninstalled successfully." -Verbosity Debug
-            return $true
-        } else {
-            Write-StatusMessage "Failed to uninstall Chocolatey package '$PackageName'." -Verbosity Error
+    try {
+        if (-not (Test-ChocolateyInstalled)) {
+            Write-StatusMessage "Chocolatey is not installed. Cannot uninstall package '$PackageName'." -Verbosity Warning
             return $false
         }
-    }
-    catch {
-        Write-StatusMessage "Error uninstalling Chocolatey package: $_" -Verbosity Error
+    } catch {
+        Write-StatusMessage "Error checking if Chocolatey is installed: $_" -Verbosity Error
         Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    try {
+        $chocoCommand = Find-Chocolatey
+    } catch {
+        Write-StatusMessage "Error locating Chocolatey command: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    if(-not $chocoCommand -or [string]::IsNullOrWhiteSpace($chocoCommand)) {
+        Write-StatusMessage "Could not find Chocolatey command. Cannot uninstall package '$PackageName'." -Verbosity Warning
+        return $false
+    }
+
+    Write-StatusMessage "Uninstalling Chocolatey package: $PackageName" -Verbosity Debug
+    
+    # Uninstall the package
+    if ($PSCmdlet.ShouldProcess($PackageName, "Uninstall Chocolatey package")) {
+        try {
+            Invoke-Command -ScriptBlock { & $using:chocoCommand uninstall -y $using:PackageName --remove-dependencies --all-versions --ignore-package-exit-codes } *>$null
+        } catch {
+            Write-StatusMessage "Error uninstalling package '$PackageName': $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false
+        }
+    } else {
+        Write-StatusMessage "Operation to uninstall package '$PackageName' was cancelled." -Verbosity Debug
+        return $true
+    }
+    
+    if ($LASTEXITCODE -eq 0) {
+        Write-StatusMessage "Chocolatey package '$PackageName' uninstalled successfully." -Verbosity Debug
+        return $true
+    } else {
+        Write-StatusMessage "Failed to uninstall Chocolatey package '$PackageName'." -Verbosity Error
         return $false
     }
 }

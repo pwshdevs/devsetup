@@ -55,11 +55,46 @@
 
 Function Test-ChocolateyInstalled {
     [CmdletBinding()]
+    [OutputType([bool])]
     Param()
 
-    if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
-        Write-Warning "Chocolatey is not installed. Cannot check for Chocolatey packages."
-        return $false
+    # Check if Chocolatey is installed
+    try {
+        $Path = (Get-Command "choco" -ErrorAction SilentlyContinue).Path
+    } catch {
+        Write-StatusMessage "Error finding Chocolatey command: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
     }
-    return $true
+
+    if ($Path) {
+        Write-StatusMessage "Found Chocolatey at: $Path" -Verbosity Debug
+        return $true
+    } else {
+        try {
+            $ChocolateyInstallEnvPath = Get-EnvironmentVariable ChocolateyInstall
+        } catch {
+            Write-StatusMessage "Error retrieving ChocolateyInstall environment variable: $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false
+        }
+        if (-not $ChocolateyInstallEnvPath) {
+            Write-StatusMessage "ChocolateyInstall environment variable is not set." -Verbosity Debug
+            return $false
+        } else {
+            try {
+                $Path = Join-Path $ChocolateyInstallEnvPath "bin\choco.exe"
+            } catch {
+                Write-StatusMessage "Error constructing Chocolatey path: $_" -Verbosity Error
+                Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+                return $false
+            }
+            if (Test-Path $Path) {
+                Write-StatusMessage "Found Chocolatey at: $Path" -Verbosity Debug
+                return $true
+            } else {
+                Write-StatusMessage "Chocolatey executable not found at expected path: $Path" -Verbosity Debug
+                return $false
+            }
+        }
+    }
 }
