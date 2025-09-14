@@ -3,6 +3,16 @@ BeforeAll {
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Get-EnvironmentVariable.ps1
     
+    # Set up TestDrive paths for cross-platform compatibility
+    $TestChocolateyPath = Join-Path $TestDrive "chocolatey"
+    $TestChocolateyBinPath = Join-Path $TestChocolateyPath "bin"
+    $TestChocolateyExePath = Join-Path $TestChocolateyBinPath "choco.exe"
+    
+    # Alternative test paths for multiple scenarios
+    $TestAlternatePath = Join-Path $TestDrive "tools\chocolatey"
+    $TestAlternateBinPath = Join-Path $TestAlternatePath "bin"
+    $TestAlternateExePath = Join-Path $TestAlternateBinPath "choco.exe"
+    
     Mock Write-StatusMessage { }
 }
 
@@ -11,14 +21,14 @@ Describe "Test-ChocolateyInstalled" {
     Context "When Get-Command finds choco in PATH" {
         It "Should return true when choco command is found" {
             Mock Get-Command { 
-                return @{ Path = "C:\ProgramData\chocolatey\bin\choco.exe" } 
+                return @{ Path = $TestChocolateyExePath } 
             }
             
             $result = Test-ChocolateyInstalled
             
             $result | Should -Be $true
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
-                $Message -match "Found Chocolatey at: C:\\ProgramData\\chocolatey\\bin\\choco\.exe" -and $Verbosity -eq "Debug"
+                $Message -match [regex]::Escape("Found Chocolatey at: $TestChocolateyExePath") -and $Verbosity -eq "Debug"
             }
         }
     }
@@ -43,7 +53,7 @@ Describe "Test-ChocolateyInstalled" {
     Context "When choco is not in PATH but environment variable is set" {
         It "Should return true when ChocolateyInstall points to valid executable" {
             Mock Get-Command { return $null }
-            Mock Get-EnvironmentVariable { return "C:\ProgramData\chocolatey" }
+            Mock Get-EnvironmentVariable { return $TestChocolateyPath }
             Mock Test-Path { return $true }
             
             $result = Test-ChocolateyInstalled
@@ -53,26 +63,26 @@ Describe "Test-ChocolateyInstalled" {
                 $Name -eq "ChocolateyInstall"
             }
             Assert-MockCalled Test-Path -Times 1 -Scope It -ParameterFilter {
-                $Path -eq "C:\ProgramData\chocolatey\bin\choco.exe"
+                $Path -eq $TestChocolateyExePath
             }
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
-                $Message -match "Found Chocolatey at: C:\\ProgramData\\chocolatey\\bin\\choco\.exe" -and $Verbosity -eq "Debug"
+                $Message -match [regex]::Escape("Found Chocolatey at: $TestChocolateyExePath") -and $Verbosity -eq "Debug"
             }
         }
         
         It "Should return false when ChocolateyInstall points to non-existent executable" {
             Mock Get-Command { return $null }
-            Mock Get-EnvironmentVariable { return "C:\ProgramData\chocolatey" }
+            Mock Get-EnvironmentVariable { return $TestChocolateyPath }
             Mock Test-Path { return $false }
             
             $result = Test-ChocolateyInstalled
             
             $result | Should -Be $false
             Assert-MockCalled Test-Path -Times 1 -Scope It -ParameterFilter {
-                $Path -eq "C:\ProgramData\chocolatey\bin\choco.exe"
+                $Path -eq $TestChocolateyExePath
             }
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
-                $Message -match "Chocolatey executable not found at expected path: C:\\ProgramData\\chocolatey\\bin\\choco\.exe" -and $Verbosity -eq "Debug"
+                $Message -match [regex]::Escape("Chocolatey executable not found at expected path: $TestChocolateyExePath") -and $Verbosity -eq "Debug"
             }
         }
     }
@@ -139,7 +149,7 @@ Describe "Test-ChocolateyInstalled" {
     Context "When Join-Path throws an exception" {
         It "Should handle Join-Path exception and return false" {
             Mock Get-Command { return $null }
-            Mock Get-EnvironmentVariable { return "C:\ProgramData\chocolatey" }
+            Mock Get-EnvironmentVariable { return $TestChocolateyPath }
             Mock Join-Path { throw "Path construction failed" }
             
             $result = Test-ChocolateyInstalled
@@ -173,7 +183,7 @@ Describe "Test-ChocolateyInstalled" {
     Context "When multiple exception scenarios occur" {
         It "Should handle Get-Command exception followed by successful environment variable detection" {
             Mock Get-Command { throw "Command not found" }
-            Mock Get-EnvironmentVariable { return "C:\ProgramData\chocolatey" }
+            Mock Get-EnvironmentVariable { return $TestChocolateyPath }
             Mock Test-Path { return $true }
             
             $result = Test-ChocolateyInstalled
@@ -183,7 +193,7 @@ Describe "Test-ChocolateyInstalled" {
                 $Message -match "Error finding Chocolatey command" -and $Verbosity -eq "Error"
             }
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
-                $Message -match "Found Chocolatey at: C:\\ProgramData\\chocolatey\\bin\\choco\.exe" -and $Verbosity -eq "Debug"
+                $Message -match [regex]::Escape("Found Chocolatey at: $TestChocolateyExePath") -and $Verbosity -eq "Debug"
             }
         }
     }
@@ -191,17 +201,17 @@ Describe "Test-ChocolateyInstalled" {
     Context "When validating cross-platform path handling" {
         It "Should construct correct path with different install locations" {
             Mock Get-Command { return $null }
-            Mock Get-EnvironmentVariable { return "D:\Tools\Chocolatey" }
+            Mock Get-EnvironmentVariable { return $TestAlternatePath }
             Mock Test-Path { return $true }
             
             $result = Test-ChocolateyInstalled
             
             $result | Should -Be $true
             Assert-MockCalled Test-Path -Times 1 -Scope It -ParameterFilter {
-                $Path -eq "D:\Tools\Chocolatey\bin\choco.exe"
+                $Path -eq $TestAlternateExePath
             }
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
-                $Message -match "Found Chocolatey at: D:\\Tools\\Chocolatey\\bin\\choco\.exe" -and $Verbosity -eq "Debug"
+                $Message -match [regex]::Escape("Found Chocolatey at: $TestAlternateExePath") -and $Verbosity -eq "Debug"
             }
         }
     }
@@ -209,7 +219,7 @@ Describe "Test-ChocolateyInstalled" {
     Context "When validating function output type" {
         It "Should return a boolean value in success scenarios" {
             Mock Get-Command { 
-                return @{ Path = "C:\ProgramData\chocolatey\bin\choco.exe" } 
+                return @{ Path = $TestChocolateyExePath } 
             }
             
             $result = Test-ChocolateyInstalled
