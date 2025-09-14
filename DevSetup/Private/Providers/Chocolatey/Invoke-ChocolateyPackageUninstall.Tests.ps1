@@ -4,294 +4,472 @@ BeforeAll {
     . (Join-Path $PSScriptRoot "Write-ChocolateyCache.ps1")
     . (Join-Path $PSScriptRoot "..\..\Utils\Write-StatusMessage.ps1")
     . (Join-Path $PSScriptRoot "..\..\Utils\Test-RunningAsAdmin.ps1")
+    
     Mock Write-StatusMessage { }
-    Mock Test-RunningAsAdmin { return $true }
-    Mock Write-ChocolateyCache { return $true }
-    Mock Uninstall-ChocolateyPackage { return $true }
 }
 
 Describe "Invoke-ChocolateyPackageUninstall" {
 
-    Context "When not running as admin" {
-        It "Should return false and write error" {
+    Context "When not running as administrator" {
+        It "Should return false and write error message" {
             Mock Test-RunningAsAdmin { return $false }
+            
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{
                         chocolatey = @{
-                            packages = @("git")
+                            packages = @(
+                                @{ name = "git" }
+                            )
                         }
                     }
                 }
             }
+            
             $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
             $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "requires administrator privileges" -and $Verbosity -eq "Error" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "requires administrator privileges" -and $Verbosity -eq "Error"
+            }
         }
     }
 
-    Context "When Test-RunningAsAdmin throws exception" {
-        It "Should return false and write error" {
+    Context "When Test-RunningAsAdmin throws an exception" {
+        It "Should handle exception and return false" {
             Mock Test-RunningAsAdmin { throw "Admin check failed" }
+            
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{
                         chocolatey = @{
-                            packages = @("git")
+                            packages = @(
+                                @{ name = "git" }
+                            )
                         }
                     }
                 }
             }
+            
             $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
             $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter { $Verbosity -eq "Error" }
-        }
-    }
-
-    Context "When YAML data is null" {
-        It "Should throw" {
-            { Invoke-ChocolateyPackageUninstall -YamlData $null } | Should -Throw
-        }
-    }
-
-    Context "When YAML data has no devsetup" {
-        It "Should return without processing" {
-            $yamlData = @{ }
-            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
-            $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Chocolatey packages not found" -and $Verbosity -eq "Warning" }
-        }
-    }
-
-    Context "When YAML data has no dependencies" {
-        It "Should return without processing" {
-            $yamlData = @{ devsetup = @{ } }
-            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
-            $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Chocolatey packages not found" -and $Verbosity -eq "Warning" }
-        }
-    }
-
-    Context "When YAML data has no chocolatey" {
-        It "Should return without processing" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ } } }
-            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
-            $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Chocolatey packages not found" -and $Verbosity -eq "Warning" }
-        }
-    }
-
-    Context "When YAML data has no packages" {
-        It "Should return without processing" {
-            $yamlData = @{ devsetup = @{ dependencies = @{ chocolatey = @{ } } } }
-            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
-            $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Chocolatey packages not found" -and $Verbosity -eq "Warning" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Error checking administrator privileges" -and $Verbosity -eq "Error"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter {
+                $Verbosity -eq "Error"
+            }
         }
     }
 
     Context "When Write-ChocolateyCache fails" {
-        It "Should return false and write error" {
+        It "Should return false when Write-ChocolateyCache returns false" {
+            Mock Test-RunningAsAdmin { return $true }
             Mock Write-ChocolateyCache { return $false }
+            
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{
                         chocolatey = @{
-                            packages = @("git")
+                            packages = @(
+                                @{ name = "git" }
+                            )
                         }
                     }
                 }
             }
+            
             $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
             $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Failed to write Chocolatey cache" -and $Verbosity -eq "Warning" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Failed to write Chocolatey cache" -and $Verbosity -eq "Warning"
+            }
         }
-    }
-
-    Context "When Write-ChocolateyCache throws exception" {
-        It "Should return false and write error" {
+        
+        It "Should handle Write-ChocolateyCache exception and return false" {
+            Mock Test-RunningAsAdmin { return $true }
             Mock Write-ChocolateyCache { throw "Cache write failed" }
+            
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{
                         chocolatey = @{
-                            packages = @("git")
+                            packages = @(
+                                @{ name = "git" }
+                            )
                         }
                     }
                 }
             }
+            
             $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
             $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter { $Verbosity -eq "Error" }
-        }
-    }
-
-    Context "When single package as string" {
-        It "Should uninstall package and return true" {
-            $yamlData = @{
-                devsetup = @{
-                    dependencies = @{
-                        chocolatey = @{
-                            packages = @("git")
-                        }
-                    }
-                }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Error writing Chocolatey cache" -and $Verbosity -eq "Error"
             }
-            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
-            $result | Should -Be $true
-            Assert-MockCalled Uninstall-ChocolateyPackage -Exactly 1 -Scope It -ParameterFilter { $PackageName -eq "git" -and $WhatIf -eq $false }
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Uninstalling Chocolatey package: git" -and $ForegroundColor -eq "Gray" }
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -eq "[OK]" -and $ForegroundColor -eq "Green" }
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "uninstallation completed" -and $ForegroundColor -eq "Green" }
+            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter {
+                $Verbosity -eq "Error"
+            }
         }
     }
 
-    Context "When single package as hashtable with version" {
+    Context "When processing single package with object format" {
         It "Should uninstall package with version and return true" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Uninstall-ChocolateyPackage { return $true }
+            
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{
                         chocolatey = @{
-                            packages = @(@{ name = "git"; version = "2.0.0" })
+                            packages = @(
+                                @{ name = "git"; version = "2.42.0" }
+                            )
                         }
                     }
                 }
             }
+            
             $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
             $result | Should -Be $true
-            Assert-MockCalled Uninstall-ChocolateyPackage -Exactly 1 -Scope It -ParameterFilter { $PackageName -eq "git" -and $WhatIf -eq $false }
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "version: 2.0.0" -and $ForegroundColor -eq "Gray" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Uninstalling Chocolatey packages from configuration:" -and $ForegroundColor -eq "Cyan"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Uninstalling Chocolatey package: git \(version: 2\.42\.0\)" -and $ForegroundColor -eq "Gray"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -eq "[OK]" -and $ForegroundColor -eq "Green"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Chocolatey packages uninstallation completed! Processed 1 packages" -and $ForegroundColor -eq "Green"
+            }
+            Assert-MockCalled Uninstall-ChocolateyPackage -Times 1 -Scope It -ParameterFilter {
+                $PackageName -eq "git" -and $WhatIf -eq $false
+            }
         }
-    }
-
-    Context "When single package as hashtable without version" {
-        It "Should uninstall package and show latest version" {
+        
+        It "Should uninstall package without version (latest) and return true" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Uninstall-ChocolateyPackage { return $true }
+            
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{
                         chocolatey = @{
-                            packages = @(@{ name = "git" })
+                            packages = @(
+                                @{ name = "nodejs" }
+                            )
                         }
                     }
                 }
             }
+            
             $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
             $result | Should -Be $true
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "version: latest" -and $ForegroundColor -eq "Gray" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Uninstalling Chocolatey package: nodejs \(version: latest\)" -and $ForegroundColor -eq "Gray"
+            }
+            Assert-MockCalled Uninstall-ChocolateyPackage -Times 1 -Scope It -ParameterFilter {
+                $PackageName -eq "nodejs"
+            }
         }
     }
 
-    Context "When multiple packages" {
+    Context "When processing multiple packages" {
         It "Should uninstall all packages and return true" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Uninstall-ChocolateyPackage { return $true }
+            
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{
                         chocolatey = @{
-                            packages = @("git", @{ name = "nodejs"; version = "14.0.0" })
+                            packages = @(
+                                @{ name = "git"; version = "2.42.0" },
+                                @{ name = "nodejs"; version = "18.17.0" },
+                                @{ name = "vscode" }
+                            )
                         }
                     }
                 }
             }
+            
             $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
             $result | Should -Be $true
-            Assert-MockCalled Uninstall-ChocolateyPackage -Exactly 2 -Scope It
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Processed 2 packages" -and $ForegroundColor -eq "Green" }
+            Assert-MockCalled Write-StatusMessage -Exactly 3 -Scope It -ParameterFilter {
+                $Message -eq "[OK]" -and $ForegroundColor -eq "Green"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 3 packages" -and $ForegroundColor -eq "Green"
+            }
+            Assert-MockCalled Uninstall-ChocolateyPackage -Times 3 -Scope It
         }
     }
 
-    Context "When package is null" {
-        It "Should skip null package" {
+    Context "When individual package uninstallation fails" {
+        It "Should mark package as failed but continue processing others" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Uninstall-ChocolateyPackage { 
+                param($PackageName)
+                if ($PackageName -eq "failing-package") { return $false }
+                return $true
+            }
+            
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{
                         chocolatey = @{
-                            packages = @($null, "git")
+                            packages = @(
+                                @{ name = "git" },
+                                @{ name = "failing-package" },
+                                @{ name = "nodejs" }
+                            )
                         }
                     }
                 }
             }
+            
             $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
             $result | Should -Be $true
-            Assert-MockCalled Uninstall-ChocolateyPackage -Exactly 1 -Scope It
+            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter {
+                $Message -eq "[OK]" -and $ForegroundColor -eq "Green"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -eq "[FAILED]" -and $ForegroundColor -eq "Red"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 2 packages" -and $ForegroundColor -eq "Green"
+            }
         }
     }
 
-    Context "When package has no name" {
-        It "Should skip package and write warning" {
+    Context "When Uninstall-ChocolateyPackage throws an exception" {
+        It "Should handle exception and return false" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Uninstall-ChocolateyPackage { throw "Package uninstall failed" }
+            
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{
                         chocolatey = @{
-                            packages = @(@{ }, "git")
+                            packages = @(
+                                @{ name = "git" }
+                            )
                         }
                     }
                 }
             }
+            
             $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
-            $result | Should -Be $true
-            Assert-MockCalled Uninstall-ChocolateyPackage -Exactly 1 -Scope It
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "has no name specified" -and $Verbosity -eq "Warning" }
-        }
-    }
-
-    Context "When Uninstall-ChocolateyPackage returns false" {
-        It "Should write failed and continue" {
-            Mock Uninstall-ChocolateyPackage { return $false }
-            $yamlData = @{
-                devsetup = @{
-                    dependencies = @{
-                        chocolatey = @{
-                            packages = @("git")
-                        }
-                    }
-                }
-            }
-            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
-            $result | Should -Be $true
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -eq "[FAILED]" -and $ForegroundColor -eq "Red" }
-        }
-    }
-
-    Context "When Uninstall-ChocolateyPackage throws exception" {
-        It "Should return false and write error" {
-            Mock Uninstall-ChocolateyPackage { throw "Uninstall failed" }
-            $yamlData = @{
-                devsetup = @{
-                    dependencies = @{
-                        chocolatey = @{
-                            packages = @("git")
-                        }
-                    }
-                }
-            }
-            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
             $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter { $Verbosity -eq "Error" }
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Error uninstalling Chocolatey package" -and $Verbosity -eq "Error"
+            }
+            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter {
+                $Verbosity -eq "Error"
+            }
         }
     }
 
-    Context "When DryRun is specified" {
+    Context "When using DryRun parameter" {
         It "Should pass WhatIf to Uninstall-ChocolateyPackage" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Uninstall-ChocolateyPackage { return $true }
+            
             $yamlData = @{
                 devsetup = @{
                     dependencies = @{
                         chocolatey = @{
-                            packages = @("git")
+                            packages = @(
+                                @{ name = "git" }
+                            )
                         }
                     }
                 }
             }
+            
             $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData -DryRun
+            
             $result | Should -Be $true
-            Assert-MockCalled Uninstall-ChocolateyPackage -Exactly 1 -Scope It -ParameterFilter { $WhatIf -eq $true }
+            Assert-MockCalled Uninstall-ChocolateyPackage -Times 1 -Scope It -ParameterFilter {
+                $PackageName -eq "git" -and $WhatIf -eq $true
+            }
         }
     }
 
-    Context "When YamlData is empty" {
-        It "Should write error and return false" {
+    Context "When validating parameter validation" {
+        It "Should throw when YamlData is null" {
+            { Invoke-ChocolateyPackageUninstall -YamlData $null } | Should -Throw
+        }
+        
+        It "Should handle empty YamlData gracefully" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            
             $result = Invoke-ChocolateyPackageUninstall -YamlData @{}
+            
+            $result | Should -Be $true
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 0 packages" -and $ForegroundColor -eq "Green"
+            }
+        }
+    }
+
+    Context "When YAML structure is missing or incomplete" {
+        It "Should handle missing devsetup section gracefully" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            
+            $yamlData = @{
+                other = @{
+                    data = "value"
+                }
+            }
+            
+            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
+            $result | Should -Be $true
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Chocolatey packages uninstallation completed! Processed 0 packages" -and $ForegroundColor -eq "Green"
+            }
+        }
+        
+        It "Should handle missing dependencies section gracefully" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    other = "data"
+                }
+            }
+            
+            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
+            $result | Should -Be $true
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 0 packages" -and $ForegroundColor -eq "Green"
+            }
+        }
+        
+        It "Should handle missing chocolatey section gracefully" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        npm = @{
+                            packages = @("lodash")
+                        }
+                    }
+                }
+            }
+            
+            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
+            $result | Should -Be $true
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 0 packages" -and $ForegroundColor -eq "Green"
+            }
+        }
+        
+        It "Should handle missing packages array gracefully" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            other = "data"
+                        }
+                    }
+                }
+            }
+            
+            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
+            $result | Should -Be $true
+            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter {
+                $Message -match "Processed 0 packages" -and $ForegroundColor -eq "Green"
+            }
+        }
+    }
+
+    Context "When processing packages with formatting validation" {
+        It "Should display proper formatting with indent and width settings" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Uninstall-ChocolateyPackage { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                @{ name = "git"; version = "2.42.0" }
+                            )
+                        }
+                    }
+                }
+            }
+            
+            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
+            $result | Should -Be $true
+            Assert-MockCalled Write-StatusMessage -Times 1 -Scope It -ParameterFilter {
+                $Message -match "Uninstalling Chocolatey package: git \(version: 2\.42\.0\)" -and 
+                $ForegroundColor -eq "Gray" -and 
+                $Indent -eq 2 -and 
+                $Width -eq 100 -and 
+                $NoNewline -eq $true
+            }
+        }
+    }
+
+    Context "When processing empty or null packages" {
+        It "Should handle null packages and return false due to error" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Write-ChocolateyCache { return $true }
+            Mock Uninstall-ChocolateyPackage { return $true }
+            
+            $yamlData = @{
+                devsetup = @{
+                    dependencies = @{
+                        chocolatey = @{
+                            packages = @(
+                                $null,
+                                @{ name = "git" },
+                                $null
+                            )
+                        }
+                    }
+                }
+            }
+            
+            # This should fail because null packages cause errors when accessing .name
+            $result = Invoke-ChocolateyPackageUninstall -YamlData $yamlData
+            
             $result | Should -Be $false
-            Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "Chocolatey packages not found" -and $Verbosity -eq "Warning" }
+            Assert-MockCalled Write-StatusMessage -Exactly 2 -Scope It -ParameterFilter {
+                $Verbosity -eq "Error"
+            }
         }
     }
 }

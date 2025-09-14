@@ -67,47 +67,69 @@ Function Install-Chocolatey {
     try {
         # Check if we're on Windows - Chocolatey is Windows-only
         if (-not (Test-OperatingSystem -Windows)) {
-            Write-Host "Chocolatey is not available on this platform. Skipping installation." -ForegroundColor Yellow
+            Write-StatusMessage "Chocolatey is not available on this platform. Skipping installation." -Verbosity Error
             return $true
         }
+    } catch {
+        Write-StatusMessage "Error checking operating system: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
         
+    try {
         # Check if running as administrator
         if (-not (Test-RunningAsAdmin)) {
-            throw "Chocolatey installation requires administrator privileges. Please run as administrator."
+            Write-StatusMessage "Chocolatey installation requires administrator privileges. Please run as administrator." -Verbosity Error
+            return $false
         }
-        
-        Write-StatusMessage "- Installing Chocolatey package manager" -ForegroundColor Gray -Indent 2 -Width 77 -NoNewline
-        # Check if chocolatey is installed by testing the command
-        $chocoInstalled = Get-Command choco -ErrorAction SilentlyContinue
-        
-        if ($chocoInstalled) {
-            Invoke-Expression "& choco --version" *>$null
-            #Write-Host "Chocolatey is already installed (version: $chocoVersion)" -ForegroundColor Green
-            Write-StatusMessage "[OK]" -ForegroundColor Green
-        } else {
-            #Write-Host "Chocolatey not found. Installing Chocolatey..." -ForegroundColor Cyan
-            
-            # Set security protocols and execution policy
-            Set-ExecutionPolicy Bypass -Scope Process -Force | Out-Null
-            [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-            
-            # Download and install Chocolatey
-            (Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1')) *> $null) *> $null
-            
-            # Verify installation
-            $chocoInstalled = Get-Command choco -ErrorAction SilentlyContinue
-            if ($chocoInstalled) {
-                Invoke-Expression "& choco --version" *>$null
-                #Write-Host "Chocolatey successfully installed (version: $chocoVersion)!" -ForegroundColor Green
-                Write-StatusMessage "[OK]" -ForegroundColor Green
-            } else {
-                throw "Failed to install Chocolatey"
-            }
-        }
-        return $true
-    }
-    catch {
-        Write-Error "Error checking/installing Chocolatey: $_"
+    } catch {
+        Write-StatusMessage "Error checking administrator privileges: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
-    }    
+    }
+
+    Write-StatusMessage "- Installing Chocolatey package manager" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewline
+    try {
+        # Check if chocolatey is already installed
+        if (Test-ChocolateyInstalled) {
+            Write-StatusMessage "Chocolatey is already installed. Skipping installation." -Verbosity Debug
+            Write-StatusMessage "[OK]" -ForegroundColor Green
+            return $true
+        }
+    } catch {
+        Write-StatusMessage "Error checking Chocolatey installation: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+    
+    try {
+        # Set security protocols and execution policy
+        Set-ExecutionPolicy Bypass -Scope Process -Force | Out-Null
+        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+    
+        # Download and install Chocolatey
+        (Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1')) *> $null) *> $null
+    } catch {
+        Write-StatusMessage "Error during Chocolatey installation: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        Write-StatusMessage "[FAILED]" -ForegroundColor Red
+        return $false
+    }
+
+    # Verify installation
+    try {
+        $chocoInstalled = Test-ChocolateyInstalled
+        if ($chocoInstalled) {
+            #Write-Host "Chocolatey successfully installed (version: $chocoVersion)!" -ForegroundColor Green
+            Write-StatusMessage "[OK]" -ForegroundColor Green
+            return $true
+        } else {
+            Write-StatusMessage "[FAILD]" -ForegroundColor Red
+            return $false
+        }
+    } catch {
+        Write-StatusMessage "Error verifying Chocolatey installation: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }  
 }

@@ -55,15 +55,37 @@
 
 Function Read-ChocolateyCache {
     [CmdletBinding()]
+    [OutputType([string])]
     Param()
 
-    $cacheFile = Get-ChocolateyCacheFile
+    try {
+        $cacheFile = Get-ChocolateyCacheFile
+    } catch {
+        Write-StatusMessage "Failed to get Chocolatey cache file path: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $null
+    }
 
-    if (-Not (Test-Path $cacheFile)) {
-        Write-Debug "Chocolatey cache file not found: $cacheFile"
-        if(-not (Write-ChocolateyCache)) {
-            throw "Failed to create Chocolatey cache file: $cacheFile"
+    try {
+        if (-Not (Test-Path $cacheFile)) {
+            Write-StatusMessage "Chocolatey cache file not found: $cacheFile" -Verbosity Debug
+            Write-StatusMessage "Creating new Chocolatey cache file..." -Verbosity Debug
+
+            try {
+                if(-not (Write-ChocolateyCache)) {
+                    Write-StatusMessage "Failed to create Chocolatey cache file: $cacheFile" -Verbosity Error
+                    return $null
+                }
+            } catch {
+                Write-StatusMessage "Error creating Chocolatey cache file: $_" -Verbosity Error
+                Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+                return $null
+            }
         }
+    } catch {
+        Write-StatusMessage "Error ensuring Chocolatey cache file exists: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $null
     }
 
     try {
@@ -71,7 +93,8 @@ Function Read-ChocolateyCache {
         return $cacheData
     }
     catch {
-        Write-Error "Failed to read Chocolatey cache file: $_"
+        Write-StatusMessage "Failed to read Chocolatey cache file: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $null
     }
 }

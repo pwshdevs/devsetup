@@ -101,13 +101,6 @@ Function Invoke-ChocolateyPackageInstall {
         return $false
     }
 
-        
-    # Check if chocolatey dependencies exist
-    if (-not $YamlData -or -not $YamlData.devsetup -or -not $YamlData.devsetup.dependencies -or -not $YamlData.devsetup.dependencies.chocolatey -or -not $YamlData.devsetup.dependencies.chocolatey.packages) {
-        Write-StatusMessage "Chocolatey packages not found in YAML configuration. Skipping installation." -Verbosity Warning
-        return $false
-    }
-
     try {
         if (-not (Write-ChocolateyCache)) {
             Write-StatusMessage "Failed to write Chocolatey cache." -Verbosity Error
@@ -125,16 +118,6 @@ Function Invoke-ChocolateyPackageInstall {
     $packageCount = 0
     
     foreach ($package in $chocolateyPackages) {
-        if (-not $package) { continue }
-        
-        $packageCount++
-        
-        # Validate package name
-        if ([string]::IsNullOrEmpty($package.name)) {
-            Write-StatusMessage "Package entry #$packageCount has no name specified, skipping" -Verbosity Warning
-            continue
-        }
-        
         # Build install parameters
         $installParams = @{ 
             PackageName = $package.name 
@@ -155,6 +138,7 @@ Function Invoke-ChocolateyPackageInstall {
         try {
             if((Install-ChocolateyPackage @installParams)) {
                 Write-StatusMessage "[OK]" -ForegroundColor Green
+                $packageCount++
             } else {
                 Write-StatusMessage "[FAILED]" -ForegroundColor Red
             }

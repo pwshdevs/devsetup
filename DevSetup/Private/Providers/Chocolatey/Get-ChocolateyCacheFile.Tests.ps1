@@ -1,51 +1,168 @@
 BeforeAll {
     . $PSScriptRoot\Get-ChocolateyCacheFile.ps1
+    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Get-DevSetupCachePath.ps1
-    Mock Write-Error { }
 }
 
 Describe "Get-ChocolateyCacheFile" {
-    Context "When Get-DevSetupCachePath returns a valid path" {
+
+    Context "When Get-DevSetupCachePath succeeds" {
         It "Should return the correct cache file path" {
-            if ($PSVersionTable.PSVersion.Major -eq 5 -or ($PSVersionTable.PSVersion.Major -ge 6 -and $IsWindows)) {
-                Mock Get-DevSetupCachePath { return "$TestDrive\Users\Test\devsetup\.cache" }
-                $result = Get-ChocolateyCacheFile
-                $result | Should -Be "$TestDrive\Users\Test\devsetup\.cache\chocolatey.cache"
-            } elseif ($PSVersionTable.PSVersion.Major -ge 6 -and $IsLinux) {
-                Mock Get-DevSetupCachePath { return "$TestDrive/home/testuser/devsetup/.cache" }
-                $result = Get-ChocolateyCacheFile
-                $result | Should -Be "$TestDrive/home/testuser/devsetup/.cache/chocolatey.cache"
-            } elseif ($PSVersionTable.PSVersion.Major -ge 6 -and $IsMacOS) {
-                Mock Get-DevSetupCachePath { return "$TestDrive/Users/TestUser/devsetup/.cache" }
-                $result = Get-ChocolateyCacheFile
-                $result | Should -Be "$TestDrive/Users/TestUser/devsetup/.cache/chocolatey.cache"
-            }
-        }
-    }
-
-    Context "When Get-DevSetupCachePath returns a different path" {
-        It "Should append chocolatey.cache to the returned path" {
-            if ($PSVersionTable.PSVersion.Major -eq 5 -or ($PSVersionTable.PSVersion.Major -ge 6 -and $IsWindows)) {
-                Mock Get-DevSetupCachePath { return "$TestDrive\DevSetupCache" }
-                $result = Get-ChocolateyCacheFile
-                $result | Should -Be "$TestDrive\DevSetupCache\chocolatey.cache"
-            } elseif ($PSVersionTable.PSVersion.Major -ge 6 -and $IsLinux) {
-                Mock Get-DevSetupCachePath { return "$TestDrive/home/testuser/devsetupcache/.cache" }
-                $result = Get-ChocolateyCacheFile
-                $result | Should -Be "$TestDrive/home/testuser/devsetupcache/.cache/chocolatey.cache"
-            } elseif ($PSVersionTable.PSVersion.Major -ge 6 -and $IsMacOS) {
-                Mock Get-DevSetupCachePath { return "$TestDrive/Users/TestUser/devsetupcache/.cache" }
-                $result = Get-ChocolateyCacheFile
-                $result | Should -Be "$TestDrive/Users/TestUser/devsetupcache/.cache/chocolatey.cache"
-            }
-        }
-    }
-
-    Context "When Get-DevSetupCachePath returns an empty string" {
-        It "Should write error and return null" {
-            Mock Get-DevSetupCachePath { return "" }
+            $expectedCachePath = Join-Path $TestDrive ".cache"
+            $expectedCacheFile = Join-Path $expectedCachePath "chocolatey.cache"
+            
+            Mock Get-DevSetupCachePath { return $expectedCachePath }
+            Mock Write-StatusMessage { }
+            
             $result = Get-ChocolateyCacheFile
-            $result | Should -Be $null
+            
+            $result | Should -Be $expectedCacheFile
+            Assert-MockCalled Get-DevSetupCachePath -Times 1 -Scope It
+        }
+    }
+
+    Context "When Get-DevSetupCachePath returns null" {
+        It "Should return null and log error message" {
+            Mock Get-DevSetupCachePath { return $null }
+            Mock Write-StatusMessage { }
+            
+            $result = Get-ChocolateyCacheFile
+            
+            $result | Should -BeNullOrEmpty
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { 
+                $Message -eq "Failed to retrieve DevSetup cache path." -and $Verbosity -eq "Error" 
+            }
+        }
+    }
+
+    Context "When Get-DevSetupCachePath returns empty string" {
+        It "Should return null and log error message" {
+            Mock Get-DevSetupCachePath { return "" }
+            Mock Write-StatusMessage { }
+            
+            $result = Get-ChocolateyCacheFile
+            
+            $result | Should -BeNullOrEmpty
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { 
+                $Message -eq "Failed to retrieve DevSetup cache path." -and $Verbosity -eq "Error" 
+            }
+        }
+    }
+
+    Context "When Get-DevSetupCachePath returns whitespace string" {
+        It "Should return null and log error message" {
+            Mock Get-DevSetupCachePath { return "   " }
+            Mock Write-StatusMessage { }
+            
+            $result = Get-ChocolateyCacheFile
+            
+            $result | Should -BeNullOrEmpty
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { 
+                $Message -eq "Failed to retrieve DevSetup cache path." -and $Verbosity -eq "Error" 
+            }
+        }
+    }
+
+    Context "When Get-DevSetupCachePath throws an exception" {
+        It "Should handle exception and return null" {
+            Mock Get-DevSetupCachePath { throw "Cache path access error" }
+            Mock Write-StatusMessage { }
+            
+            $result = Get-ChocolateyCacheFile
+            
+            $result | Should -BeNullOrEmpty
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { 
+                $Message -match "Error retrieving DevSetup cache path:" -and $Verbosity -eq "Error" 
+            }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { 
+                $Verbosity -eq "Error" -and $Message -match "at"
+            }
+        }
+    }
+
+    Context "When Join-Path throws an exception" {
+        It "Should handle Join-Path exception and return null" {
+            $cachePath = "InvalidPath:"
+            
+            Mock Get-DevSetupCachePath { return $cachePath }
+            Mock Join-Path { throw "Invalid path error" }
+            Mock Write-StatusMessage { }
+            
+            $result = Get-ChocolateyCacheFile
+            
+            $result | Should -BeNullOrEmpty
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { 
+                $Message -match "Error constructing Chocolatey cache file path:" -and $Verbosity -eq "Error" 
+            }
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { 
+                $Verbosity -eq "Error" -and $Message -match "at"
+            }
+        }
+    }
+
+    Context "Path construction validation" {
+        It "Should correctly combine cache path and chocolatey.cache filename" {
+            $baseCachePath = Join-Path $TestDrive "custom" "cache" "directory"
+            $expectedResult = Join-Path $baseCachePath "chocolatey.cache"
+            
+            Mock Get-DevSetupCachePath { return $baseCachePath }
+            Mock Write-StatusMessage { }
+            
+            $result = Get-ChocolateyCacheFile
+            
+            $result | Should -Be $expectedResult
+            $result | Should -Match "chocolatey\.cache$"
+        }
+    }
+
+    Context "Cross-platform path handling" {
+        It "Should handle Unix-style paths correctly" {
+            $unixCachePath = Join-Path $TestDrive "home" "user" ".devsetup" ".cache"
+            $expectedResult = Join-Path $unixCachePath "chocolatey.cache"
+            
+            Mock Get-DevSetupCachePath { return $unixCachePath }
+            Mock Write-StatusMessage { }
+            
+            $result = Get-ChocolateyCacheFile
+            
+            $result | Should -Be $expectedResult
+            $result.EndsWith("chocolatey.cache") | Should -BeTrue
+        }
+
+        It "Should handle Windows-style paths correctly" {
+            $windowsCachePath = Join-Path $TestDrive "Users" "TestUser" "AppData" "Local" "DevSetup" "cache"
+            $expectedResult = Join-Path $windowsCachePath "chocolatey.cache"
+            
+            Mock Get-DevSetupCachePath { return $windowsCachePath }
+            Mock Write-StatusMessage { }
+            
+            $result = Get-ChocolateyCacheFile
+            
+            $result | Should -Be $expectedResult
+            $result.EndsWith("chocolatey.cache") | Should -BeTrue
+        }
+    }
+
+    Context "Return value validation" {
+        It "Should return a string type" {
+            $cachePath = Join-Path $TestDrive "cache"
+            
+            Mock Get-DevSetupCachePath { return $cachePath }
+            Mock Write-StatusMessage { }
+            
+            $result = Get-ChocolateyCacheFile
+            
+            $result | Should -BeOfType [string]
+        }
+
+        It "Should return null (not empty string) on errors" {
+            Mock Get-DevSetupCachePath { throw "Error" }
+            Mock Write-StatusMessage { }
+            
+            $result = Get-ChocolateyCacheFile
+            
+            $result | Should -BeNullOrEmpty
+            $result | Should -BeExactly $null
         }
     }
 }

@@ -87,10 +87,34 @@ Function Invoke-ChocolateyPackageExport {
         return $false
     }
 
+    try {
+        if (-not (Test-ChocolateyInstalled)) {
+            Write-StatusMessage "Chocolatey is not installed. Cannot export packages." -Verbosity Warning
+            return $false
+        }
+    } catch {
+        Write-StatusMessage "Error checking if Chocolatey is installed: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    try {
+        $chocoCommand = Find-Chocolatey
+    } catch {
+        Write-StatusMessage "Error locating Chocolatey command: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    if(-not $chocoCommand -or [string]::IsNullOrWhiteSpace($chocoCommand)) {
+        Write-StatusMessage "Could not find Chocolatey command. Cannot export packages." -Verbosity Warning
+        return $false
+    }
+
     # Get list of installed Chocolatey packages
     Write-StatusMessage "- Getting list of installed Chocolatey packages..." -ForegroundColor Gray
     try {
-        $chocoList = Invoke-Command -ScriptBlock { & choco list --local-only --limit-output }
+        $chocoList = Invoke-Command -ScriptBlock { & $chocoCommand list --local-only --limit-output }
         if($LASTEXITCODE -ne 0) {
             throw "Chocolatey command failed with exit code $LASTEXITCODE"
         }
@@ -100,7 +124,7 @@ Function Invoke-ChocolateyPackageExport {
         return $false
     }
 
-    if (-not $chocoList) {
+    if (-not $chocoList -or [string]::IsNullOrWhiteSpace($chocoList)) {
         Write-StatusMessage "No Chocolatey packages found or Chocolatey is not installed." -Verbosity Warning
         return $true
     }
@@ -153,15 +177,10 @@ Function Invoke-ChocolateyPackageExport {
         return $false
     }
 
-    # Ensure chocolatey-specific sections exist
-    if (-not $YamlData.devsetup.dependencies.chocolatey) { $YamlData.devsetup.dependencies.chocolatey = @{} }
-    if (-not $YamlData.devsetup.dependencies.chocolatey.packages) { $YamlData.devsetup.dependencies.chocolatey.packages = @() }
-
     # Add packages to YAML data
     foreach ($package in $chocolateyPackages) {
         # Check if package already exists
         $existingPackage = $YamlData.devsetup.dependencies.chocolatey.packages | Where-Object {
-            ($_ -is [string] -and $_ -eq $package.name) -or
             ($_.name -eq $package.name)
         }
 
@@ -173,25 +192,25 @@ Function Invoke-ChocolateyPackageExport {
             }
             Write-StatusMessage "[OK]" -ForegroundColor Green
         } else {
-            # Package exists, check if version has changed
-            $existingVersion = $null
-            if ((-not ($existingPackage -is [string])) -and $existingPackage.version) {
-                $existingVersion = $existingPackage.version
-            }
+            if ($existingPackage.version -and $existingPackage.version -ne $package.version) {
+                Write-StatusMessage "- Updating package: $($package.name) ($($existingPackage.version) -> $($package.version))" -ForegroundColor Cyan -Indent 2 -Width 112 -NoNewline
 
-            if ($existingVersion -and $existingVersion -ne $package.version) {
-                Write-StatusMessage "- Updating package: $($package.name) ($existingVersion -> $($package.version))" -ForegroundColor Cyan -Indent 2 -Width 112 -NoNewline
-                
                 # Find index and update
                 $index = $YamlData.devsetup.dependencies.chocolatey.packages.IndexOf($existingPackage)
-                $YamlData.devsetup.dependencies.chocolatey.packages[$index].version = $package.version
+                $YamlData.devsetup.dependencies.chocolatey.packages[$index].version = @{
+                    version = $package.version
+                    name = $package.name
+                }
                 Write-StatusMessage "[OK]" -ForegroundColor Green
-            } elseif (-not $existingVersion) {
+            } elseif (-not $existingPackage.version) {
                 Write-StatusMessage "- Updating package: $($package.name)" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewline
 
                 # Find index and add version
                 $index = $YamlData.devsetup.dependencies.chocolatey.packages.IndexOf($existingPackage)
-                $YamlData.devsetup.dependencies.chocolatey.packages[$index].version = $package.version
+                $YamlData.devsetup.dependencies.chocolatey.packages[$index].version = @{
+                    version = $package.version
+                    name = $package.name
+                }
                 Write-StatusMessage "[OK]" -ForegroundColor Green
             } else {
                 Write-StatusMessage "- Skipping package (No Change): $($package.name) ($($package.version))" -ForegroundColor Gray -Indent 2 -Width 112 -NoNewline
