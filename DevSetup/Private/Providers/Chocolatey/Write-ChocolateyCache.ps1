@@ -56,33 +56,70 @@
 #>
 
 Function Write-ChocolateyCache {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
+    [OutputType([bool])]
     Param()
 
-    $cacheFile = Get-ChocolateyCacheFile
-
-    if(-not (Test-ChocolateyInstalled)) {
-        Write-Error "Chocolatey is not installed. Cannot write cache file."
+    try {
+        $cacheFile = Get-ChocolateyCacheFile
+    } catch {
+        Write-StatusMessage "Error determining Chocolatey cache file path: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 
     try {
-        #$chocolatelyPackages = @{}
-        #choco list -r | foreach-object { 
-        #    $package = $_ -split '\|' 
-        #    if($package.Count -eq 2) {  
-        #        $chocolatelyPackages[$package[0]] = @{
-        #            Name = $package[0]
-        #            Version = $package[1]
-        #        }
-        #    }
-        #}        
-        Invoke-Expression "& choco list -r" | Set-Content $cacheFile -Force
-        Write-Debug "Chocolatey cache written successfully to: $cacheFile"
-        return $true
+        if(-not (Test-ChocolateyInstalled)) {
+            Write-StatusMessage "Chocolatey is not installed. Cannot write cache file." -Verbosity Error
+            return $false
+        }
+    } catch {
+        Write-StatusMessage "Error checking if Chocolatey is installed: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    try {
+        $chocoCommand = Find-Chocolatey
+    } catch {
+        Write-StatusMessage "Error locating Chocolatey command: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    if(-not $chocoCommand -or [string]::IsNullOrWhiteSpace($chocoCommand)) {
+        Write-StatusMessage "Could not find Chocolatey command. Cannot write cache file." -Verbosity Warning
+        return $false
+    }
+
+    try {
+        $chocoPackages = Invoke-Command -ScriptBlock { & $chocoCommand list -r } 2>$null 3>$null 4>$null 5>$null 6>$null
     }
     catch {
-        Write-Error "Failed to write Chocolatey cache file: $_"
+        Write-StatusMessage "Failed to write Chocolatey cache file: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+    
+    Write-StatusMessage "Retrieved Chocolatey packages successfully." -Verbosity Debug
+    if ($LASTEXITCODE -ne 0 -or -not $chocoPackages) {
+        Write-StatusMessage "Failed to retrieve Chocolatey packages or no packages found." -Verbosity Warning
+        return $false
+    }    
+
+    try {
+        if ($PSCmdlet.ShouldProcess($cacheFile, "Update Chocolatey cache")) {
+            $chocoPackages | Set-Content $cacheFile -Force
+            Write-StatusMessage "Chocolatey cache written successfully to: $cacheFile" -Verbosity Debug            
+            return $true
+        } else {
+            Write-StatusMessage "Operation to write Chocolatey cache was cancelled." -Verbosity Warning
+            return $true
+        }
+
+    } catch {
+        Write-StatusMessage "Failed to write Chocolatey cache file: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
 }

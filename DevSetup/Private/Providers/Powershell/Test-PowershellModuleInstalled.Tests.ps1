@@ -3,12 +3,16 @@ BeforeAll {
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Enums\InstalledState.ps1    
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-OperatingSystem.ps1
     . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Get-EnvironmentVariable.ps1
+    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1
+    . $PSScriptRoot\Get-PowershellModuleScopeMap.ps1
+    
+    Mock Write-StatusMessage { }
+    
     if($PSVersionTable.PSVersion.Major -eq 5) {
-        $script:LocalModulePath = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\"
-        $script:AllUsersModulePath = "$env:ProgramFiles\WindowsPowerShell\Modules\"
+        $script:LocalModulePath = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules"
+        $script:AllUsersModulePath = "$env:ProgramFiles\WindowsPowerShell\Modules"
         Mock Get-EnvironmentVariable { 
             Param(
-                [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
                 $Name
             )
             switch ($Name) {
@@ -19,11 +23,10 @@ BeforeAll {
         Mock Test-OperatingSystem { $true }
     } else {
         if($IsWindows) {
-            $script:LocalModulePath = "$env:USERPROFILE\Documents\PowerShell\Modules\"
-            $script:AllUsersModulePath = "$env:ProgramFiles\PowerShell\Modules\"
+            $script:LocalModulePath = "$env:USERPROFILE\Documents\PowerShell\Modules"
+            $script:AllUsersModulePath = "$env:ProgramFiles\PowerShell\Modules"
             Mock Get-EnvironmentVariable { 
                 Param(
-                    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
                     $Name
                 )
                 switch ($Name) {
@@ -35,11 +38,10 @@ BeforeAll {
             Mock Test-OperatingSystem { $true }
         }
         if($IsLinux) {
-            $script:LocalModulePath = "$env:HOME/.local/share/powershell/Modules/"
-            $script:AllUsersModulePath = "/usr/local/share/powershell/Modules/"
+            $script:LocalModulePath = "$env:HOME/.local/share/powershell/Modules"
+            $script:AllUsersModulePath = "/usr/local/share/powershell/Modules"
             Mock Get-EnvironmentVariable {
                 Param(
-                    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
                     $Name
                 )
                 switch ($Name) {
@@ -51,11 +53,10 @@ BeforeAll {
             Mock Test-OperatingSystem { $false }
         }
         if($IsMacOS) {
-            $script:LocalModulePath = "$env:HOME/.local/share/powershell/Modules/"
-            $script:AllUsersModulePath = "/usr/local/share/powershell/Modules/"
+            $script:LocalModulePath = "$env:HOME/.local/share/powershell/Modules"
+            $script:AllUsersModulePath = "/usr/local/share/powershell/Modules"
             Mock Get-EnvironmentVariable { 
                 Param(
-                    [Parameter(Mandatory, ValueFromPipeline, ValueFromPipelineByPropertyName)]
                     $Name
                 )
                 switch ($Name) {
@@ -67,6 +68,12 @@ BeforeAll {
             Mock Test-OperatingSystem { $false }
         }
     }
+
+    # Mock Get-PowershellModuleScopeMap to return appropriate paths
+    Mock Get-PowershellModuleScopeMap { @(
+        @{ Path = $script:LocalModulePath; Scope = "CurrentUser" },
+        @{ Path = $script:AllUsersModulePath; Scope = "AllUsers" }
+    ) }
 }
 
 Describe "Test-PowershellModuleInstalled" {
@@ -85,7 +92,7 @@ Describe "Test-PowershellModuleInstalled" {
                 [PSCustomObject]@{
                     Name = "posh-git"
                     Version = "1.0.0"
-                    Path = "$($script:LocalModulePath)posh-git"
+                    Path = "$($script:LocalModulePath)$([System.IO.Path]::DirectorySeparatorChar)posh-git\posh-git.psd1"
                 }
             }
             $result = Test-PowershellModuleInstalled -ModuleName "posh-git"
@@ -100,7 +107,7 @@ Describe "Test-PowershellModuleInstalled" {
                 [PSCustomObject]@{
                     Name = "PSReadLine"
                     Version = "2.2.6"
-                    Path = "$($script:LocalModulePath)PSReadLine"
+                    Path = "$($script:LocalModulePath)$([System.IO.Path]::DirectorySeparatorChar)PSReadLine\PSReadLine.psd1"
                 }
             }
             $result = Test-PowershellModuleInstalled -ModuleName "PSReadLine" -Version "2.2.6"
@@ -115,7 +122,7 @@ Describe "Test-PowershellModuleInstalled" {
                 [PSCustomObject]@{
                     Name = "PSReadLine"
                     Version = "2.2.5"
-                    Path = "$($script:LocalModulePath)PSReadLine"
+                    Path = "$($script:LocalModulePath)$([System.IO.Path]::DirectorySeparatorChar)PSReadLine\PSReadLine.psd1"
                 }
             }
             $result = Test-PowershellModuleInstalled -ModuleName "PSReadLine" -Version "2.2.6"
@@ -130,7 +137,7 @@ Describe "Test-PowershellModuleInstalled" {
                 [PSCustomObject]@{
                     Name = "PowerShellGet"
                     Version = "2.2.5"
-                    Path = "$($script:AllUsersModulePath)PowerShellGet"
+                    Path = "$($script:AllUsersModulePath)$([System.IO.Path]::DirectorySeparatorChar)PowerShellGet\PowerShellGet.psd1"
                 }
             }
             $result = Test-PowershellModuleInstalled -ModuleName "PowerShellGet" -Scope "AllUsers"
@@ -145,7 +152,7 @@ Describe "Test-PowershellModuleInstalled" {
                 [PSCustomObject]@{
                     Name = "Az"
                     Version = "9.0.1"
-                    Path = "$($script:LocalModulePath)Az"
+                    Path = "$($script:LocalModulePath)$([System.IO.Path]::DirectorySeparatorChar)Az\Az.psd1"
                 }
             }
             $result = Test-PowershellModuleInstalled -ModuleName "Az" -Scope "CurrentUser"
@@ -159,6 +166,54 @@ Describe "Test-PowershellModuleInstalled" {
             Mock Get-Module { throw "Unexpected error" }
             $result = Test-PowershellModuleInstalled -ModuleName "Az"
             $result | Should -BeExactly ([InstalledState]::NotInstalled)
+        }
+    }
+
+    Context "When Get-PowershellModuleScopeMap throws an exception" {
+        It "Should return NotInstalled and log error" {
+            Mock Get-PowershellModuleScopeMap { throw "Scope map error" }
+            $result = Test-PowershellModuleInstalled -ModuleName "Az"
+            $result | Should -BeExactly ([InstalledState]::NotInstalled)
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "Failed to get PowerShell module scope map" -and $Verbosity -eq "Error" }
+        }
+    }
+
+    Context "When Get-PowershellModuleScopeMap returns empty" {
+        It "Should return NotInstalled and log warning" {
+            Mock Get-PowershellModuleScopeMap { @() }
+            $result = Test-PowershellModuleInstalled -ModuleName "Az"
+            $result | Should -BeExactly ([InstalledState]::NotInstalled)
+            Assert-MockCalled Write-StatusMessage -Scope It -ParameterFilter { $Message -match "No PowerShell module install paths found" -and $Verbosity -eq "Warning" }
+        }
+    }
+
+    Context "When module is installed in wrong scope" {
+        It "Should return Installed + MinimumVersionMet + RequiredVersionMet (without GlobalVersionMet)" {
+            Mock Get-Module {
+                [PSCustomObject]@{
+                    Name = "TestModule"
+                    Version = "1.0.0"
+                    Path = "$($script:LocalModulePath)$([System.IO.Path]::DirectorySeparatorChar)TestModule\TestModule.psd1"
+                }
+            }
+            $result = Test-PowershellModuleInstalled -ModuleName "TestModule" -Scope "AllUsers"
+            $expected = [InstalledState]::Installed + [InstalledState]::MinimumVersionMet + [InstalledState]::RequiredVersionMet
+            $result | Should -BeExactly $expected
+        }
+    }
+
+    Context "When module is installed with version and scope both matching" {
+        It "Should return full Pass state" {
+            Mock Get-Module {
+                [PSCustomObject]@{
+                    Name = "FullTest"
+                    Version = "3.1.4"
+                    Path = "$($script:AllUsersModulePath)$([System.IO.Path]::DirectorySeparatorChar)FullTest\FullTest.psd1"
+                }
+            }
+            $result = Test-PowershellModuleInstalled -ModuleName "FullTest" -Version "3.1.4" -Scope "AllUsers"
+            $expected = [InstalledState]::Pass
+            $result | Should -BeExactly $expected
         }
     }
 }

@@ -1,0 +1,1 @@
+& (Join-Path $env:UserProfile '\.dotnet\tools\reportgenerator.exe') -sourcedirs:"DevSetup" -reports:"coverage.xml" -targetdir:"..\reports" -reporttypes:MarkdownSummaryGithub

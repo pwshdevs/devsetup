@@ -74,7 +74,7 @@
 #>
 
 Function Install-ChocolateyPackage {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     Param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -92,63 +92,120 @@ Function Install-ChocolateyPackage {
     try {
         # Check if running as administrator
         if (-not (Test-RunningAsAdmin)) {
-            throw "Chocolatey package installation requires administrator privileges. Please run as administrator."
+            Write-StatusMessage "Chocolatey package installation requires administrator privileges. Please run as administrator." -Verbosity Error
+            return $false
         }
-        
-        $testParams = @{
-            PackageName = $PackageName
-        }
+    } catch {
+        Write-StatusMessage "Error checking administrator privileges: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
 
-        if($PSBoundParameters.ContainsKey('Version')) {
-            $testParams.Version = $Version
+    try {
+        if (-not (Test-ChocolateyInstalled)) {
+            Write-StatusMessage "Chocolatey is not installed. Cannot install package $PackageName." -Verbosity Warning
+            return $false
         }
+    } catch {
+        Write-StatusMessage "Error checking if Chocolatey is installed: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
 
+    $testParams = @{
+        PackageName = $PackageName
+    }
+
+    if($PSBoundParameters.ContainsKey('Version')) {
+        $testParams.Version = $Version
+    }
+
+    try {
         $testResult = Test-ChocolateyPackageInstalled @testParams
+    } catch {
+        Write-StatusMessage "Error checking if package $PackageName is installed: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
 
-        if($testResult.HasFlag([InstalledState]::Pass)) {
-            return $true
-        }
+    if($testResult.HasFlag([InstalledState]::Pass)) {
+        return $true
+    }
 
-        if($testResult.HasFlag([InstalledState]::Installed)) {
+    if($testResult.HasFlag([InstalledState]::Installed)) {
+        try {
             Uninstall-ChocolateyPackage -PackageName $PackageName | Out-Null
-        }
-
-        $installParams = @(
-            'install',
-            '-y',
-            $PackageName
-        )
-        
-        if($PSBoundParameters.ContainsKey('Version')) {
-            $installParams = $installParams + @('--version', $Version)
-        }
-
-        if($PSBoundParameters.ContainsKey('Param')) {
-            $installParams = $installParams + @('--params', $Param)
-        }
-
-        $chocoCommand = Get-Command choco -ErrorAction SilentlyContinue
-
-        $command = {
-            & $chocoCommand @installParams
-        }
-
-        Invoke-Command -ScriptBlock $command | Out-Null
-        
-        if ($LASTEXITCODE -eq 0) {
-            Write-Debug "INSTALL:Successfully installed: $PackageName"
-            if (-not (Write-ChocolateyCache)) {
-                Write-Warning "Failed to write Chocolatey cache."
-                return $false
-            }
-            return $true
-        } else {
-            Write-Error "Failed to install: $PackageName"
+        } catch {
+            Write-StatusMessage "Error uninstalling existing package $($PackageName): $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
             return $false
         }
     }
-    catch {
-        Write-Error "Error checking/installing package $PackageName`: $_"
+
+    $installParams = @(
+        'install',
+        '-y',
+        $PackageName
+    )
+    
+    if($PSBoundParameters.ContainsKey('Version')) {
+        $installParams = $installParams + @('--version', $Version)
+    }
+
+    if($PSBoundParameters.ContainsKey('Param')) {
+        $installParams = $installParams + @('--params', $Param)
+    }
+
+    try {
+        $chocoCommand = Find-Chocolatey
+        if (-not $chocoCommand) {
+            Write-StatusMessage "Could not find Chocolatey command. Cannot install package $PackageName." -Verbosity Warning
+            return $false
+        }
+    } catch {
+        Write-StatusMessage "Error locating Chocolatey command: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
-    }    
+    }
+
+    try {
+        if( -not (Test-Path $chocoCommand)) {
+            Write-StatusMessage "Chocolatey command path '$chocoCommand' does not exist. Cannot install package $PackageName." -Verbosity Warning
+            return $false
+        }
+    } catch {
+        Write-StatusMessage "Error verifying Chocolatey command path: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    if ($PSCmdlet.ShouldProcess($PackageName, "Install Chocolatey package")) {
+        try {
+            Invoke-Command -ScriptBlock { & $chocoCommand @installParams | Out-Null }
+        } catch {
+            Write-StatusMessage "Error installing package $($PackageName): $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false
+        }
+    } else {
+        Write-StatusMessage "Skipping installation of Chocolatey package '$PackageName'." -Verbosity Debug
+        return $true
+    }
+    
+    if ($LASTEXITCODE -eq 0) {
+        try {
+            if (-not (Write-ChocolateyCache)) {
+                Write-StatusMessage "Failed to write Chocolatey cache." -Verbosity Error
+                return $false
+            }
+        } catch {
+            Write-StatusMessage "Error writing Chocolatey cache: $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false
+        } 
+        return $true
+    } else {
+        Write-StatusMessage "Failed to install: $PackageName" -Verbosity Error
+        return $false
+    }   
 }

@@ -77,7 +77,7 @@
 #>
 
 Function Install-PowershellModule {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     Param(
         [Parameter(Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
@@ -97,51 +97,71 @@ Function Install-PowershellModule {
         [ValidateSet('CurrentUser', 'AllUsers')]
         [String] $Scope = 'CurrentUser'
     )
-    
+
     try {
         # Check if running as administrator only when installing for all users
         if ($Scope -eq 'AllUsers' -and (-not (Test-RunningAsAdmin))) {
-            throw "PowerShell module installation to AllUsers scope requires administrator privileges. Please run as administrator or use CurrentUser scope."
+            Write-StatusMessage "PowerShell module installation to AllUsers scope requires administrator privileges. Please run as administrator or use CurrentUser scope." -Verbosity Error
+            return $false
         }
-        
-        $installParams = @{
-            Name = $ModuleName
-            Force = $Force
-            Scope = $Scope
-            AllowClobber = $AllowClobber
-            SkipPublisherCheck = $true
-        }
+    } catch {
+        Write-StatusMessage "Failed to validate administrator privileges: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+    
+    $installParams = @{
+        Name = $ModuleName
+        Force = $Force
+        Scope = $Scope
+        AllowClobber = $AllowClobber
+        SkipPublisherCheck = $true
+    }
 
-        $testParams = @{
-            ModuleName = $ModuleName
-            Scope = $Scope
-        }
+    $testParams = @{
+        ModuleName = $ModuleName
+        Scope = $Scope
+    }
 
-        if($PSBoundParameters.ContainsKey('Version')) {
-            $testParams.Version = $Version
-            $installParams.RequiredVersion = $Version
-        }
+    if($PSBoundParameters.ContainsKey('Version')) {
+        $testParams.Version = $Version
+        $installParams.RequiredVersion = $Version
+    }
 
+    try {
         $testResult = Test-PowershellModuleInstalled @testParams
+    } catch {
+        Write-StatusMessage "Failed to test if PowerShell module is installed: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
 
-        if($testResult.HasFlag([InstalledState]::Pass)) {
-            return $true
-        }
-
-        if($testResult.HasFlag([InstalledState]::Installed)) {
-            try {
-                Uninstall-PowershellModule -ModuleName $ModuleName
-            } catch {
-                # Uninstall might have failed, we keep going anyways
-                Write-Debug "Failed to uninstall existing module '$ModuleName': $_"
-            }
-        }
-
-        # Install the PowerShell module
-        Install-Module @installParams
+    if($testResult.HasFlag([InstalledState]::Pass)) {
         return $true
     }
-    catch {
-        return $false
-    }    
+
+    if($testResult.HasFlag([InstalledState]::Installed)) {
+        try {
+            Uninstall-PowershellModule -ModuleName $ModuleName -WhatIf:$WhatIf
+        } catch {
+            # Uninstall might have failed, we keep going anyways
+            Write-StatusMessage "Failed to uninstall existing module '$ModuleName': $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        }
+    }
+
+    # Install the PowerShell module
+    if ($PSCmdlet.ShouldProcess($ModuleName, "Install-Module")) {
+        try {
+            Install-Module @installParams
+        } catch {
+            Write-StatusMessage "Failed to install PowerShell module '$ModuleName': $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false
+        }
+    } else {
+        Write-StatusMessage "Installation of module '$ModuleName' was skipped due to ShouldProcess." -Verbosity Warning
+        return $true
+    }
+    return $true
 }

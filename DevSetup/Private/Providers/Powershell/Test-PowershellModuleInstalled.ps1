@@ -90,41 +90,25 @@ Function Test-PowershellModuleInstalled {
         [string]$Scope
     )
 
-    # CurrentUser ps5.1
-    # $env:USERPROFILE\Documents\WindowsPowerShell\Modules
-    # CurrentUser ps7
-    # $env:USERPROFILE\Documents\PowerShell\Modules
-    # CurrentUser ps7 (linux/macos)
-    # $env:HOME/.local/share/powershell/Modules
-
-    # AllUsers ps5.1
-    # $env:ProgramFiles\WindowsPowerShell\Modules
-    # AllUsers ps7
-    # $env:ProgramFiles\PowerShell\Modules
-    # AllUsers ps7 (linux/macos)
-    # $env:HOME/.local/share/powershell/Modules
-    if((Test-OperatingSystem -Windows)) {
-        $SearchPath = (Get-EnvironmentVariable USERPROFILE)
-    } else {
-        $SearchPath = (Get-EnvironmentVariable HOME)
+    try {
+        $InstallPaths = Get-PowershellModuleScopeMap
+    } catch {
+        Write-StatusMessage "Failed to get PowerShell module scope map: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return [InstalledState]::NotInstalled
     }
 
-    $InstallPaths = @(
-        (Get-EnvironmentVariable PSModulePath) -split ([System.IO.Path]::PathSeparator) | ForEach-Object { 
-            if($_ -match [regex]::Escape("$SearchPath")) { 
-                @{ Path = $_; Scope = "CurrentUser" } 
-            } else {
-                @{ Path = $_; Scope = "AllUsers" }
-            } 
-        }
-    )
+    if(-not $InstallPaths -or $InstallPaths.Count -eq 0) {
+        Write-StatusMessage "No PowerShell module install paths found." -Verbosity Warning
+        return [InstalledState]::NotInstalled
+    }
 
     [InstalledState]$installedState = [InstalledState]::NotInstalled
 
     try {
         $module = Get-Module -Name $ModuleName -ListAvailable -ErrorAction Stop | 
-                  Sort-Object Version -Descending | 
-                  Select-Object -First 1
+                Sort-Object Version -Descending | 
+                Select-Object -First 1
         
         if ($module) {
             $installedState = [InstalledState]::Installed

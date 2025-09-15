@@ -8,11 +8,9 @@ Function Invoke-HomebrewComponentsExport {
         [string]$OutFile
     )
 
-    $YamlData = Read-ConfigurationFile -Config $Config
+    $YamlData = Read-DevSetupEnvFile -Config $Config
 
-    # Ensure scoopPackages and scoopBuckets sections exist
-    if (-not $YamlData.devsetup) { $YamlData.devsetup = @{} }
-    if (-not $YamlData.devsetup.dependencies) { $YamlData.devsetup.dependencies = @{} }
+    # Ensure homebrew section exists (specific to this provider)
     if (-not $YamlData.devsetup.dependencies.homebrew) { $YamlData.devsetup.dependencies.homebrew = @() }
 
     if(-not (Find-Homebrew)) {
@@ -51,22 +49,12 @@ Function Invoke-HomebrewComponentsExport {
         }
     }
 
-    try {
-        $yamlOutput = $YamlData | ConvertTo-Yaml
-    }
-    catch {
-        Write-StatusMessage "Could not convert to YAML format. Showing PowerShell object instead:" -Verbosity Warning
-        $yamlOutput = $YamlData | ConvertTo-Json -Depth 10
-    }
-
     # Determine output file
     $outputFile = if ($OutFile) { $OutFile } else { $Config }
 
     try {
         Write-StatusMessage "Saving configuration to: $outputFile" -Verbosity Verbose
-        if ($PSCmdlet.ShouldProcess($outputFile, "Out-File")) {
-            $yamlOutput | Out-File -FilePath $outputFile
-        }
+        $YamlData | Update-DevSetupEnvFile -EnvFilePath $outputFile -WhatIf:$WhatIf
         Write-StatusMessage "Configuration saved successfully!" -Verbosity Verbose
     }
     catch {

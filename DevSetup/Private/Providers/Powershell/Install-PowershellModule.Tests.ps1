@@ -1,11 +1,11 @@
 BeforeAll {
-    . $PSScriptRoot\Install-PowershellModule.ps1
-    . $PSScriptRoot\Test-PowershellModuleInstalled.ps1
-    . $PSScriptRoot\Uninstall-PowershellModule.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Enums\InstalledState.ps1
-    . $PSScriptRoot\..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1
-    Mock Write-Error {}
-    Mock Write-Warning {}
+    . (Join-Path $PSScriptRoot "Install-PowershellModule.ps1")
+    . (Join-Path $PSScriptRoot "Test-PowershellModuleInstalled.ps1")
+    . (Join-Path $PSScriptRoot "Uninstall-PowershellModule.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Enums\InstalledState.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Test-RunningAsAdmin.ps1")
+    . (Join-Path $PSScriptRoot "..\..\..\..\DevSetup\Private\Utils\Write-StatusMessage.ps1")
+    Mock Write-StatusMessage { }
 }
 
 Describe "Install-PowershellModule" {
@@ -14,6 +14,23 @@ Describe "Install-PowershellModule" {
         It "Should return false" {
             Mock Test-RunningAsAdmin { return $false }
             $result = Install-PowershellModule -ModuleName "Az" -Scope "AllUsers"
+            $result | Should -Be $false
+        }
+    }
+
+    Context "When Test-RunningAsAdmin throws an exception" {
+        It "Should return false" {
+            Mock Test-RunningAsAdmin { throw "Admin check failed" }
+            $result = Install-PowershellModule -ModuleName "Az" -Scope "AllUsers"
+            $result | Should -Be $false
+        }
+    }
+
+    Context "When Test-PowershellModuleInstalled throws an exception" {
+        It "Should return false" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Test-PowershellModuleInstalled { throw "Module test failed" }
+            $result = Install-PowershellModule -ModuleName "Az"
             $result | Should -Be $false
         }
     }
@@ -39,21 +56,10 @@ Describe "Install-PowershellModule" {
             }
             $script:uninstallCalled = $false
             Mock Uninstall-PowershellModule -MockWith {
-                param(
-                    [string]$ModuleName,
-                    [string]$Scope
-                )
                 $script:uninstallCalled = $true
             }
             $script:installCalled = $false
             Mock Install-Module -MockWith {
-                param(
-                    [string]$Name,
-                    [switch]$Force,
-                    [string]$Scope,
-                    [switch]$AllowClobber,
-                    [string]$RequiredVersion
-                )
                 $script:installCalled = $true
             }
             $result = Install-PowershellModule -ModuleName "Az"
@@ -71,13 +77,6 @@ Describe "Install-PowershellModule" {
             }
             $script:installCalled = $false
             Mock Install-Module -MockWith {
-                param(
-                    [string]$Name,
-                    [switch]$Force,
-                    [string]$Scope,
-                    [switch]$AllowClobber,
-                    [string]$RequiredVersion
-                )
                 $script:installCalled = $true
             }
             $result = Install-PowershellModule -ModuleName "Az"
@@ -149,6 +148,40 @@ Describe "Install-PowershellModule" {
             $installParams.Scope | Should -Be "CurrentUser"
             $installParams.AllowClobber | Should -Be $true
             $installParams.RequiredVersion | Should -Be "9.0.1"
+        }
+    }
+
+    Context "When WhatIf is specified" {
+        It "Should return true and not install the module" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Test-PowershellModuleInstalled { 
+                return [InstalledState]::NotInstalled
+            }
+            Mock Install-Module { throw "Should not be called" }
+            $result = Install-PowershellModule -ModuleName "Az" -WhatIf
+            $result | Should -Be $true
+        }
+    }
+
+    Context "When module is installed with CurrentUser scope by default" {
+        It "Should use CurrentUser scope when no scope is specified" {
+            Mock Test-RunningAsAdmin { return $true }
+            Mock Test-PowershellModuleInstalled { 
+                return [InstalledState]::NotInstalled
+            }
+            Mock Install-Module -MockWith {
+                param(
+                    [string]$Name,
+                    [string]$Scope
+                )
+                $script:installParams = @{
+                    ModuleName = $Name
+                    Scope = $Scope
+                }
+            }
+            $result = Install-PowershellModule -ModuleName "Az"
+            $result | Should -Be $true
+            $installParams.Scope | Should -Be "CurrentUser"
         }
     }
 }

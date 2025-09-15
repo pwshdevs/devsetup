@@ -59,21 +59,53 @@ Function Get-ChocolateyVersion {
     Param(
     )
 
-    if (-not (Test-ChocolateyInstalled)) {
-        Write-Warning "Chocolatey is not installed. Cannot retrieve version."
+    try {
+        if (-not (Test-ChocolateyInstalled)) {
+            Write-StatusMessage "Chocolatey is not installed. Cannot retrieve version." -Verbosity Warning
+            return $null
+        }
+    } catch {
+        Write-StatusMessage "Error checking if Chocolatey is installed: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $null
     }
 
     try {
-        $version = Invoke-Expression "& choco --version" 2>$null
-        if ($version) {
-            return $version.Trim()
-        } else {
-            Write-Warning "Failed to retrieve Chocolatey version."
+        $chocoCommand = Find-Chocolatey
+    } catch {
+        Write-StatusMessage "Error locating Chocolatey command: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $null
+    }
+
+    if(-not $chocoCommand -or [string]::IsNullOrWhiteSpace($chocoCommand)) {
+        Write-StatusMessage "Could not find Chocolatey command. Cannot retrieve version." -Verbosity Warning
+        return $null
+    }
+
+    try {
+        if( -not (Test-Path $chocoCommand)) {
+            Write-StatusMessage "Chocolatey command path '$chocoCommand' does not exist. Cannot retrieve version." -Verbosity Warning
             return $null
         }
     } catch {
-        Write-Warning "An error occurred while trying to get Chocolatey version: $_"
+        Write-StatusMessage "Error verifying Chocolatey command path: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $null
+    }
+
+    try {
+        $version = Invoke-Command -ScriptBlock { & $chocoCommand --version }
+    } catch {
+        Write-StatusMessage "An error occurred while trying to get Chocolatey version: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $null
+    }        
+
+    if ($LASTEXITCODE -eq 0 -and $version) {
+        return $version
+    } else {
+        Write-StatusMessage "Failed to retrieve Chocolatey version." -Verbosity Warning
         return $null
     }
 }

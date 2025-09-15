@@ -64,33 +64,63 @@
 #>
 
 Function Uninstall-PowershellModule {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     Param(
         [Parameter(Mandatory=$true)]
         [String] $ModuleName
     )
 
-    $installedState = Test-PowershellModuleInstalled -ModuleName $ModuleName
+    try {
+        $installedState = Test-PowershellModuleInstalled -ModuleName $ModuleName
+    } catch {
+        Write-StatusMessage "Error checking installation status of PowerShell module '$ModuleName': $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
     if ($installedState -eq [InstalledState]::NotInstalled) {
-        Write-Warning "PowerShell module '$ModuleName' is not installed. No action taken."
+        Write-StatusMessage "PowerShell module '$ModuleName' is not installed. No action taken." -Verbosity Warning
         return $true
     }
 
-    $installedState = Test-PowershellModuleInstalled -ModuleName $ModuleName -Scope 'AllUsers'
+    try {
+        $installedState = Test-PowershellModuleInstalled -ModuleName $ModuleName -Scope 'AllUsers'
+    } catch {
+        Write-StatusMessage "Error checking installation scope of PowerShell module '$ModuleName': $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
     if ($installedState.HasFlag([InstalledState]::Pass) -and (-not (Test-RunningAsAdmin))) {
-        Write-Warning "PowerShell module '$ModuleName' is installed for AllUsers but current session is not elevated. Cannot uninstall."
+        Write-StatusMessage "PowerShell module '$ModuleName' is installed for AllUsers but current session is not elevated. Cannot uninstall." -Verbosity Warning
         return $false
     }
 
+    Write-StatusMessage "Uninstalling PowerShell module '$ModuleName'..." -Verbosity Debug
+    if ($PSCmdlet.ShouldProcess($ModuleName, "Uninstall-Module")) {
+        try {
+            Remove-Module -Name $ModuleName -Force -ErrorAction SilentlyContinue
+        } catch {
+            Write-StatusMessage "Warning: Failed to remove module '$ModuleName' from current session: $_" -Verbosity Warning
+        }
+        try {
+            Uninstall-Module -Name $ModuleName -Force -ErrorAction Stop
+        } catch {
+            Write-StatusMessage "Error during Uninstall-Module for '$ModuleName': $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false
+        }
+    } else {
+        Write-StatusMessage "Uninstallation of PowerShell module '$ModuleName' was cancelled by user." -Verbosity Warning
+        return $true
+    }
+
+    Write-StatusMessage "PowerShell module '$ModuleName' uninstalled successfully." -Verbosity Debug
+
     try {
-        Write-Debug "Uninstalling PowerShell module '$ModuleName'..."
-        Remove-Module -Name $ModuleName -Force -ErrorAction SilentlyContinue
-        Uninstall-Module -Name $ModuleName -Force -ErrorAction Stop
-        Write-Debug "PowerShell module '$ModuleName' uninstalled successfully."
         $installedState = Test-PowershellModuleInstalled -ModuleName $ModuleName
-        return ($installedState -eq [InstalledState]::NotInstalled)
     } catch {
-        Write-Error "Failed to uninstall PowerShell module '$ModuleName': $_"
+        Write-StatusMessage "Error verifying uninstallation of PowerShell module '$ModuleName': $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
         return $false
     }
+    return ($installedState -eq [InstalledState]::NotInstalled)
 }

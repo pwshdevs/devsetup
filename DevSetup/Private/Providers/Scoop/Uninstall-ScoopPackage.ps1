@@ -53,50 +53,67 @@
     Package Management, Package Removal
 #>
 Function Uninstall-ScoopPackage {
-    [CmdletBinding()]
+    [CmdletBinding(SupportsShouldProcess=$true)]
     Param(
         [Parameter(Mandatory=$true)]
         [string]$PackageName,
         [switch]$Global
     )
 
-    if(-Not (Test-ScoopInstalled)) {
-        Write-Debug "Scoop is not installed. Cannot check for components."
-        return $false
-    }
-
-    $scoopCommand = Find-Scoop
-    if (-not $scoopCommand) {
-        Write-Debug "Failed to find Scoop command. Cannot check for components."
-        return $false
-    }
-
-    $packageState = Test-ScoopComponentInstalled -Package -Name $PackageName
-    if (-not ($packageState.HasFlag([InstalledState]::Pass))) {
-        Write-Debug "Package not installed, can not remove."
-        return $true
-    }
-
     try {
-        $uninstallArgs = @('uninstall', $PackageName)
-        if($Global) {
-            $uninstallArgs += '--global'
-        }
-
-        $command = {
-            & $scoopCommand @uninstallArgs *> $null
-        }
-
-        Invoke-Command -ScriptBlock $command | Out-Null
-        if ($LASTEXITCODE -eq 0) {
-            Write-Debug "Uninstalled Scoop package: $PackageName"
-            return $true
-        } else {
-            Write-Debug "Failed to uninstall Scoop package: $PackageName"
+        if(-Not (Test-ScoopInstalled)) {
+            Write-StatusMessage "Scoop is not installed. Cannot check for components." -Verbosity Debug
             return $false
         }
     } catch {
-        Write-Debug "Failed to remove Scoop Package: $PackageName"
+        Write-StatusMessage "Could not verify Scoop installation: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    try {
+        $scoopCommand = Find-Scoop
+        if (-not $scoopCommand) {
+            Write-StatusMessage "Failed to find Scoop command. Cannot check for components." -Verbosity Debug
+            return $false
+        }
+    } catch {
+        Write-StatusMessage "Error finding Scoop command: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+
+    try {
+        $packageState = Test-ScoopComponentInstalled -Package -Name $PackageName
+    } catch {
+        Write-StatusMessage "Could not verify if Scoop package '$PackageName' is installed: $_" -Verbosity Error
+        Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+        return $false
+    }
+    if (-not ($packageState.HasFlag([InstalledState]::Pass))) {
+        Write-StatusMessage "Package not installed, can not remove." -Verbosity Debug
+        return $true
+    }
+
+    $uninstallArgs = @('uninstall', $PackageName)
+    if($Global) {
+        $uninstallArgs += '--global'
+    }
+
+    if ($PSCmdlet.ShouldProcess($PackageName, "Uninstall Scoop Package")) {
+        try {
+            Invoke-Command -ScriptBlock { & $scoopCommand @uninstallArgs} *> $null
+        } catch {
+            Write-StatusMessage "Failed to execute uninstall command for Scoop package '$PackageName': $_" -Verbosity Error
+            Write-StatusMessage $_.ScriptStackTrace -Verbosity Error
+            return $false
+        }
+    }
+    if ($LASTEXITCODE -eq 0) {
+        Write-StatusMessage "Uninstalled Scoop package: $PackageName" -Verbosity Debug
+        return $true
+    } else {
+        Write-StatusMessage "Failed to uninstall Scoop package: $PackageName" -Verbosity Debug
         return $false
     }
 }

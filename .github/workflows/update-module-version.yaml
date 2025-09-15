@@ -3,7 +3,7 @@ name: Update Module Version
 on:
   push:
     branches:
-      - develop # Trigger on pushes to the main branch
+      - develop
   workflow_dispatch:
 
 jobs:
@@ -19,7 +19,7 @@ jobs:
         pull-requests: write 
     
     steps:
-      - name: checkout
+      - name: Checkout Repository Code
         uses: actions/checkout@v2
 
       - name: Create Version From Current Tags
@@ -30,16 +30,11 @@ jobs:
           dry-run: true
           initial-version: '1.0.0'
 
-      - name: Modify the file
+      - name: Modify DevSetup.psd1 to have the current version
         run: |
-          perl -pi -e 's/[0-9]\.[0-9]\.[0-9]/${{ steps.version_tracker.outputs.version }}/' DevSetup/DevSetup.psd1
+          perl -pi -e 's/[0-9]+\.[0-9]+\.[0-9]+/${{ steps.version_tracker.outputs.version }}/' DevSetup/DevSetup.psd1
 
-#      - name: Commit and push changes
-#        uses: stefanzweifel/git-auto-commit-action@v5
-#        with:
-#          commit_message: "Automated Release Tagging for ${{ steps.version_tracker.outputs.version }} in DevSetup.psd1"
-#          branch:                   
-      - name: Create Pull Request
+      - name: Create Branch and Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
           commit-message: Automated Release Tagging for ${{ steps.version_tracker.outputs.version }} in DevSetup.psd1

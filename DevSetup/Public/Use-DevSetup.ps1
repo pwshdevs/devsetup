@@ -154,10 +154,15 @@ Function Use-DevSetup {
         
         [Parameter(Mandatory = $true, ParameterSetName = "Uninstall")]
         [switch]$Uninstall,
+
+        [Parameter(Mandatory = $true, ParameterSetName = "Explain")]
+        [Parameter(Mandatory = $true, ParameterSetName = "ExplainPath")]
+        [switch]$Explain,
         
         [Parameter(Mandatory = $true, ParameterSetName = "Install")]
         [Parameter(Mandatory = $true, ParameterSetName = "Export")]
         [Parameter(Mandatory = $true, ParameterSetName = "Uninstall")]
+        [Parameter(Mandatory = $true, ParameterSetName = "Explain")]
         [string]$Name,
 
         [Parameter(Mandatory = $true, ParameterSetName = "InstallUrl")]
@@ -165,6 +170,7 @@ Function Use-DevSetup {
         
         [Parameter(Mandatory = $true, ParameterSetName = "InstallPath")]
         [Parameter(Mandatory = $true, ParameterSetName = "ExportPath")]
+        [Parameter(Mandatory = $true, ParameterSetName = "ExplainPath")]
         [string]$Path,
 
         [Parameter(Mandatory = $false)]
@@ -196,132 +202,132 @@ Function Use-DevSetup {
         $sp = "$v" + (Format-RepeatChar " " 118) + "$v"
         
         Write-Host ""
-        Write-Host "$tb" -ForegroundColor Cyan
-        Write-Host "$sp" -ForegroundColor Cyan
-        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tb" -ForegroundColor DarkCyan
+        Write-Host "$sp" -ForegroundColor DarkCyan
+        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr   " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr   " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr" -ForegroundColor Cyan -NoNewLine 
+        Write-Host "$tr" -ForegroundColor DarkCyan -NoNewLine 
         Write-Host "$b$b$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr   " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr   " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine 
-        Write-Host "$tr" (Format-RepeatChar " " 24) "$v" -ForegroundColor Cyan
+        Write-Host "$tr" (Format-RepeatChar " " 24) "$v" -ForegroundColor DarkCyan
 
-        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$h$h" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tl$h$h" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$h$h$h$h$br" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tl$h$h$h$h$br" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v   " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v   " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$h$h$h$h$br" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tl$h$h$h$h$br" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$h$h$h$h$br$bl$h$h" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tl$h$h$h$h$br$bl$h$h" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$h$h$br" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tl$h$h$br" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v   " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v   " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$h$h" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tl$h$h" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr" (Format-RepeatChar " " 23) "$v" -ForegroundColor Cyan
+        Write-Host "$tr" (Format-RepeatChar " " 23) "$v" -ForegroundColor DarkCyan
 
-        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v  " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v  " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr  " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr  " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v   " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v   " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr     " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr     " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v   " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v   " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v   " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v   " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$br" (Format-RepeatChar " " 23) "$v" -ForegroundColor Cyan
+        Write-Host "$tl$br" (Format-RepeatChar " " 23) "$v" -ForegroundColor DarkCyan
 
-        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v  " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v  " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$h$h$br  $bl" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tl$h$h$br  $bl" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$br$bl$h$h$h$h" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tl$br$bl$h$h$h$h" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$h$h$br     " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tl$h$h$br     " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v   " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v   " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v   " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v   " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$h$h$h$br" (Format-RepeatChar " " 24) "$v" -ForegroundColor Cyan
+        Write-Host "$tl$h$h$h$br" (Format-RepeatChar " " 24) "$v" -ForegroundColor DarkCyan
 
-        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" (Format-RepeatChar " " 25) -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$br" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tl$br" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr $bl" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr $bl" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$br " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tl$br " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tr   " -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tr   " -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v   $bl" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$v   $bl" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b$b$b$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$tl$br" -ForegroundColor Cyan -NoNewLine
+        Write-Host "$tl$br" -ForegroundColor DarkCyan -NoNewLine
         Write-Host "$b$b" -ForegroundColor White -NoNewLine
-        Write-Host "$v" (Format-RepeatChar " " 28) "$v" -ForegroundColor Cyan
+        Write-Host "$v" (Format-RepeatChar " " 28) "$v" -ForegroundColor DarkCyan
         
-        Write-Host "$v" (Format-RepeatChar " " 24) "$bl$h$h$h$h$h$br $bl$h$h$h$h$h$h$br  $bl$h$h$h$br  $bl$h$h$h$h$h$h$br$bl$h$h$h$h$h$h$br   $bl$h$br    $bl$h$h$h$h$h$br $bl$h$br" (Format-RepeatChar " " 28) "$v" -ForegroundColor Cyan
+        Write-Host "$v" (Format-RepeatChar " " 24) "$bl$h$h$h$h$h$br $bl$h$h$h$h$h$h$br  $bl$h$h$h$br  $bl$h$h$h$h$h$h$br$bl$h$h$h$h$h$h$br   $bl$h$br    $bl$h$h$h$h$h$br $bl$h$br" (Format-RepeatChar " " 28) "$v" -ForegroundColor DarkCyan
         
-        Write-Host "$v" -ForegroundColor Cyan -NoNewline
+        Write-Host "$v" -ForegroundColor DarkCyan -NoNewline
         $version = Get-DevSetupVersion -Local
         $versionDisplay = "Development Environment Manager v$version"
         $paddedAction = $versionDisplay.PadLeft(($versionDisplay.Length + 118) / 2).PadRight(118)
         Write-Host "$paddedAction" -ForegroundColor White -NoNewline
-        Write-Host "$v" -ForegroundColor Cyan
-        Write-Host "$sp" -ForegroundColor Cyan
-        Write-Host "$bm" -ForegroundColor Cyan
+        Write-Host "$v" -ForegroundColor DarkCyan
+        Write-Host "$sp" -ForegroundColor DarkCyan
+        Write-Host "$bm" -ForegroundColor DarkCyan
 
         
         $actionDisplay = switch ($selectedAction) {
@@ -340,13 +346,15 @@ Function Use-DevSetup {
             'listplatform'          { ">> LISTING Available Environments From Platform" }
             'listproviderplatform'  { ">> LISTING Available Environments From Provider and Platform" }
             'uninstall'             { ">> UNINSTALLING Development Environment" }
+            'explain'               { ">> EXPLAINING Environment" }
+            'explainpath'           { ">> EXPLAINING Environment From Path" }
         }
 
         $paddedAction = $actionDisplay.PadLeft(($actionDisplay.Length + 118) / 2).PadRight(118)
-        Write-Host "$v" -ForegroundColor Cyan -NoNewline
+        Write-Host "$v" -ForegroundColor DarkCyan -NoNewline
         Write-Host "$paddedAction" -ForegroundColor Yellow -NoNewline
-        Write-Host "$v" -ForegroundColor Cyan
-        Write-Host "$bb" -ForegroundColor Cyan
+        Write-Host "$v" -ForegroundColor DarkCyan
+        Write-Host "$bb" -ForegroundColor DarkCyan
         Write-Host ""
 
         $RunDate = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
@@ -368,7 +376,7 @@ Function Use-DevSetup {
                 $ParameterCopy = [hashtable]$PSBoundParameters
                 $ParameterCopy.Remove('Update')    
                 if($_ -eq 'update') {
-                    $ParameterCopy['Latest'] = $true
+                    $ParameterCopy['Version'] = "latest"
                 }
                 Update-DevSetup @ParameterCopy | Out-Null
             }
@@ -393,9 +401,13 @@ Function Use-DevSetup {
                 $ParameterCopy.Remove('Uninstall')    
                 Uninstall-DevSetupEnv @ParameterCopy
             }
+            { $_ -eq 'explain' -or $_ -eq 'explainpath' } {
+                Write-StatusMessage "Explaining development environment..." -ForegroundColor Yellow
+                $ParameterCopy = [hashtable]$PSBoundParameters
+                $ParameterCopy.Remove('Explain')    
+                Show-ExplainDevSetupEnv @ParameterCopy
+            }
         }
-
-        #Write-Host "DevSetup action '$selectedAction' completed successfully!" -ForegroundColor Green
     }
     catch {
         Write-StatusMessage "Error executing DevSetup action '$selectedAction': $_" -Verbosity Error
