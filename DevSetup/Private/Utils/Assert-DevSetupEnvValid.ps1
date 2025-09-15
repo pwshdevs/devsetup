@@ -230,8 +230,6 @@ function Assert-CommandsValid {
             $params.Keys
         } elseif ($params -is [PSCustomObject]) {
             $params.PSObject.Properties.Name
-        } else {
-            @()
         }
         
         foreach ($key in $paramKeys) {
@@ -549,8 +547,6 @@ function Assert-DependenciesValid {
         $Dependencies.Keys
     } elseif ($Dependencies -is [PSCustomObject]) {
         $Dependencies.PSObject.Properties.Name
-    } else {
-        @()
     }
     
     foreach ($manager in $managerNames) {

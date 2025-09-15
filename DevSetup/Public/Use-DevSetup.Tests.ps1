@@ -10,6 +10,7 @@ BeforeAll {
     . (Join-Path $PSScriptRoot "..\..\DevSetup\Private\Commands\Export-DevSetupEnv.ps1")
     . (Join-Path $PSScriptRoot "..\..\DevSetup\Private\Commands\Show-DevSetupEnvList.ps1")
     . (Join-Path $PSScriptRoot "..\..\DevSetup\Private\Commands\Uninstall-DevSetupEnv.ps1")
+    . (Join-Path $PSScriptRoot "..\..\DevSetup\Private\Commands\Show-ExplainDevSetupEnv.ps1")
     Mock Write-Host { }
     Mock Write-StatusMessage { }
     Mock Write-Error { }
@@ -63,21 +64,6 @@ Describe "Use-DevSetup" {
         }
     }
 
-    Context "When updating to latest" {
-        It "should call Update-DevSetup with Latest parameter" {
-            Mock Get-DevSetupVersion { "1.0.9" }
-            Mock Get-DevSetupLogPath { Join-Path $TestDrive "logs" }
-            Mock Write-StatusMessage { }
-            Mock Write-Host { }
-            Mock Write-EZLog { }
-            Mock Update-DevSetup { }
-
-            $result = Use-DevSetup -Update
-            $result | Should -Be $null  # Update doesn't return a value
-            Assert-MockCalled Update-DevSetup -Exactly 1 -Scope It -ParameterFilter { $Latest -eq $true }
-        }
-    }
-
     Context "When updating to main" {
         It "should call Update-DevSetup with Main parameter" {
             Mock Get-DevSetupVersion { "1.0.9" }
@@ -120,6 +106,21 @@ Describe "Use-DevSetup" {
             $result = Use-DevSetup -Update -Version "1.0.8"
             $result | Should -Be $null
             Assert-MockCalled Update-DevSetup -Exactly 1 -Scope It -ParameterFilter { $Version -eq "1.0.8" }
+        }
+    }
+
+    Context "When updating without specific branch or version" {
+        It "should call Update-DevSetup with Version set to 'latest'" {
+            Mock Get-DevSetupVersion { "1.0.9" }
+            Mock Get-DevSetupLogPath { Join-Path $TestDrive "logs" }
+            Mock Write-StatusMessage { }
+            Mock Write-Host { }
+            Mock Write-EZLog { }
+            Mock Update-DevSetup { }
+
+            $result = Use-DevSetup -Update
+            $result | Should -Be $null
+            Assert-MockCalled Update-DevSetup -Exactly 1 -Scope It -ParameterFilter { $Version -eq "latest" }
         }
     }
 
@@ -212,6 +213,21 @@ Describe "Use-DevSetup" {
         }
     }
 
+    Context "When listing by provider and platform" {
+        It "should call Show-DevSetupEnvList with Provider and Platform parameters" {
+            Mock Get-DevSetupVersion { "1.0.9" }
+            Mock Get-DevSetupLogPath { Join-Path $TestDrive "logs" }
+            Mock Write-StatusMessage { }
+            Mock Write-Host { }
+            Mock Write-EZLog { }
+            Mock Show-DevSetupEnvList { }
+
+            $result = Use-DevSetup -List -Provider "Chocolatey" -Platform "Windows"
+            $result | Should -Be $null
+            Assert-MockCalled Show-DevSetupEnvList -Exactly 1 -Scope It -ParameterFilter { $Provider -eq "Chocolatey" -and $Platform -eq "Windows" }
+        }
+    }
+
     Context "When uninstalling" {
         It "should call Uninstall-DevSetupEnv with Name parameter" {
             Mock Get-DevSetupVersion { "1.0.9" }
@@ -224,6 +240,36 @@ Describe "Use-DevSetup" {
             $result = Use-DevSetup -Uninstall -Name "TestEnv"
             $result | Should -Be $true
             Assert-MockCalled Uninstall-DevSetupEnv -Exactly 1 -Scope It -ParameterFilter { $Name -eq "TestEnv" }
+        }
+    }
+
+    Context "When explaining with name" {
+        It "should call Show-ExplainDevSetupEnv with Name parameter" {
+            Mock Get-DevSetupVersion { "1.0.9" }
+            Mock Get-DevSetupLogPath { Join-Path $TestDrive "logs" }
+            Mock Write-StatusMessage { }
+            Mock Write-Host { }
+            Mock Write-EZLog { }
+            Mock Show-ExplainDevSetupEnv { $true }
+
+            $result = Use-DevSetup -Explain -Name "TestEnv"
+            $result | Should -Be $true
+            Assert-MockCalled Show-ExplainDevSetupEnv -Exactly 1 -Scope It -ParameterFilter { $Name -eq "TestEnv" }
+        }
+    }
+
+    Context "When explaining from path" {
+        It "should call Show-ExplainDevSetupEnv with Path parameter" {
+            Mock Get-DevSetupVersion { "1.0.9" }
+            Mock Get-DevSetupLogPath { Join-Path $TestDrive "logs" }
+            Mock Write-StatusMessage { }
+            Mock Write-Host { }
+            Mock Write-EZLog { }
+            Mock Show-ExplainDevSetupEnv { $true }
+
+            $result = Use-DevSetup -Explain -Path "C:\Configs\test.yaml"
+            $result | Should -Be $true
+            Assert-MockCalled Show-ExplainDevSetupEnv -Exactly 1 -Scope It -ParameterFilter { $Path -eq "C:\Configs\test.yaml" }
         }
     }
 

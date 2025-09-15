@@ -1,6 +1,10 @@
 $config = New-PesterConfiguration
 #$config.Run.PassThru = $true
-$config.Run.ExcludePath = @("**/DevSetup.psm1", "**/DevSetup.psd1", "**/Private/Enums/**", "install.ps1", "runTests.ps1", "runSecurity.ps1", "generateDocs.ps1")
+$config.Run.Path = "DevSetup"
+$config.CodeCoverage.Path = "DevSetup"
+$config.CodeCoverage.OutputFormat = "JaCoCo"
+$config.CodeCoverage.OutputPath = "coverage.xml"
+$config.Output.Verbosity = "Minimal"
 $config.CodeCoverage.Enabled = $true
 $config.TestResult.Enabled = $true
 #$config.Output.Verbosity = "GithubActions"

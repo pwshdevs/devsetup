@@ -376,7 +376,7 @@ Function Use-DevSetup {
                 $ParameterCopy = [hashtable]$PSBoundParameters
                 $ParameterCopy.Remove('Update')    
                 if($_ -eq 'update') {
-                    $ParameterCopy['Latest'] = $true
+                    $ParameterCopy['Version'] = "latest"
                 }
                 Update-DevSetup @ParameterCopy | Out-Null
             }
