@@ -237,6 +237,35 @@ Describe "Write-NewConfig" {
             Assert-MockCalled Invoke-PowershellModulesExport -Exactly 1 -Scope It
             Assert-MockCalled Write-StatusMessage -Exactly 1 -Scope It -ParameterFilter { $Message -match "- Version" }
         }
+    }
+
+    Context "When updating existing configuration with lastModified field" {
+        It "should preserve existing lastModified timestamp" {
+            Mock Test-RunningAsAdmin { $true }
+            Mock Get-HostArchitecture { "x64" }
+            Mock Get-HostOperatingSystem { "Windows" }
+            Mock Get-HostOperatingSystemVersion { "10.0.19042" }
+            Mock Get-EnvironmentVariable { "TestUser" }
+            Mock Get-Date { [DateTime]::Parse("2023-01-01 12:00:00") }
+            Mock Test-Path { $true }
+            Mock Read-DevSetupEnvFile { @{ devsetup = @{ configuration = @{ version = "1.0.0"; description = "Existing config"; createdDate = "2022-01-01 12:00:00"; createdBy = "OldUser"; lastModified = "2022-06-15 14:30:00" }; dependencies = @{ chocolatey = @{ packages = @("git") } }; commands = @("echo hello") } } }
+            Mock Update-DevSetupEnvFile { }
+            Mock Write-StatusMessage { }
+            Mock Test-OperatingSystem { $true }  # Windows
+            Mock Invoke-ChocolateyPackageExport { $true }
+            Mock Invoke-ScoopComponentExport { $true }
+            Mock Invoke-PowershellModulesExport { $true }
+            Mock ConvertFrom-3rdPartyInstall { }
+            Mock Optimize-DevSetupEnvs { }
+
+            $result = Write-NewConfig -OutFile "test.yaml"
+            $result | Should -Be $true
+            Assert-MockCalled Read-DevSetupEnvFile -Exactly 1 -Scope It
+            Assert-MockCalled Update-DevSetupEnvFile -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ChocolateyPackageExport -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-ScoopComponentExport -Exactly 1 -Scope It
+            Assert-MockCalled Invoke-PowershellModulesExport -Exactly 1 -Scope It
+        }
     }    
 
     Context "When reading existing config fails" {

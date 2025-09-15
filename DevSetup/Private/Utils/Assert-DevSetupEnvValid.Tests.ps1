@@ -2038,5 +2038,44 @@ Describe "Assert-DevSetupEnvValid" {
             # For now, we document this as a known edge case
             $true | Should -Be $true  # Placeholder test to document the edge case
         }
+    }
+
+    Context "Assert-PackageManagerValid - PowerShell Manager Coverage" {
+        It "Should throw when PowerShell manager has no packages, modules, or buckets" {
+            # This targets line 302: PowerShell manager with valid scope but no arrays
+            # Should throw "Manager 'powershell' must contain at least one of: 'packages', 'modules', or 'buckets'."
+            
+            $powershellManagerWithNoArrays = @{
+                scope = "CurrentUser"  # Valid scope
+                # Missing packages, modules, and buckets arrays
+            }
+            
+            { Assert-PackageManagerValid -ManagerName "powershell" -ManagerData $powershellManagerWithNoArrays } | 
+                Should -Throw "*Manager 'powershell' must contain at least one of: 'packages', 'modules', or 'buckets'*"
+        }
+        
+        It "Should throw when Scoop manager has no packages, modules, or buckets" {
+            # This targets line 320: Scoop manager with no arrays
+            # Should throw "Manager 'scoop' must contain at least one of: 'packages', 'modules', or 'buckets'."
+            
+            $scoopManagerWithNoArrays = @{
+                # Missing packages, modules, and buckets arrays
+            }
+            
+            { Assert-PackageManagerValid -ManagerName "scoop" -ManagerData $scoopManagerWithNoArrays } | 
+                Should -Throw "*Manager 'scoop' must contain at least one of: 'packages', 'modules', or 'buckets'*"
+        }
+        
+        It "Should throw when Homebrew manager has no packages, modules, or buckets" {
+            # This targets line 338: Homebrew manager with no arrays
+            # Should throw "Manager 'homebrew' must contain at least one of: 'packages', 'modules', or 'buckets'."
+            
+            $homebrewManagerWithNoArrays = @{
+                # Missing packages, modules, and buckets arrays
+            }
+            
+            { Assert-PackageManagerValid -ManagerName "homebrew" -ManagerData $homebrewManagerWithNoArrays } | 
+                Should -Throw "*Manager 'homebrew' must contain at least one of: 'packages', 'modules', or 'buckets'*"
+        }
     }    
 }

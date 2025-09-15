@@ -148,6 +148,110 @@ Describe "Format-PrettyTable" {
         }
     }
 
+    Context "When using NoHeader table format" {
+        It "Should skip header output when NoHeader is true" {
+            $columns = @{
+                Name = @{ Key = "Name"; Name = "Name"; Width = 10; Alignment = "Left"; Color = "White" }
+            }
+            $rows = @(
+                @{ Name = "Alice" }
+            )
+            $tableFormat = @{ BorderColor = "Gray"; NoHeader = $true }
+            Format-PrettyTable -Columns $columns -Rows $rows -TableFormat $tableFormat
+            Assert-MockCalled Write-StatusMessage -Exactly 5 -Scope It  # Top, row, bottom (no header/middle)
+        }
+    }
+
+    Context "When handling null/empty text values" {
+        It "Should replace null/empty text with [BLANK] in center alignment" {
+            $columns = @{
+                Name = @{ Key = "Name"; Name = ""; Width = 10; Alignment = "Center"; Color = "White" }
+            }
+            $rows = @(
+                @{ Name = $null }
+            )
+            $tableFormat = @{ BorderColor = "Gray" }
+            Format-PrettyTable -Columns $columns -Rows $rows -TableFormat $tableFormat
+            Assert-MockCalled Write-StatusMessage -Exactly 9 -Scope It
+        }
+
+        It "Should replace null/empty text with [BLANK] in left alignment" {
+            $columns = @{
+                Name = @{ Key = "Name"; Name = "   "; Width = 10; Alignment = "Left"; Color = "White" }
+            }
+            $rows = @(
+                @{ Name = "" }
+            )
+            $tableFormat = @{ BorderColor = "Gray" }
+            Format-PrettyTable -Columns $columns -Rows $rows -TableFormat $tableFormat
+            Assert-MockCalled Write-StatusMessage -Exactly 9 -Scope It
+        }
+
+        It "Should replace null/empty text with [BLANK] in right alignment" {
+            $columns = @{
+                Name = @{ Key = "Name"; Name = $null; Width = 10; Alignment = "Right"; Color = "White" }
+            }
+            $rows = @(
+                @{ Name = "  " }
+            )
+            $tableFormat = @{ BorderColor = "Gray" }
+            Format-PrettyTable -Columns $columns -Rows $rows -TableFormat $tableFormat
+            Assert-MockCalled Write-StatusMessage -Exactly 9 -Scope It
+        }
+    }
+
+    Context "When text width equals or exceeds column width" {
+        It "Should handle text width greater than column width in center alignment" {
+            $columns = @{
+                Name = @{ Key = "Name"; Name = "VeryLongHeaderText"; Width = 5; Alignment = "Center"; Color = "White" }
+            }
+            $rows = @(
+                @{ Name = "Short" }
+            )
+            $tableFormat = @{ BorderColor = "Gray" }
+            Format-PrettyTable -Columns $columns -Rows $rows -TableFormat $tableFormat
+            Assert-MockCalled Write-StatusMessage -Exactly 9 -Scope It
+        }
+
+        It "Should handle text width equal to column width in right alignment" {
+            $columns = @{
+                Name = @{ Key = "Name"; Name = "Name"; Width = 10; Alignment = "Right"; Color = "White" }
+            }
+            $rows = @(
+                @{ Name = "TenCharsTxt" }  # Exactly 10 chars + 1 space prefix = 11 chars >= 10 width
+            )
+            $tableFormat = @{ BorderColor = "Gray" }
+            Format-PrettyTable -Columns $columns -Rows $rows -TableFormat $tableFormat
+            Assert-MockCalled Write-StatusMessage -Exactly 9 -Scope It
+        }
+    }
+
+    Context "When using default alignment" {
+        It "Should handle default alignment for column headers" {
+            $columns = @{
+                Name = @{ Key = "Name"; Name = "Name"; Width = 10; Alignment = "Unknown"; Color = "White" }
+            }
+            $rows = @(
+                @{ Name = "Alice" }
+            )
+            $tableFormat = @{ BorderColor = "Gray" }
+            Format-PrettyTable -Columns $columns -Rows $rows -TableFormat $tableFormat
+            Assert-MockCalled Write-StatusMessage -Exactly 9 -Scope It
+        }
+
+        It "Should handle default alignment for row values" {
+            $columns = @{
+                Name = @{ Key = "Name"; Name = "Name"; Width = 10; Alignment = "InvalidType"; Color = "White" }
+            }
+            $rows = @(
+                @{ Name = "Alice" }
+            )
+            $tableFormat = @{ BorderColor = "Gray" }
+            Format-PrettyTable -Columns $columns -Rows $rows -TableFormat $tableFormat
+            Assert-MockCalled Write-StatusMessage -Exactly 9 -Scope It
+        }
+    }
+
     Context "Cross-platform compatibility" {
         It "Should work on Windows" {
             $columns = @{
